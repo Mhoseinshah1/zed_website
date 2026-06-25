@@ -1,0 +1,31 @@
+{{define "admin-content"}}
+<div class="mb-6">
+  <h2 class="text-white font-bold">صفحات قانونی</h2>
+  <p class="text-gray-400 text-sm mt-1">ویرایش صفحات شرایط استفاده و حریم خصوصی</p>
+</div>
+<div class="admin-card overflow-hidden">
+  <table class="data-table w-full">
+    <thead><tr><th>نام صفحه</th><th>Slug</th><th>آخرین بروزرسانی</th><th>عملیات</th></tr></thead>
+    <tbody>
+      {{range .Pages}}
+      <tr>
+        <td class="text-white font-medium">{{.Title}}</td>
+        <td class="text-gray-400 font-mono" dir="ltr">{{.Slug}}</td>
+        <td class="text-gray-500 text-xs">{{.UpdatedAt.Format "2006/01/02"}}</td>
+        <td><a href="/zed-admin/pages/{{.Slug}}/edit" class="btn-edit">ویرایش</a></td>
+      </tr>
+      {{else}}
+      <tr>
+        <td colspan="4" class="text-center text-gray-500 py-8">
+          <p class="mb-4">صفحه‌ای یافت نشد. صفحات پیش‌فرض را ایجاد کنید:</p>
+          <div class="flex gap-3 justify-center">
+            <a href="/zed-admin/pages/terms/edit" class="btn-edit">ایجاد صفحه شرایط</a>
+            <a href="/zed-admin/pages/privacy/edit" class="btn-edit">ایجاد صفحه حریم خصوصی</a>
+          </div>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}

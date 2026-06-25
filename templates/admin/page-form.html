@@ -1,0 +1,32 @@
+{{define "admin-content"}}
+<div class="mb-6"><a href="/zed-admin/pages" class="text-gray-400 hover:text-white text-sm flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>بازگشت</a></div>
+{{if .Error}}<div class="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl p-4 mb-6 text-sm">{{.Error}}</div>{{end}}
+<form method="POST" action="/zed-admin/pages/save" class="admin-card p-6 space-y-5">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <label class="form-label">Slug</label>
+      <input type="text" name="slug" value="{{if .Page}}{{.Page.Slug}}{{end}}" class="form-input" dir="ltr" placeholder="terms یا privacy">
+    </div>
+    <div>
+      <label class="form-label">عنوان صفحه *</label>
+      <input type="text" name="title" required value="{{if .Page}}{{.Page.Title}}{{end}}" class="form-input">
+    </div>
+  </div>
+  <div>
+    <label class="form-label">عنوان Meta</label>
+    <input type="text" name="meta_title" value="{{if .Page}}{{.Page.MetaTitle}}{{end}}" class="form-input">
+  </div>
+  <div>
+    <label class="form-label">توضیح Meta</label>
+    <textarea name="meta_description" class="form-input" rows="2">{{if .Page}}{{.Page.MetaDescription}}{{end}}</textarea>
+  </div>
+  <div>
+    <label class="form-label">محتوا (HTML) *</label>
+    <textarea name="content" required class="form-input font-mono text-sm" rows="20">{{if .Page}}{{.Page.Content}}{{end}}</textarea>
+  </div>
+  <div class="flex gap-3">
+    <button type="submit" class="btn-save px-8 py-2.5">ذخیره</button>
+    <a href="/zed-admin/pages" class="px-6 py-2.5 rounded-lg text-gray-400 text-sm font-medium border border-white/10">انصراف</a>
+  </div>
+</form>
+{{end}}

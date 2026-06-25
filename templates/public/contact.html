@@ -1,0 +1,55 @@
+{{define "content"}}
+<div class="pt-24 pb-20 min-h-screen">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h1 class="text-4xl sm:text-5xl font-black text-white mb-4">تماس با ما</h1>
+      <p class="text-gray-400 text-xl max-w-2xl mx-auto">تیم پشتیبانی ZedProxy همیشه آماده کمک به شماست</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+      <!-- Bot -->
+      <a href="{{index .Settings "telegram_bot"}}" target="_blank" rel="noopener"
+         onclick="trackClick('contact','bot_link')"
+         class="glass rounded-2xl p-8 text-center card-hover group">
+        <div class="w-16 h-16 rounded-2xl bg-brand-500/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-brand-500/30 transition-colors">
+          <svg class="w-8 h-8 text-brand-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.94z"/></svg>
+        </div>
+        <h2 class="text-white font-bold text-xl mb-2">ربات خرید</h2>
+        <p class="text-gray-400 text-sm mb-4">خرید اشتراک و دریافت کانفیگ</p>
+        <span class="text-brand-400 font-medium text-sm">@zedproxy_bot</span>
+      </a>
+
+      <!-- Channel -->
+      <a href="{{index .Settings "telegram_channel"}}" target="_blank" rel="noopener"
+         class="glass rounded-2xl p-8 text-center card-hover group">
+        <div class="w-16 h-16 rounded-2xl bg-cyan-500/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-cyan-500/30 transition-colors">
+          <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+        </div>
+        <h2 class="text-white font-bold text-xl mb-2">کانال تلگرام</h2>
+        <p class="text-gray-400 text-sm mb-4">اخبار، آپدیت‌ها و اطلاعیه‌ها</p>
+        <span class="text-cyan-400 font-medium text-sm">@Zed_Proxy1</span>
+      </a>
+
+      <!-- Support -->
+      <a href="{{index .Settings "telegram_support"}}" target="_blank" rel="noopener"
+         class="glass rounded-2xl p-8 text-center card-hover group">
+        <div class="w-16 h-16 rounded-2xl bg-purple-500/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-500/30 transition-colors">
+          <svg class="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </div>
+        <h2 class="text-white font-bold text-xl mb-2">پشتیبانی</h2>
+        <p class="text-gray-400 text-sm mb-4">رفع مشکل و راهنمایی ۲۴/۷</p>
+        <span class="text-purple-400 font-medium text-sm">@zedproxy_support</span>
+      </a>
+    </div>
+
+    <!-- Response time -->
+    <div class="glass rounded-2xl p-6 text-center">
+      <div class="flex items-center justify-center gap-2 mb-2">
+        <span class="w-3 h-3 bg-green-400 rounded-full pulse-dot"></span>
+        <span class="text-green-400 font-bold">پشتیبانی آنلاین</span>
+      </div>
+      <p class="text-gray-400 text-sm">میانگین زمان پاسخگویی: کمتر از ۳۰ دقیقه</p>
+    </div>
+  </div>
+</div>
+{{end}}

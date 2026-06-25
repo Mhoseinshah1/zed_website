@@ -1,0 +1,26 @@
+[Unit]
+Description=ZedProxy Website
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/zedproxy
+ExecStart=/opt/zedproxy/zedproxy \
+  --addr=127.0.0.1:8080 \
+  --db=/opt/zedproxy/data/zedproxy.db \
+  --templates=/opt/zedproxy/templates \
+  --static=/opt/zedproxy/static \
+  --uploads=/opt/zedproxy/static/uploads \
+  --secret=${SESSION_SECRET}
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zedproxy
+EnvironmentFile=/opt/zedproxy/.env
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

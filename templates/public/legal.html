@@ -1,0 +1,26 @@
+{{define "content"}}
+<div class="pt-24 pb-20 min-h-screen">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    {{if .Page}}
+    <article class="glass rounded-2xl p-8">
+      <h1 class="text-3xl sm:text-4xl font-black text-white mb-8 pb-6 border-b border-white/10">{{.Page.Title}}</h1>
+      <div class="prose-content text-gray-300 leading-relaxed">
+        {{.Page.Content | safeHTML}}
+      </div>
+    </article>
+    {{else}}
+    <div class="glass rounded-2xl p-12 text-center">
+      <p class="text-gray-400">محتوای این صفحه هنوز تنظیم نشده است</p>
+    </div>
+    {{end}}
+  </div>
+</div>
+<style>
+.prose-content h2 { font-size: 1.5rem; font-weight: 800; color: white; margin: 2rem 0 0.75rem; }
+.prose-content h3 { font-size: 1.2rem; font-weight: 700; color: #e2e8f0; margin: 1.5rem 0 0.5rem; }
+.prose-content p { margin: 0.75rem 0; line-height: 1.8; }
+.prose-content ul { list-style: disc; padding-right: 1.5rem; margin: 0.75rem 0; }
+.prose-content li { margin: 0.4rem 0; }
+.prose-content a { color: #818cf8; text-decoration: underline; }
+</style>
+{{end}}

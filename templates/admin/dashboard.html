@@ -1,0 +1,87 @@
+{{define "admin-content"}}
+<div class="space-y-6">
+  <!-- Stats Row -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="admin-card p-5">
+      <div class="text-gray-400 text-sm mb-1">کلیک‌های تلگرام (کل)</div>
+      <div class="text-3xl font-black text-white">{{.ClickStats.Total}}</div>
+    </div>
+    <div class="admin-card p-5">
+      <div class="text-gray-400 text-sm mb-1">کلیک‌های امروز</div>
+      <div class="text-3xl font-black text-indigo-400">{{.ClickStats.Today}}</div>
+    </div>
+    <div class="admin-card p-5">
+      <div class="text-gray-400 text-sm mb-1">تعداد پلن‌ها</div>
+      <div class="text-3xl font-black text-purple-400">{{.PlanCount}}</div>
+    </div>
+    <div class="admin-card p-5">
+      <div class="text-gray-400 text-sm mb-1">مقالات منتشر شده</div>
+      <div class="text-3xl font-black text-cyan-400">{{.PostCount}}</div>
+    </div>
+  </div>
+
+  {{if .ClickStats.MostClicked}}
+  <div class="admin-card p-4 flex items-center gap-3">
+    <svg class="w-5 h-5 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+    <div>
+      <span class="text-gray-400 text-sm">پرکلیک‌ترین صفحه: </span>
+      <span class="text-white font-bold">{{.ClickStats.MostClicked}}</span>
+    </div>
+  </div>
+  {{end}}
+
+  <!-- Quick Links -->
+  <div class="admin-card p-5">
+    <h2 class="text-white font-bold mb-4 text-sm uppercase tracking-wider text-gray-400">دسترسی سریع</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <a href="/zed-admin/plans/new" class="flex items-center gap-2 p-3 rounded-xl text-sm font-medium text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        پلن جدید
+      </a>
+      <a href="/zed-admin/posts/new" class="flex items-center gap-2 p-3 rounded-xl text-sm font-medium text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        مقاله جدید
+      </a>
+      <a href="/zed-admin/tutorials/new" class="flex items-center gap-2 p-3 rounded-xl text-sm font-medium text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        آموزش جدید
+      </a>
+      <a href="/zed-admin/status/new" class="flex items-center gap-2 p-3 rounded-xl text-sm font-medium text-green-400 bg-green-500/10 hover:bg-green-500/20 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        اطلاعیه جدید
+      </a>
+    </div>
+  </div>
+
+  <!-- Recent Clicks -->
+  {{if .RecentClicks}}
+  <div class="admin-card">
+    <div class="p-5 border-b border-white/5">
+      <h2 class="text-white font-bold">آخرین کلیک‌های تلگرام</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>صفحه</th>
+            <th>منبع</th>
+            <th>IP</th>
+            <th>زمان</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .RecentClicks}}
+          <tr>
+            <td class="text-white">{{.Page}}</td>
+            <td class="text-gray-400">{{.Source}}</td>
+            <td class="text-gray-500 text-xs">{{.IP}}</td>
+            <td class="text-gray-500 text-xs">{{.CreatedAt.Format "2006/01/02 15:04"}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}

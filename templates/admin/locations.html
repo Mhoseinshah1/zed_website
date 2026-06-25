@@ -1,0 +1,34 @@
+{{define "admin-content"}}
+<div class="flex justify-between items-center mb-6">
+  <h2 class="text-white font-bold">لوکیشن‌ها</h2>
+  <a href="/zed-admin/locations/new" class="btn-save px-5 py-2 inline-flex items-center gap-2 text-sm">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    لوکیشن جدید
+  </a>
+</div>
+<div class="admin-card overflow-hidden">
+  <table class="data-table w-full">
+    <thead><tr><th>پرچم</th><th>نام</th><th>کد</th><th>سرعت</th><th>ترتیب</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+    <tbody>
+      {{range .Locations}}
+      <tr>
+        <td class="text-2xl">{{.Flag}}</td>
+        <td class="text-white font-medium">{{.Name}}</td>
+        <td class="text-gray-400 font-mono">{{.Code}}</td>
+        <td class="text-gray-400">{{.Speed}}</td>
+        <td class="text-gray-400">{{.SortOrder}}</td>
+        <td>{{if .IsActive}}<span class="badge badge-green">فعال</span>{{else}}<span class="badge badge-red">غیرفعال</span>{{end}}</td>
+        <td>
+          <div class="flex gap-2">
+            <a href="/zed-admin/locations/{{.ID}}/edit" class="btn-edit">ویرایش</a>
+            <form method="POST" action="/zed-admin/locations/{{.ID}}/delete" onsubmit="return confirm('حذف شود؟')">
+              <button type="submit" class="btn-danger">حذف</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {{else}}<tr><td colspan="7" class="text-center text-gray-500 py-8">لوکیشنی وجود ندارد</td></tr>{{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}

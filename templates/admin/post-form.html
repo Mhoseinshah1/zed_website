@@ -1,0 +1,58 @@
+{{define "admin-content"}}
+<div class="mb-6"><a href="/zed-admin/posts" class="text-gray-400 hover:text-white text-sm flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>بازگشت</a></div>
+{{if .Error}}<div class="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl p-4 mb-6 text-sm">{{.Error}}</div>{{end}}
+<form method="POST" action="/zed-admin/posts/save" class="space-y-5">
+  <input type="hidden" name="id" value="{{if .Post}}{{.Post.ID}}{{end}}">
+
+  <div class="admin-card p-6 space-y-5">
+    <h3 class="text-white font-bold pb-3 border-b border-white/10">محتوا</h3>
+    <div>
+      <label class="form-label">عنوان *</label>
+      <input type="text" name="title" required value="{{if .Post}}{{.Post.Title}}{{end}}" class="form-input text-lg font-bold">
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div>
+        <label class="form-label">Slug (لینک) *</label>
+        <input type="text" name="slug" required value="{{if .Post}}{{.Post.Slug}}{{end}}" class="form-input" dir="ltr" placeholder="example-post-slug">
+      </div>
+      <div>
+        <label class="form-label">دسته‌بندی</label>
+        <input type="text" name="category" value="{{if .Post}}{{.Post.Category}}{{end}}" class="form-input">
+      </div>
+    </div>
+    <div>
+      <label class="form-label">خلاصه (برای لیست و SEO)</label>
+      <textarea name="excerpt" class="form-input" rows="3">{{if .Post}}{{.Post.Excerpt}}{{end}}</textarea>
+    </div>
+    <div>
+      <label class="form-label">محتوای اصلی (HTML)</label>
+      <textarea name="content" class="form-input font-mono text-sm" rows="15" dir="rtl">{{if .Post}}{{.Post.Content}}{{end}}</textarea>
+    </div>
+    <div>
+      <label class="form-label">آدرس تصویر</label>
+      <input type="text" name="image" value="{{if .Post}}{{.Post.Image}}{{end}}" class="form-input" dir="ltr" placeholder="/uploads/image.jpg">
+    </div>
+  </div>
+
+  <div class="admin-card p-6 space-y-5">
+    <h3 class="text-white font-bold pb-3 border-b border-white/10">تنظیمات SEO</h3>
+    <div>
+      <label class="form-label">عنوان Meta</label>
+      <input type="text" name="meta_title" value="{{if .Post}}{{.Post.MetaTitle}}{{end}}" class="form-input">
+    </div>
+    <div>
+      <label class="form-label">توضیح Meta</label>
+      <textarea name="meta_description" class="form-input" rows="2">{{if .Post}}{{.Post.MetaDescription}}{{end}}</textarea>
+    </div>
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="checkbox" name="is_published" value="1" {{if .Post}}{{if .Post.IsPublished}}checked{{end}}{{end}}>
+      <span class="text-sm text-gray-300">منتشر شود</span>
+    </label>
+  </div>
+
+  <div class="flex gap-3">
+    <button type="submit" class="btn-save px-8 py-2.5">ذخیره</button>
+    <a href="/zed-admin/posts" class="px-6 py-2.5 rounded-lg text-gray-400 text-sm font-medium border border-white/10">انصراف</a>
+  </div>
+</form>
+{{end}}

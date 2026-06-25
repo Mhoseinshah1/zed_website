@@ -1,0 +1,67 @@
+{{define "content"}}
+<div class="pt-24 pb-20 min-h-screen">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h1 class="text-4xl sm:text-5xl font-black text-white mb-4">وضعیت سرویس</h1>
+      <p class="text-gray-400 text-xl">آخرین وضعیت سرویس‌های ZedProxy</p>
+    </div>
+
+    <!-- Current Status -->
+    <div class="glass rounded-2xl p-6 flex items-center gap-4 mb-8">
+      <div class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <div>
+        <div class="text-white font-bold text-lg flex items-center gap-2">
+          <span class="w-2 h-2 bg-green-400 rounded-full pulse-dot"></span>
+          تمام سیستم‌ها عملیاتی هستند
+        </div>
+        <p class="text-gray-400 text-sm">همه سرورها و خدمات به درستی کار می‌کنند</p>
+      </div>
+    </div>
+
+    <!-- Updates -->
+    {{if .Updates}}
+    <div class="space-y-4">
+      <h2 class="text-2xl font-black text-white mb-6">آخرین به‌روزرسانی‌ها</h2>
+      {{range .Updates}}
+      <div class="glass rounded-xl p-6 flex gap-4">
+        <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center
+          {{if eq .Status "success"}}bg-green-500/20{{else if eq .Status "warning"}}bg-yellow-500/20{{else if eq .Status "error"}}bg-red-500/20{{else}}bg-blue-500/20{{end}}">
+          {{if eq .Status "success"}}
+          <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          {{else if eq .Status "warning"}}
+          <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          {{else if eq .Status "error"}}
+          <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          {{else}}
+          <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          {{end}}
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between gap-4 mb-1">
+            <h3 class="text-white font-bold">{{.Title}}</h3>
+            <time class="text-gray-500 text-xs flex-shrink-0">{{.CreatedAt.Format "2006/01/02 15:04"}}</time>
+          </div>
+          <p class="text-gray-400 text-sm leading-relaxed">{{.Content}}</p>
+        </div>
+      </div>
+      {{end}}
+    </div>
+    {{else}}
+    <div class="glass rounded-2xl p-12 text-center">
+      <p class="text-gray-400">هیچ به‌روزرسانی‌ای در این زمان وجود ندارد</p>
+    </div>
+    {{end}}
+
+    <div class="mt-10 text-center">
+      <p class="text-gray-400 text-sm mb-4">برای دریافت آخرین اطلاعیه‌ها، در کانال تلگرام ما عضو شوید</p>
+      <a href="{{index .Settings "telegram_channel"}}" target="_blank" rel="noopener"
+         class="glass inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium hover:border-cyan-500/50 transition-colors">
+        <svg class="w-5 h-5 text-cyan-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.94z"/></svg>
+        عضویت در کانال تلگرام
+      </a>
+    </div>
+  </div>
+</div>
+{{end}}

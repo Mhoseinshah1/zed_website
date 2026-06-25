@@ -1,0 +1,65 @@
+{{define "content"}}
+<div class="pt-24 pb-20 min-h-screen">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h1 class="text-4xl sm:text-5xl font-black text-white mb-4">پلن‌ها و قیمت‌ها</h1>
+      <p class="text-gray-400 text-xl max-w-2xl mx-auto">همه اشتراک‌ها از طریق ربات تلگرام با چند کلیک قابل خریداری هستند</p>
+    </div>
+
+    {{if .Plans}}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+      {{range .Plans}}
+      <div class="relative rounded-2xl p-6 flex flex-col card-hover {{if .IsPopular}}bg-gradient-to-b from-brand-600/20 to-purple-600/10 border border-brand-500/40 neon-border{{else}}glass{{end}}">
+        {{if .Badge}}
+        <span class="absolute -top-3 right-4 px-3 py-1 rounded-full text-xs font-bold {{if .IsPopular}}bg-gradient-to-r from-brand-500 to-purple-500 text-white{{else}}bg-cyan-500/20 text-cyan-400 border border-cyan-500/30{{end}}">
+          {{.Badge}}
+        </span>
+        {{end}}
+        <div class="mb-4">
+          <h2 class="text-2xl font-black text-white">{{.Name}}</h2>
+          <p class="text-gray-400 text-sm mt-1">{{.Description}}</p>
+        </div>
+        <div class="mb-6">
+          <div class="text-3xl font-black gradient-text">{{.Price}}</div>
+          <div class="flex gap-2 mt-2 flex-wrap">
+            <span class="glass px-2 py-1 rounded text-xs text-cyan-400">📦 {{.Traffic}}</span>
+            <span class="glass px-2 py-1 rounded text-xs text-purple-400">📅 {{.Duration}}</span>
+          </div>
+        </div>
+        {{if .Features}}
+        <ul class="space-y-2 mb-6 flex-1">
+          {{range .Features}}
+          <li class="flex items-center gap-2 text-sm text-gray-300">
+            <svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            {{.}}
+          </li>
+          {{end}}
+        </ul>
+        {{end}}
+        <a href="{{index $.Settings "telegram_bot"}}" target="_blank" rel="noopener"
+           onclick="trackClick('plans_page','plan_{{.ID}}')"
+           class="{{if .IsPopular}}btn-primary{{else}}glass hover:border-brand-500/50{{end}} flex items-center justify-center gap-2 py-3 rounded-xl text-white font-bold text-sm transition-all mt-auto">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.94z"/></svg>
+          خرید {{.Name}}
+        </a>
+      </div>
+      {{end}}
+    </div>
+    {{else}}
+    <div class="glass rounded-2xl p-12 text-center">
+      <p class="text-gray-400 text-lg">در حال حاضر پلنی برای نمایش وجود ندارد</p>
+    </div>
+    {{end}}
+
+    <!-- Note -->
+    <div class="glass rounded-2xl p-6 text-center">
+      <p class="text-gray-400">
+        🔒 تمام پرداخت‌ها امن هستند &nbsp;|&nbsp;
+        ⚡ تحویل فوری &nbsp;|&nbsp;
+        💬 پشتیبانی ۲۴/۷ &nbsp;|&nbsp;
+        🔄 ضمانت بازگشت وجه ۲۴ ساعته
+      </p>
+    </div>
+  </div>
+</div>
+{{end}}

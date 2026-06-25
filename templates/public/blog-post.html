@@ -1,0 +1,40 @@
+{{define "content"}}
+<div class="pt-24 pb-20 min-h-screen">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-6">
+      <a href="/blog" class="text-gray-400 hover:text-white text-sm flex items-center gap-1">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        بازگشت به وبلاگ
+      </a>
+    </div>
+
+    {{if .Post}}
+    <article class="glass rounded-2xl overflow-hidden">
+      {{if .Post.Image}}
+      <img src="{{.Post.Image}}" alt="{{.Post.Title}}" class="w-full h-72 object-cover">
+      {{end}}
+      <div class="p-8">
+        {{if .Post.Category}}<span class="text-xs text-brand-400 font-medium bg-brand-500/10 px-2 py-1 rounded">{{.Post.Category}}</span>{{end}}
+        <h1 class="text-3xl sm:text-4xl font-black text-white mt-4 mb-4">{{.Post.Title}}</h1>
+        {{if .Post.Excerpt}}<p class="text-gray-400 text-lg mb-6 pb-6 border-b border-white/10 leading-relaxed">{{.Post.Excerpt}}</p>{{end}}
+        <div class="prose-content text-gray-300 leading-relaxed">
+          {{.Post.Content | safeHTML}}
+        </div>
+      </div>
+    </article>
+    <style>
+    .prose-content h2 { font-size: 1.5rem; font-weight: 800; color: white; margin: 1.5rem 0 0.75rem; }
+    .prose-content h3 { font-size: 1.25rem; font-weight: 700; color: #e2e8f0; margin: 1.25rem 0 0.5rem; }
+    .prose-content p { margin: 0.75rem 0; line-height: 1.8; }
+    .prose-content ul { list-style: disc; padding-right: 1.5rem; margin: 0.75rem 0; }
+    .prose-content ol { list-style: decimal; padding-right: 1.5rem; margin: 0.75rem 0; }
+    .prose-content li { margin: 0.4rem 0; }
+    .prose-content a { color: #818cf8; text-decoration: underline; }
+    .prose-content code { background: rgba(99,102,241,0.1); padding: 0.1rem 0.3rem; border-radius: 4px; font-size: 0.85em; }
+    .prose-content pre { background: rgba(0,0,0,0.5); padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; }
+    .prose-content blockquote { border-right: 4px solid #6366f1; padding-right: 1rem; margin: 1rem 0; color: #9ca3af; }
+    </style>
+    {{end}}
+  </div>
+</div>
+{{end}}

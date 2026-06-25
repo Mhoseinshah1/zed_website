@@ -1,0 +1,71 @@
+{{define "content"}}
+<div class="pt-24 pb-20 min-h-screen">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h1 class="text-4xl sm:text-5xl font-black text-white mb-4">آموزش نصب و راه‌اندازی</h1>
+      <p class="text-gray-400 text-xl max-w-2xl mx-auto">راهنمای گام به گام نصب ZedProxy روی تمام دستگاه‌ها</p>
+    </div>
+
+    {{if .Tutorials}}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {{range .Tutorials}}
+      <a href="/tutorials/{{.Slug}}" class="glass rounded-2xl overflow-hidden card-hover group block">
+        {{if .Image}}
+        <div class="h-40 overflow-hidden">
+          <img src="{{.Image}}" alt="{{.Title}}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        </div>
+        {{else}}
+        <div class="h-40 bg-gradient-to-br from-brand-500/20 to-purple-500/20 flex items-center justify-center">
+          {{if eq .Platform "android"}}
+          <span class="text-5xl">🤖</span>
+          {{else if eq .Platform "ios"}}
+          <span class="text-5xl">🍎</span>
+          {{else if eq .Platform "windows"}}
+          <span class="text-5xl">🪟</span>
+          {{else if eq .Platform "mac"}}
+          <span class="text-5xl">🍏</span>
+          {{else if eq .Platform "linux"}}
+          <span class="text-5xl">🐧</span>
+          {{else}}
+          <span class="text-5xl">📱</span>
+          {{end}}
+        </div>
+        {{end}}
+        <div class="p-5">
+          <div class="flex items-center gap-2 mb-2">
+            {{if .Category}}<span class="text-xs text-brand-400 font-medium bg-brand-500/10 px-2 py-0.5 rounded">{{.Category}}</span>{{end}}
+            {{if .Platform}}<span class="text-xs text-cyan-400 font-medium bg-cyan-500/10 px-2 py-0.5 rounded">{{.Platform}}</span>{{end}}
+          </div>
+          <h2 class="text-white font-bold text-lg group-hover:text-brand-300 transition-colors">{{.Title}}</h2>
+          {{if .Excerpt}}<p class="text-gray-400 text-sm mt-2 line-clamp-2">{{.Excerpt}}</p>{{end}}
+          <div class="flex items-center gap-1 mt-4 text-brand-400 text-sm font-medium">
+            مشاهده آموزش
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </div>
+        </div>
+      </a>
+      {{end}}
+    </div>
+    {{else}}
+    <div class="glass rounded-2xl p-12 text-center">
+      <p class="text-gray-400 text-lg">آموزش‌ها به زودی اضافه می‌شوند</p>
+      <a href="{{index .Settings "telegram_channel"}}" target="_blank" class="btn-primary inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-xl text-white font-bold">
+        عضویت در کانال برای اطلاع از آموزش‌ها
+      </a>
+    </div>
+    {{end}}
+
+    <!-- CTA -->
+    <div class="mt-16 glass rounded-2xl p-8 text-center">
+      <h2 class="text-2xl font-black text-white mb-3">آماده خرید هستید؟</h2>
+      <p class="text-gray-400 mb-6">بعد از نصب، اشتراک را از ربات ما خریداری کنید</p>
+      <a href="{{index .Settings "telegram_bot"}}" target="_blank" rel="noopener"
+         onclick="trackClick('tutorials_page','cta')"
+         class="btn-primary inline-flex items-center gap-3 px-8 py-4 rounded-xl text-white font-bold text-lg">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.94z"/></svg>
+        خرید اشتراک از ربات
+      </a>
+    </div>
+  </div>
+</div>
+{{end}}

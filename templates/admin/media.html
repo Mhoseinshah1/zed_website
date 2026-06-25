@@ -1,0 +1,67 @@
+{{define "admin-content"}}
+<div class="mb-6">
+  <h2 class="text-white font-bold">مدیریت فایل‌ها</h2>
+</div>
+
+<!-- Upload Form -->
+<div class="admin-card p-6 mb-6">
+  <h3 class="text-white font-bold mb-4 text-sm">آپلود فایل جدید</h3>
+  <div x-data="{uploading: false, result: null, error: null}">
+    <input type="file" id="fileInput" accept="image/*" class="hidden"
+           @change="
+             uploading = true; result = null; error = null;
+             const fd = new FormData();
+             fd.append('file', $event.target.files[0]);
+             fetch('/zed-admin/media/upload', {method:'POST', body:fd})
+               .then(r=>r.json())
+               .then(d=>{ uploading=false; if(d.url){ result=d.url; } else { error=d.error||'خطا'; } })
+               .catch(()=>{ uploading=false; error='خطای شبکه'; })
+           ">
+    <label for="fileInput"
+           class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-colors"
+           style="background:rgba(99,102,241,0.2);color:#a5b4fc;border:1px solid rgba(99,102,241,0.3)">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+      <span x-text="uploading ? 'در حال آپلود...' : 'انتخاب فایل'"></span>
+    </label>
+    <p class="text-gray-500 text-xs mt-2">فرمت‌های مجاز: JPG، PNG، GIF، WebP، SVG &nbsp;|&nbsp; حداکثر: ۵ مگابایت</p>
+    <div x-show="result" x-cloak class="mt-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+      <p class="text-green-400 text-sm font-medium mb-1">آپلود موفق!</p>
+      <code class="text-gray-300 text-xs" x-text="result"></code>
+    </div>
+    <div x-show="error" x-cloak class="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+      <p class="text-red-400 text-sm" x-text="error"></p>
+    </div>
+  </div>
+</div>
+
+<!-- Files List -->
+<div class="admin-card overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="data-table w-full">
+      <thead><tr><th>پیش‌نمایش</th><th>نام فایل</th><th>نوع</th><th>حجم</th><th>آدرس</th><th>تاریخ</th><th>عملیات</th></tr></thead>
+      <tbody>
+        {{range .Files}}
+        <tr>
+          <td><img src="{{.Path}}" alt="" class="w-12 h-12 object-cover rounded-lg" onerror="this.style.display='none'"></td>
+          <td class="text-white text-sm max-w-xs truncate">{{.OriginalName}}</td>
+          <td class="text-gray-400 text-xs">{{.MimeType}}</td>
+          <td class="text-gray-400 text-xs">{{.Size}} B</td>
+          <td>
+            <button onclick="navigator.clipboard.writeText('{{.Path}}').then(()=>alert('کپی شد!'))"
+                    class="text-brand-400 hover:text-brand-300 text-xs font-mono truncate max-w-32 block" dir="ltr">
+              {{.Path}}
+            </button>
+          </td>
+          <td class="text-gray-500 text-xs">{{.CreatedAt.Format "01/02"}}</td>
+          <td>
+            <form method="POST" action="/zed-admin/media/{{.ID}}/delete" onsubmit="return confirm('حذف شود؟')">
+              <button type="submit" class="btn-danger">حذف</button>
+            </form>
+          </td>
+        </tr>
+        {{else}}<tr><td colspan="7" class="text-center text-gray-500 py-8">فایلی آپلود نشده</td></tr>{{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{end}}

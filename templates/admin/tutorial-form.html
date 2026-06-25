@@ -1,0 +1,60 @@
+{{define "admin-content"}}
+<div class="mb-6"><a href="/zed-admin/tutorials" class="text-gray-400 hover:text-white text-sm flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>بازگشت</a></div>
+{{if .Error}}<div class="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl p-4 mb-6 text-sm">{{.Error}}</div>{{end}}
+<form method="POST" action="/zed-admin/tutorials/save" class="admin-card p-6 space-y-5">
+  <input type="hidden" name="id" value="{{if .Tutorial}}{{.Tutorial.ID}}{{end}}">
+  <div>
+    <label class="form-label">عنوان *</label>
+    <input type="text" name="title" required value="{{if .Tutorial}}{{.Tutorial.Title}}{{end}}" class="form-input">
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div>
+      <label class="form-label">Slug *</label>
+      <input type="text" name="slug" required value="{{if .Tutorial}}{{.Tutorial.Slug}}{{end}}" class="form-input" dir="ltr">
+    </div>
+    <div>
+      <label class="form-label">پلتفرم</label>
+      <select name="platform" class="form-input">
+        <option value="">انتخاب کنید</option>
+        <option value="android" {{if .Tutorial}}{{if eq .Tutorial.Platform "android"}}selected{{end}}{{end}}>اندروید</option>
+        <option value="ios" {{if .Tutorial}}{{if eq .Tutorial.Platform "ios"}}selected{{end}}{{end}}>iOS</option>
+        <option value="windows" {{if .Tutorial}}{{if eq .Tutorial.Platform "windows"}}selected{{end}}{{end}}>ویندوز</option>
+        <option value="mac" {{if .Tutorial}}{{if eq .Tutorial.Platform "mac"}}selected{{end}}{{end}}>مک</option>
+        <option value="linux" {{if .Tutorial}}{{if eq .Tutorial.Platform "linux"}}selected{{end}}{{end}}>لینوکس</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">دسته‌بندی</label>
+      <input type="text" name="category" value="{{if .Tutorial}}{{.Tutorial.Category}}{{end}}" class="form-input">
+    </div>
+  </div>
+  <div>
+    <label class="form-label">خلاصه</label>
+    <textarea name="excerpt" class="form-input" rows="2">{{if .Tutorial}}{{.Tutorial.Excerpt}}{{end}}</textarea>
+  </div>
+  <div>
+    <label class="form-label">محتوا (HTML) *</label>
+    <textarea name="content" required class="form-input font-mono text-sm" rows="15">{{if .Tutorial}}{{.Tutorial.Content}}{{end}}</textarea>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div>
+      <label class="form-label">آدرس تصویر</label>
+      <input type="text" name="image" value="{{if .Tutorial}}{{.Tutorial.Image}}{{end}}" class="form-input" dir="ltr">
+    </div>
+    <div>
+      <label class="form-label">ترتیب</label>
+      <input type="number" name="sort_order" value="{{if .Tutorial}}{{.Tutorial.SortOrder}}{{else}}0{{end}}" class="form-input">
+    </div>
+    <div class="flex items-end pb-1">
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" name="is_published" value="1" {{if .Tutorial}}{{if .Tutorial.IsPublished}}checked{{end}}{{else}}checked{{end}}>
+        <span class="text-sm text-gray-300">منتشر شود</span>
+      </label>
+    </div>
+  </div>
+  <div class="flex gap-3">
+    <button type="submit" class="btn-save px-8 py-2.5">ذخیره</button>
+    <a href="/zed-admin/tutorials" class="px-6 py-2.5 rounded-lg text-gray-400 text-sm font-medium border border-white/10">انصراف</a>
+  </div>
+</form>
+{{end}}

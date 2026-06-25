@@ -1,0 +1,140 @@
+{{define "admin-content"}}
+<form method="POST" action="/zed-admin/settings" class="space-y-6">
+  {{if .Saved}}<div class="bg-green-500/10 border border-green-500/30 text-green-400 rounded-xl p-4 text-sm">تنظیمات با موفقیت ذخیره شد</div>{{end}}
+
+  <!-- Brand -->
+  <div class="admin-card p-6">
+    <h2 class="text-white font-bold text-base mb-5 pb-3 border-b border-white/10">اطلاعات برند</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div>
+        <label class="form-label">نام سایت</label>
+        <input type="text" name="site_name" value="{{index .Settings "site_name"}}" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">شعار سایت</label>
+        <input type="text" name="site_tagline" value="{{index .Settings "site_tagline"}}" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">آدرس سایت (URL)</label>
+        <input type="url" name="site_url" value="{{index .Settings "site_url"}}" class="form-input" dir="ltr">
+      </div>
+      <div>
+        <label class="form-label">متن لوگو</label>
+        <input type="text" name="logo_text" value="{{index .Settings "logo_text"}}" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">متن فوتر</label>
+        <input type="text" name="footer_text" value="{{index .Settings "footer_text"}}" class="form-input">
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="admin-card p-6">
+    <h2 class="text-white font-bold text-base mb-5 pb-3 border-b border-white/10">بخش Hero (صفحه اول)</h2>
+    <div class="grid grid-cols-1 gap-5">
+      <div>
+        <label class="form-label">عنوان اصلی Hero</label>
+        <input type="text" name="hero_title" value="{{index .Settings "hero_title"}}" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">زیرعنوان Hero</label>
+        <textarea name="hero_subtitle" class="form-input" rows="3">{{index .Settings "hero_subtitle"}}</textarea>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div>
+          <label class="form-label">متن دکمه اصلی CTA</label>
+          <input type="text" name="hero_cta_text" value="{{index .Settings "hero_cta_text"}}" class="form-input">
+        </div>
+        <div>
+          <label class="form-label">متن دکمه ثانویه</label>
+          <input type="text" name="hero_secondary" value="{{index .Settings "hero_secondary"}}" class="form-input">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Telegram -->
+  <div class="admin-card p-6">
+    <h2 class="text-white font-bold text-base mb-5 pb-3 border-b border-white/10">لینک‌های تلگرام</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div>
+        <label class="form-label">ربات خرید</label>
+        <input type="url" name="telegram_bot" value="{{index .Settings "telegram_bot"}}" class="form-input" dir="ltr">
+      </div>
+      <div>
+        <label class="form-label">کانال تلگرام</label>
+        <input type="url" name="telegram_channel" value="{{index .Settings "telegram_channel"}}" class="form-input" dir="ltr">
+      </div>
+      <div>
+        <label class="form-label">پشتیبانی</label>
+        <input type="url" name="telegram_support" value="{{index .Settings "telegram_support"}}" class="form-input" dir="ltr">
+      </div>
+    </div>
+  </div>
+
+  <!-- SEO -->
+  <div class="admin-card p-6">
+    <h2 class="text-white font-bold text-base mb-5 pb-3 border-b border-white/10">تنظیمات SEO</h2>
+    <div class="grid grid-cols-1 gap-5">
+      <div>
+        <label class="form-label">عنوان SEO صفحه اصلی</label>
+        <input type="text" name="seo_title" value="{{index .Settings "seo_title"}}" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">توضیح SEO صفحه اصلی</label>
+        <textarea name="seo_description" class="form-input" rows="3">{{index .Settings "seo_description"}}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trust Numbers -->
+  <div class="admin-card p-6">
+    <h2 class="text-white font-bold text-base mb-5 pb-3 border-b border-white/10">اعداد اعتمادسازی</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+      <div>
+        <label class="form-label">تعداد کاربران</label>
+        <input type="text" name="trust_count_users" value="{{index .Settings "trust_count_users"}}" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">آپتایم</label>
+        <input type="text" name="trust_uptime" value="{{index .Settings "trust_uptime"}}" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">سرعت</label>
+        <input type="text" name="trust_speed" value="{{index .Settings "trust_speed"}}" class="form-input">
+      </div>
+      <div>
+        <label class="form-label">پشتیبانی</label>
+        <input type="text" name="trust_support" value="{{index .Settings "trust_support"}}" class="form-input">
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics & Custom CSS -->
+  <div class="admin-card p-6">
+    <h2 class="text-white font-bold text-base mb-5 pb-3 border-b border-white/10">پیشرفته</h2>
+    <div class="grid grid-cols-1 gap-5">
+      <div>
+        <label class="form-label">Google Analytics ID</label>
+        <input type="text" name="google_analytics" value="{{index .Settings "google_analytics"}}" class="form-input" dir="ltr" placeholder="G-XXXXXXXXXX">
+      </div>
+      <div>
+        <label class="form-label">CSS سفارشی</label>
+        <textarea name="custom_css" class="form-input font-mono text-sm" rows="5" dir="ltr" placeholder="/* CSS سفارشی شما */">{{index .Settings "custom_css"}}</textarea>
+      </div>
+      <div>
+        <label class="form-label">حالت تعمیر</label>
+        <select name="maintenance_mode" class="form-input">
+          <option value="0" {{if eq (index .Settings "maintenance_mode") "0"}}selected{{end}}>غیرفعال</option>
+          <option value="1" {{if eq (index .Settings "maintenance_mode") "1"}}selected{{end}}>فعال</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex justify-end">
+    <button type="submit" class="btn-save px-8 py-3 text-base">ذخیره تنظیمات</button>
+  </div>
+</form>
+{{end}}
