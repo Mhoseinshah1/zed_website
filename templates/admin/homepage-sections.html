@@ -1,0 +1,27 @@
+{{define "admin-content"}}
+<div class="space-y-6">
+  <h1 class="text-xl font-bold text-white">مدیریت بخش‌های صفحه اصلی</h1>
+  <form method="POST" action="/zed-admin/homepage-sections/save" class="space-y-3">
+    {{range .Sections}}
+    <div class="admin-card p-4 flex items-center gap-4">
+      <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-sm font-bold flex-shrink-0">{{.SortOrder}}</div>
+      <div class="flex-1 grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label text-xs">عنوان بخش {{.SectionKey}}</label>
+          <input type="text" name="title_{{.SectionKey}}" class="form-input text-sm" value="{{.Title}}" placeholder="{{.SectionKey}}">
+        </div>
+        <div>
+          <label class="form-label text-xs">ترتیب نمایش</label>
+          <input type="number" name="sort_{{.SectionKey}}" class="form-input text-sm" value="{{.SortOrder}}">
+        </div>
+      </div>
+      <label class="flex items-center gap-2 cursor-pointer flex-shrink-0">
+        <input type="checkbox" name="active_{{.SectionKey}}" value="1" {{if .IsActive}}checked{{end}} class="rounded">
+        <span class="text-sm {{if .IsActive}}text-green-400{{else}}text-gray-500{{end}}">{{if .IsActive}}فعال{{else}}غیرفعال{{end}}</span>
+      </label>
+    </div>
+    {{end}}
+    <button type="submit" class="btn-save mt-4">ذخیره تغییرات</button>
+  </form>
+</div>
+{{end}}

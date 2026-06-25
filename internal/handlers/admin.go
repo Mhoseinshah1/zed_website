@@ -121,22 +121,7 @@ func AdminSettingsPage(c *gin.Context) {
 }
 
 func AdminSettingsPost(c *gin.Context) {
-	keys := []string{
-		"site_name", "site_tagline", "site_url", "logo_text", "hero_title",
-		"hero_subtitle", "hero_cta_text", "hero_secondary",
-		"telegram_bot", "telegram_channel", "telegram_support",
-		"seo_title", "seo_description", "trust_count_users",
-		"trust_uptime", "trust_speed", "trust_support", "footer_text",
-		"google_analytics", "custom_css", "maintenance_mode",
-	}
-	for _, k := range keys {
-		v := c.PostForm(k)
-		models.SetSetting(k, v)
-	}
-	session := sessions.Default(c)
-	session.AddFlash("saved", "ok")
-	session.Save()
-	c.Redirect(http.StatusFound, "/zed-admin/settings")
+	AdminSettingsPostV2(c)
 }
 
 // Plans
@@ -300,42 +285,11 @@ func AdminFAQNew(c *gin.Context) {
 }
 
 func AdminFAQEdit(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	f, err := models.GetFAQByID(id)
-	if err != nil {
-		c.Redirect(http.StatusFound, "/zed-admin/faqs")
-		return
-	}
-	data := adminData(c, "faqs")
-	data["FAQ"] = f
-	data["Title"] = "ویرایش سوال"
-	renderAdmin(c, "faq-form", data)
+	AdminFAQEditV2(c)
 }
 
 func AdminFAQSave(c *gin.Context) {
-	idStr := c.PostForm("id")
-	sortOrder, _ := strconv.Atoi(c.PostForm("sort_order"))
-	f := models.FAQ{
-		Question:  c.PostForm("question"),
-		Answer:    c.PostForm("answer"),
-		Category:  c.PostForm("category"),
-		SortOrder: sortOrder,
-		IsActive:  c.PostForm("is_active") == "1",
-	}
-	var err error
-	if idStr != "" && idStr != "0" {
-		f.ID, _ = strconv.Atoi(idStr)
-		err = models.UpdateFAQ(f)
-	} else {
-		err = models.CreateFAQ(f)
-	}
-	if err != nil {
-		data := adminData(c, "faqs")
-		data["Error"] = err.Error()
-		renderAdmin(c, "faq-form", data)
-		return
-	}
-	c.Redirect(http.StatusFound, "/zed-admin/faqs")
+	AdminFAQSaveV2(c)
 }
 
 func AdminFAQDelete(c *gin.Context) {
@@ -446,34 +400,7 @@ func AdminTutorialEdit(c *gin.Context) {
 }
 
 func AdminTutorialSave(c *gin.Context) {
-	idStr := c.PostForm("id")
-	sortOrder, _ := strconv.Atoi(c.PostForm("sort_order"))
-	t := models.Tutorial{
-		Slug:        c.PostForm("slug"),
-		Title:       c.PostForm("title"),
-		Excerpt:     c.PostForm("excerpt"),
-		Content:     c.PostForm("content"),
-		Image:       c.PostForm("image"),
-		Category:    c.PostForm("category"),
-		Platform:    c.PostForm("platform"),
-		SortOrder:   sortOrder,
-		IsPublished: c.PostForm("is_published") == "1",
-	}
-	var err error
-	if idStr != "" && idStr != "0" {
-		t.ID, _ = strconv.Atoi(idStr)
-		err = models.UpdateTutorial(t)
-	} else {
-		err = models.CreateTutorial(t)
-	}
-	if err != nil {
-		data := adminData(c, "tutorials")
-		data["Error"] = err.Error()
-		data["Tutorial"] = t
-		renderAdmin(c, "tutorial-form", data)
-		return
-	}
-	c.Redirect(http.StatusFound, "/zed-admin/tutorials")
+	AdminTutorialSaveV2(c)
 }
 
 func AdminTutorialDelete(c *gin.Context) {

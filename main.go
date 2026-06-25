@@ -25,6 +25,7 @@ func main() {
 		templateDir   = flag.String("templates", "./templates", "templates directory")
 		staticDir     = flag.String("static", "./static", "static files directory")
 		uploadDirFlag = flag.String("uploads", "./static/uploads", "upload directory")
+		backupDirFlag = flag.String("backups", "./data/backups", "backup directory")
 		sessionSecret = flag.String("secret", getEnvOrDefault("SESSION_SECRET", "change-me-in-production"), "session secret")
 		dev           = flag.Bool("dev", false, "development mode (disable template cache)")
 		seedFlag      = flag.Bool("seed", false, "seed the database with default content")
@@ -50,6 +51,8 @@ func main() {
 
 	handlers.Init(*templateDir, *dev)
 	handlers.SetUploadDir(*uploadDirFlag)
+	handlers.SetBackupDir(*backupDirFlag)
+	handlers.SetDBPath(*dbPath)
 
 	if !*dev {
 		gin.SetMode(gin.ReleaseMode)
@@ -69,7 +72,7 @@ func main() {
 		Path:     "/",
 		MaxAge:   86400 * 7,
 		HttpOnly: true,
-		Secure:   false, // set to true behind HTTPS
+		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 	})
 	r.Use(sessions.Sessions("zedproxy_session", store))
@@ -78,8 +81,9 @@ func main() {
 	r.Static("/static", *staticDir)
 	r.Static("/uploads", *uploadDirFlag)
 
-	// Ensure uploads directory exists
+	// Ensure directories exist
 	os.MkdirAll(*uploadDirFlag, 0755)
+	os.MkdirAll(*backupDirFlag, 0755)
 
 	// Favicon
 	faviconPath := filepath.Join(*staticDir, "favicon.ico")
@@ -91,9 +95,15 @@ func main() {
 		}
 	})
 
+	// Health check (always available)
+	r.GET("/health", handlers.HealthCheck)
+
 	// SEO
 	r.GET("/sitemap.xml", handlers.SitemapXML)
 	r.GET("/robots.txt", handlers.RobotsTXT)
+
+	// Maintenance middleware (applied to public routes)
+	r.Use(handlers.MaintenanceMiddleware())
 
 	// Public routes
 	r.GET("/", handlers.HomePage)
@@ -107,6 +117,12 @@ func main() {
 	r.GET("/status", handlers.StatusPage)
 	r.GET("/terms", handlers.TermsPage)
 	r.GET("/privacy", handlers.PrivacyPage)
+
+	// Campaign pages
+	r.GET("/campaign/:slug", handlers.CampaignPage)
+
+	// Landing pages (SEO)
+	r.GET("/l/:slug", handlers.LandingPage)
 
 	// Track clicks API
 	r.POST("/api/track", handlers.TrackClick)
@@ -186,10 +202,92 @@ func main() {
 			protected.GET("/media", handlers.AdminMediaPage)
 			protected.POST("/media/upload", handlers.AdminMediaUpload)
 			protected.POST("/media/:id/delete", handlers.AdminMediaDelete)
+			protected.POST("/media/:id/alt", handlers.AdminMediaUpdateAlt)
 
 			// Password
 			protected.GET("/password", handlers.AdminPasswordPage)
 			protected.POST("/password", handlers.AdminPasswordPost)
+
+			// --- New features ---
+
+			// Announcements
+			protected.GET("/announcements", handlers.AdminAnnouncementsPage)
+			protected.GET("/announcements/new", handlers.AdminAnnouncementNew)
+			protected.GET("/announcements/:id/edit", handlers.AdminAnnouncementEdit)
+			protected.POST("/announcements/save", handlers.AdminAnnouncementSave)
+			protected.POST("/announcements/:id/delete", handlers.AdminAnnouncementDelete)
+
+			// Discount Codes
+			protected.GET("/discount-codes", handlers.AdminDiscountCodesPage)
+			protected.GET("/discount-codes/new", handlers.AdminDiscountCodeNew)
+			protected.GET("/discount-codes/:id/edit", handlers.AdminDiscountCodeEdit)
+			protected.POST("/discount-codes/save", handlers.AdminDiscountCodeSave)
+			protected.POST("/discount-codes/:id/delete", handlers.AdminDiscountCodeDelete)
+
+			// Analytics
+			protected.GET("/analytics", handlers.AdminAnalyticsPage)
+
+			// Status Items
+			protected.GET("/status-items", handlers.AdminStatusItemsPage)
+			protected.GET("/status-items/new", handlers.AdminStatusItemNew)
+			protected.GET("/status-items/:id/edit", handlers.AdminStatusItemEdit)
+			protected.POST("/status-items/save", handlers.AdminStatusItemSave)
+			protected.POST("/status-items/:id/delete", handlers.AdminStatusItemDelete)
+
+			// Trust Cards
+			protected.GET("/trust-cards", handlers.AdminTrustCardsPage)
+			protected.GET("/trust-cards/new", handlers.AdminTrustCardNew)
+			protected.GET("/trust-cards/:id/edit", handlers.AdminTrustCardEdit)
+			protected.POST("/trust-cards/save", handlers.AdminTrustCardSave)
+			protected.POST("/trust-cards/:id/delete", handlers.AdminTrustCardDelete)
+
+			// Plan Comparison
+			protected.GET("/plan-comparison", handlers.AdminPlanComparisonPage)
+			protected.GET("/plan-comparison/new", handlers.AdminPlanComparisonNew)
+			protected.GET("/plan-comparison/:id/edit", handlers.AdminPlanComparisonEdit)
+			protected.POST("/plan-comparison/save", handlers.AdminPlanComparisonSave)
+			protected.POST("/plan-comparison/:id/delete", handlers.AdminPlanComparisonDelete)
+
+			// Homepage Sections
+			protected.GET("/homepage-sections", handlers.AdminHomepageSectionsPage)
+			protected.POST("/homepage-sections/save", handlers.AdminHomepageSectionsSave)
+
+			// Campaigns
+			protected.GET("/campaigns", handlers.AdminCampaignsPage)
+			protected.GET("/campaigns/new", handlers.AdminCampaignNew)
+			protected.GET("/campaigns/:id/edit", handlers.AdminCampaignEdit)
+			protected.POST("/campaigns/save", handlers.AdminCampaignSave)
+			protected.POST("/campaigns/:id/delete", handlers.AdminCampaignDelete)
+
+			// Landing Pages
+			protected.GET("/landing-pages", handlers.AdminLandingPagesPage)
+			protected.GET("/landing-pages/new", handlers.AdminLandingPageNew)
+			protected.GET("/landing-pages/:id/edit", handlers.AdminLandingPageEdit)
+			protected.POST("/landing-pages/save", handlers.AdminLandingPageSave)
+			protected.POST("/landing-pages/:id/delete", handlers.AdminLandingPageDelete)
+
+			// Popups
+			protected.GET("/popups", handlers.AdminPopupsPage)
+			protected.GET("/popups/new", handlers.AdminPopupNew)
+			protected.GET("/popups/:id/edit", handlers.AdminPopupEdit)
+			protected.POST("/popups/save", handlers.AdminPopupSave)
+			protected.POST("/popups/:id/delete", handlers.AdminPopupDelete)
+
+			// Admin Users
+			protected.GET("/users", handlers.AdminUsersPage)
+			protected.GET("/users/new", handlers.AdminUserNew)
+			protected.POST("/users/save", handlers.AdminUserSave)
+			protected.POST("/users/:id/delete", handlers.AdminUserDelete)
+
+			// DB Backups
+			protected.GET("/backups", handlers.AdminBackupsPage)
+			protected.POST("/backups/create", handlers.AdminBackupCreate)
+			protected.GET("/backups/:id/download", handlers.AdminBackupDownload)
+			protected.POST("/backups/:id/delete", handlers.AdminBackupDelete)
+
+			// Maintenance
+			protected.GET("/maintenance", handlers.AdminMaintenancePage)
+			protected.POST("/maintenance/save", handlers.AdminMaintenanceSave)
 		}
 	}
 

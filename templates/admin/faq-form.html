@@ -27,6 +27,16 @@
       </label>
     </div>
   </div>
+  <div class="flex gap-6">
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="checkbox" name="show_on_homepage" value="1" {{if .FAQ}}{{if .FAQ.ShowOnHomepage}}checked{{end}}{{end}}>
+      <span class="text-sm text-gray-300">نمایش در صفحه اصلی</span>
+    </label>
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="checkbox" name="show_on_faq" value="1" {{if .FAQ}}{{if .FAQ.ShowOnFAQ}}checked{{end}}{{else}}checked{{end}}>
+      <span class="text-sm text-gray-300">نمایش در صفحه FAQ</span>
+    </label>
+  </div>
   <div class="flex gap-3">
     <button type="submit" class="btn-save px-8 py-2.5">ذخیره</button>
     <a href="/zed-admin/faqs" class="px-6 py-2.5 rounded-lg text-gray-400 text-sm font-medium border border-white/10">انصراف</a>

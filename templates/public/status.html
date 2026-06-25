@@ -20,6 +20,31 @@
       </div>
     </div>
 
+    <!-- Service Status Items -->
+    {{if .StatusItems}}
+    <div class="space-y-3 mb-10">
+      <h2 class="text-2xl font-black text-white mb-6">وضعیت سرویس‌ها</h2>
+      {{range .StatusItems}}
+      <div class="glass rounded-xl p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-lg">{{.Icon}}</span>
+          <div>
+            <div class="text-white font-medium">{{.Name}}</div>
+            {{if .Description}}<div class="text-gray-500 text-xs">{{.Description}}</div>{{end}}
+          </div>
+        </div>
+        <span class="px-3 py-1 rounded-full text-xs font-bold
+          {{if eq .Status "operational"}}bg-green-500/20 text-green-400{{else if eq .Status "degraded"}}bg-yellow-500/20 text-yellow-400{{else if eq .Status "outage"}}bg-red-500/20 text-red-400{{else}}bg-blue-500/20 text-blue-400{{end}}">
+          {{if eq .Status "operational"}}عملیاتی
+          {{else if eq .Status "degraded"}}کاهش کارایی
+          {{else if eq .Status "outage"}}قطعی
+          {{else}}تعمیر{{end}}
+        </span>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+
     <!-- Updates -->
     {{if .Updates}}
     <div class="space-y-4">

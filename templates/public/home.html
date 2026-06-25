@@ -56,6 +56,32 @@
   </div>
 </section>
 
+<!-- Announcement Banner -->
+{{if .Announcements}}
+{{range .Announcements}}
+<div class="py-3 px-4 text-center text-sm font-medium" style="background:{{.Color}}22;border-bottom:1px solid {{.Color}}44;color:{{.Color}}">
+  📢 {{.Message}}
+</div>
+{{end}}
+{{end}}
+
+<!-- Active Discount Code Banner -->
+{{if .DiscountCodes}}
+{{range .DiscountCodes}}
+<div class="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border-b border-green-500/20 py-3 px-4">
+  <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
+    <span class="text-green-300 font-medium">🎉 {{.Description}}</span>
+    <div class="flex items-center gap-2">
+      <span class="font-black text-green-400 font-mono text-lg tracking-wider bg-green-500/10 px-3 py-1 rounded-lg border border-green-500/30">{{.Code}}</span>
+      <button onclick="navigator.clipboard.writeText('{{.Code}}').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='کپی',2000)})"
+              class="text-xs text-green-400 border border-green-500/30 px-2 py-1 rounded hover:bg-green-500/20 transition-colors">کپی</button>
+      <span class="text-green-300 text-sm font-bold">{{.DiscountPercent}}٪ تخفیف</span>
+    </div>
+  </div>
+</div>
+{{end}}
+{{end}}
+
 <!-- Features Section -->
 {{if .Features}}
 <section class="py-20 relative" id="features">
@@ -256,6 +282,62 @@
 </section>
 {{end}}
 
+<!-- Trust Cards -->
+{{if .TrustCards}}
+<section class="py-16" id="trust">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-black text-white mb-3">چرا به ما اعتماد کنید؟</h2>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {{range .TrustCards}}
+      <div class="glass rounded-2xl p-6 text-center card-hover">
+        <div class="text-4xl mb-4">{{.Icon}}</div>
+        <h3 class="text-white font-bold text-lg mb-2">{{.Title}}</h3>
+        <p class="text-gray-400 text-sm leading-relaxed">{{.Description}}</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{end}}
+
+<!-- Plan Comparison Table -->
+{{if .Comparisons}}
+<section class="py-16" id="comparison">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-black text-white mb-3">مقایسه پلن‌ها</h2>
+      <p class="text-gray-400">همه پلن‌ها را با یکدیگر مقایسه کنید</p>
+    </div>
+    <div class="glass rounded-2xl overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-white/10">
+            <th class="text-right p-4 text-gray-400 font-medium">ویژگی</th>
+            <th class="p-4 text-center text-yellow-600 font-bold">برنز</th>
+            <th class="p-4 text-center text-gray-300 font-bold">نقره</th>
+            <th class="p-4 text-center text-yellow-400 font-bold">طلا</th>
+            <th class="p-4 text-center text-indigo-400 font-bold">پلاتینیوم</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Comparisons}}
+          <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+            <td class="p-4 text-white font-medium">{{.FeatureName}}</td>
+            <td class="p-4 text-center text-gray-300">{{.BronzeValue}}</td>
+            <td class="p-4 text-center text-gray-300">{{.SilverValue}}</td>
+            <td class="p-4 text-center text-gray-300">{{.GoldValue}}</td>
+            <td class="p-4 text-center text-gray-300">{{.PlatinumValue}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{{end}}
+
 <!-- Final CTA -->
 <section class="py-20">
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -282,4 +364,34 @@
     </div>
   </div>
 </section>
+
+<!-- Sales Popup -->
+{{if .Popup}}
+<div id="sales-popup" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" style="background:rgba(0,0,0,0.7)">
+  <div class="glass rounded-2xl p-8 max-w-md w-full text-center relative" style="border:1px solid rgba(99,102,241,0.4)">
+    <button onclick="document.getElementById('sales-popup').classList.add('hidden');sessionStorage.setItem('popup_shown','1')"
+            class="absolute top-4 left-4 text-gray-500 hover:text-white text-xl leading-none">✕</button>
+    <h3 class="text-2xl font-black text-white mb-3">{{.Popup.Title}}</h3>
+    {{if .Popup.Body}}<p class="text-gray-400 mb-6">{{.Popup.Body}}</p>{{end}}
+    {{if .Popup.CTAText}}
+    <a href="{{.Popup.CTAUrl}}" target="_blank" rel="noopener"
+       onclick="document.getElementById('sales-popup').classList.add('hidden');sessionStorage.setItem('popup_shown','1')"
+       class="btn-primary inline-flex items-center gap-2 px-8 py-3 rounded-xl text-white font-bold">
+      {{.Popup.CTAText}}
+    </a>
+    {{end}}
+  </div>
+</div>
+<script>
+(function(){
+  if(sessionStorage.getItem('popup_shown')) return;
+  var delay = {{.Popup.DelaySeconds}} * 1000 || 5000;
+  var showPopup = function(){ document.getElementById('sales-popup').classList.remove('hidden'); };
+  setTimeout(showPopup, delay);
+  {{if .Popup.ExitIntent}}
+  document.addEventListener('mouseleave', function(e){ if(e.clientY < 0){ showPopup(); } }, {once:true});
+  {{end}}
+})();
+</script>
+{{end}}
 {{end}}
