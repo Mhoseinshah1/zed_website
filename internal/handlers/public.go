@@ -14,9 +14,16 @@ func HomePage(c *gin.Context) {
 	data := basePageData("home")
 	plans, _ := models.GetActivePlans()
 	features, _ := models.GetActiveFeatures()
-	faqs, _ := models.GetActiveFAQs()
+	faqs, _ := models.GetHomepageFAQs()
 	locations, _ := models.GetActiveLocations()
 	posts, _ := models.GetPublishedPosts(3)
+	trustCards, _ := models.GetActiveTrustCards()
+	statusItems, _ := models.GetActiveStatusItems()
+	discountCodes, _ := models.GetActiveDiscountCodes()
+	announcements, _ := models.GetActiveAnnouncements("home")
+	comparisons, _ := models.GetAllPlanComparisons()
+	sections := models.GetActiveSectionsMap()
+	popup, _ := models.GetActivePopup()
 	settings := data["Settings"].(map[string]string)
 
 	data["Plans"] = plans
@@ -24,6 +31,13 @@ func HomePage(c *gin.Context) {
 	data["FAQs"] = faqs
 	data["Locations"] = locations
 	data["Posts"] = posts
+	data["TrustCards"] = trustCards
+	data["StatusItems"] = statusItems
+	data["DiscountCodes"] = discountCodes
+	data["Announcements"] = announcements
+	data["Comparisons"] = comparisons
+	data["Sections"] = sections
+	data["Popup"] = popup
 	data["Title"] = settings["seo_title"]
 	data["Description"] = settings["seo_description"]
 	data["CanonicalURL"] = settings["site_url"]
@@ -34,8 +48,12 @@ func HomePage(c *gin.Context) {
 func PlansPage(c *gin.Context) {
 	data := basePageData("plans")
 	plans, _ := models.GetActivePlans()
+	comparisons, _ := models.GetAllPlanComparisons()
+	announcements, _ := models.GetActiveAnnouncements("plans")
 	settings := data["Settings"].(map[string]string)
 	data["Plans"] = plans
+	data["Comparisons"] = comparisons
+	data["Announcements"] = announcements
 	data["Title"] = "پلن‌های ZedProxy - خرید اشتراک پروکسی"
 	data["Description"] = "مشاهده و خرید انواع پلن‌های ZedProxy. از پلن برنز تا پلاتینیوم برای همه نیازها."
 	data["CanonicalURL"] = settings["site_url"] + "/plans"
@@ -66,8 +84,12 @@ func TutorialDetailPage(c *gin.Context) {
 	data := basePageData("tutorials")
 	settings := data["Settings"].(map[string]string)
 	data["Tutorial"] = tutorial
-	data["Title"] = tutorial.Title + " - ZedProxy"
-	data["Description"] = tutorial.Excerpt
+	metaTitle := tutorial.MetaTitle
+	if metaTitle == "" {
+		metaTitle = tutorial.Title + " - ZedProxy"
+	}
+	data["Title"] = metaTitle
+	data["Description"] = tutorial.MetaDescription
 	data["CanonicalURL"] = settings["site_url"] + "/tutorials/" + slug
 	renderPage(c, "tutorial-detail", data)
 }
@@ -149,8 +171,10 @@ func ContactPage(c *gin.Context) {
 func StatusPage(c *gin.Context) {
 	data := basePageData("status")
 	updates, _ := models.GetStatusUpdates(20)
+	statusItems, _ := models.GetActiveStatusItems()
 	settings := data["Settings"].(map[string]string)
 	data["Updates"] = updates
+	data["StatusItems"] = statusItems
 	data["Title"] = "وضعیت سرویس - ZedProxy"
 	data["Description"] = "وضعیت فعلی سرویس‌های ZedProxy و آخرین اطلاعیه‌ها."
 	data["CanonicalURL"] = settings["site_url"] + "/status"
@@ -183,15 +207,126 @@ func PrivacyPage(c *gin.Context) {
 	renderPage(c, "legal", data)
 }
 
+// Campaign pages
+
+func CampaignPage(c *gin.Context) {
+	slug := c.Param("slug")
+	campaign, err := models.GetCampaignBySlug(slug)
+	if err != nil {
+		c.Status(http.StatusNotFound)
+		data := basePageData("campaign")
+		data["Title"] = "صفحه یافت نشد"
+		renderPage(c, "404", data)
+		return
+	}
+	data := basePageData("campaign")
+	settings := data["Settings"].(map[string]string)
+	data["Campaign"] = campaign
+	metaTitle := campaign.MetaTitle
+	if metaTitle == "" {
+		metaTitle = campaign.Title + " - ZedProxy"
+	}
+	data["Title"] = metaTitle
+	data["Description"] = campaign.MetaDescription
+	data["CanonicalURL"] = settings["site_url"] + "/campaign/" + slug
+	renderPage(c, "campaign", data)
+}
+
+// Landing pages
+
+func LandingPage(c *gin.Context) {
+	slug := c.Param("slug")
+	page, err := models.GetLandingPageBySlug(slug)
+	if err != nil {
+		c.Status(http.StatusNotFound)
+		data := basePageData("landing")
+		data["Title"] = "صفحه یافت نشد"
+		renderPage(c, "404", data)
+		return
+	}
+	data := basePageData("landing")
+	plans, _ := models.GetActivePlans()
+	settings := data["Settings"].(map[string]string)
+	data["LandingPage"] = page
+	data["Plans"] = plans
+	metaTitle := page.MetaTitle
+	if metaTitle == "" {
+		metaTitle = page.Title + " - ZedProxy"
+	}
+	data["Title"] = metaTitle
+	data["Description"] = page.MetaDescription
+	data["CanonicalURL"] = settings["site_url"] + "/" + slug
+	if page.NoIndex {
+		data["NoIndex"] = true
+	}
+	renderPage(c, "landing", data)
+}
+
+// Track click (enhanced)
+
 func TrackClick(c *gin.Context) {
 	page := c.PostForm("page")
 	source := c.PostForm("source")
+	planID := c.PostForm("plan_id")
+	campaign := c.PostForm("campaign")
 	ip := c.ClientIP()
 	ua := c.Request.UserAgent()
+
+	deviceType := "desktop"
+	uaLower := strings.ToLower(ua)
+	if strings.Contains(uaLower, "mobile") || strings.Contains(uaLower, "android") || strings.Contains(uaLower, "iphone") {
+		deviceType = "mobile"
+	} else if strings.Contains(uaLower, "tablet") || strings.Contains(uaLower, "ipad") {
+		deviceType = "tablet"
+	}
+
+	referrer := c.Request.Referer()
+	utmSrc := c.Query("utm_source")
+	utmMed := c.Query("utm_medium")
+	utmCamp := c.Query("utm_campaign")
+
 	if page != "" {
-		models.RecordClick(page, source, ip, ua)
+		models.RecordTelegramClick(page, source, planID, campaign, deviceType, referrer, utmSrc, utmMed, utmCamp, ip)
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// Maintenance middleware
+
+func MaintenanceMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if models.GetSetting("maintenance_mode") == "1" {
+			// Allow admin access
+			if strings.HasPrefix(c.Request.URL.Path, "/zed-admin") {
+				c.Next()
+				return
+			}
+			data := basePageData("maintenance")
+			settings := data["Settings"].(map[string]string)
+			data["Title"] = "سایت در حال بروزرسانی"
+			data["MaintenanceMsg"] = settings["maintenance_msg"]
+			c.Status(http.StatusServiceUnavailable)
+			renderPage(c, "maintenance", data)
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+// Health check
+
+func HealthCheck(c *gin.Context) {
+	dbOK := true
+	if _ = models.GetAllSettings(); false {
+		dbOK = false
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":    "ok",
+		"db":        map[string]bool{"ok": dbOK},
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"version":   "2.0.0",
+	})
 }
 
 func SitemapXML(c *gin.Context) {
@@ -233,6 +368,18 @@ func SitemapXML(c *gin.Context) {
 		sb.WriteString(fmt.Sprintf(`<url><loc>%s/tutorials/%s</loc><lastmod>%s</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>`, siteURL, t.Slug, now))
 	}
 
+	landingPages, _ := models.GetAllLandingPages()
+	for _, p := range landingPages {
+		sb.WriteString(fmt.Sprintf(`<url><loc>%s/%s</loc><lastmod>%s</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`, siteURL, p.Slug, now))
+	}
+
+	campaigns, _ := models.GetAllCampaigns()
+	for _, camp := range campaigns {
+		if camp.IsActive {
+			sb.WriteString(fmt.Sprintf(`<url><loc>%s/campaign/%s</loc><lastmod>%s</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`, siteURL, camp.Slug, now))
+		}
+	}
+
 	sb.WriteString(`</urlset>`)
 	c.Header("Content-Type", "application/xml")
 	c.String(http.StatusOK, sb.String())
@@ -241,7 +388,11 @@ func SitemapXML(c *gin.Context) {
 func RobotsTXT(c *gin.Context) {
 	settings := models.GetAllSettings()
 	siteURL := settings["site_url"]
+	extra := settings["robots_txt_extra"]
 	content := fmt.Sprintf("User-agent: *\nAllow: /\nDisallow: /zed-admin/\nSitemap: %s/sitemap.xml\n", siteURL)
+	if extra != "" {
+		content += "\n" + extra + "\n"
+	}
 	c.Header("Content-Type", "text/plain")
 	c.String(http.StatusOK, content)
 }
@@ -254,7 +405,6 @@ func renderPage(c *gin.Context, name string, data map[string]interface{}) {
 	}
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	if err := t.ExecuteTemplate(c.Writer, "base", data); err != nil {
-		// Don't write again if headers already sent
 		_ = err
 	}
 }

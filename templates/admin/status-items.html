@@ -1,0 +1,38 @@
+{{define "admin-content"}}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold text-white">وضعیت سرویس‌ها</h1>
+    <a href="/zed-admin/status-items/new" class="btn-save text-sm">+ سرویس جدید</a>
+  </div>
+  <div class="admin-card">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead><tr><th>نام سرویس</th><th>نوع</th><th>وضعیت</th><th>توضیح</th><th>عملیات</th></tr></thead>
+        <tbody>
+          {{range .Items}}
+          <tr>
+            <td class="text-white font-medium">{{.Name}}</td>
+            <td class="text-gray-400 text-sm">{{.ServiceType}}</td>
+            <td>
+              {{if eq .Status "operational"}}<span class="badge badge-green">عملیاتی</span>
+              {{else if eq .Status "partial_outage"}}<span class="badge" style="background:rgba(251,191,36,0.15);color:#fbbf24">اختلال جزئی</span>
+              {{else if eq .Status "maintenance"}}<span class="badge badge-blue">تعمیر</span>
+              {{else}}<span class="badge badge-red">آفلاین</span>{{end}}
+            </td>
+            <td class="text-gray-400 text-sm">{{.Description}}</td>
+            <td class="flex gap-2">
+              <a href="/zed-admin/status-items/{{.ID}}/edit" class="btn-edit">ویرایش</a>
+              <form method="POST" action="/zed-admin/status-items/{{.ID}}/delete" onsubmit="return confirm('حذف شود؟')">
+                <button class="btn-danger">حذف</button>
+              </form>
+            </td>
+          </tr>
+          {{else}}
+          <tr><td colspan="5" class="text-center text-gray-500 py-8">هیچ سرویسی ثبت نشده</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{end}}

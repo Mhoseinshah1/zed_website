@@ -18,6 +18,10 @@ func Run(adminUsername, adminEmail, adminPassword string) {
 	seedLocations()
 	seedPages()
 	seedStatusUpdates()
+	seedStatusItems()
+	seedTrustCards()
+	seedCampaigns()
+	seedPlanComparisons()
 	log.Println("Seed completed successfully")
 }
 
@@ -45,6 +49,8 @@ func seedSettings() {
 		"logo_text":         "ZedProxy",
 		"logo_image":        "",
 		"favicon":           "",
+		"og_image":          "",
+		"hero_image":        "",
 		"hero_title":        "اینترنت آزاد، سریع و امن با ZedProxy",
 		"hero_subtitle":     "با بهترین سرویس پروکسی ایران، بدون محدودیت به اینترنت دسترسی داشته باشید. سرعت بالا، پایداری عالی، پشتیبانی ۲۴ ساعته.",
 		"hero_cta_text":     "خرید از ربات تلگرام",
@@ -52,20 +58,27 @@ func seedSettings() {
 		"telegram_bot":      "https://t.me/zedproxy_bot",
 		"telegram_channel":  "https://t.me/Zed_Proxy1",
 		"telegram_support":  "https://t.me/zedproxy_support",
+		"btn_buy_text":      "خرید اشتراک",
+		"btn_support_text":  "پشتیبانی",
+		"btn_channel_text":  "کانال تلگرام",
 		"seo_title":         "ZedProxy - سریع‌ترین سرویس پروکسی و VPN ایران",
 		"seo_description":   "ZedProxy بهترین سرویس پروکسی و فیلترشکن ایران با سرعت بالا، پایداری ۹۹٪ و پشتیبانی شبانه‌روزی. خرید آسان از طریق ربات تلگرام.",
-		"og_image":          "",
+		"gsc_verification":  "",
+		"google_analytics":  "",
+		"custom_js":         "",
 		"primary_color":     "#6366f1",
 		"secondary_color":   "#8b5cf6",
 		"accent_color":      "#06b6d4",
+		"bg_style":          "dark",
 		"trust_count_users": "۵۰۰۰+",
 		"trust_uptime":      "۹۹٪",
 		"trust_speed":       "۱ گیگابیت",
 		"trust_support":     "۲۴/۷",
 		"footer_text":       "ZedProxy - ارائه‌دهنده خدمات پروکسی و اینترنت آزاد",
-		"google_analytics":  "",
 		"custom_css":        "",
 		"maintenance_mode":  "0",
+		"maintenance_msg":   "سرویس در حال بروزرسانی است. به زودی بازمی‌گردیم.",
+		"robots_txt_extra":  "",
 	}
 	for k, v := range defaults {
 		var count int
@@ -174,16 +187,16 @@ func seedFAQs() {
 	}
 
 	faqs := []models.FAQ{
-		{Question: "چطور می‌توانم ZedProxy را خریداری کنم؟", Answer: "خرید بسیار ساده است! کافیست به ربات تلگرام ما به آدرس @zedproxy_bot مراجعه کنید، طرح مورد نظر خود را انتخاب کرده و پرداخت را انجام دهید. تنظیمات به صورت خودکار برای شما ارسال می‌شود.", Category: "خرید", SortOrder: 1, IsActive: true},
-		{Question: "آیا ZedProxy روی موبایل هم کار می‌کند؟", Answer: "بله! ZedProxy کاملاً با iOS، اندروید، ویندوز، مک و لینوکس سازگار است. می‌توانید روی تمام دستگاه‌های خود از آن استفاده کنید.", Category: "فنی", SortOrder: 2, IsActive: true},
-		{Question: "آیا سرعت اینترنت کاهش می‌یابد؟", Answer: "خیر! با زیرساخت ۱ گیگابیتی ما، تفاوت سرعت بسیار ناچیز است. اکثر کاربران ما حتی سرعت بهتری نسبت به قبل تجربه می‌کنند.", Category: "فنی", SortOrder: 3, IsActive: true},
-		{Question: "آیا اطلاعاتم امن است؟", Answer: "کاملاً! ما از رمزگذاری سطح نظامی استفاده می‌کنیم. هیچ‌گونه لاگ از فعالیت‌های شما نگه نمی‌داریم. حریم خصوصی شما برای ما اولویت است.", Category: "امنیت", SortOrder: 4, IsActive: true},
-		{Question: "اگر مشکلی داشتم، پشتیبانی چطور انجام می‌شود؟", Answer: "تیم پشتیبانی ما ۲۴ ساعته و ۷ روز هفته از طریق تلگرام در دسترس است. معمولاً در کمتر از ۳۰ دقیقه پاسخ می‌دهیم.", Category: "پشتیبانی", SortOrder: 5, IsActive: true},
-		{Question: "آیا می‌توانم چند دستگاه را همزمان متصل کنم؟", Answer: "بله! بسته به طرح انتخابی، می‌توانید از ۱ تا ۱۰ دستگاه را به صورت همزمان متصل کنید.", Category: "فنی", SortOrder: 6, IsActive: true},
-		{Question: "روش‌های پرداخت کدامند؟", Answer: "ما از کارت‌های بانکی ایرانی، کیف‌پول‌های اینترنتی و ارزهای دیجیتال پشتیبانی می‌کنیم. پرداخت از طریق ربات تلگرام ما به سادگی انجام می‌شود.", Category: "خرید", SortOrder: 7, IsActive: true},
-		{Question: "آیا امکان بازگشت وجه وجود دارد؟", Answer: "بله! اگر در ۲۴ ساعت اول از سرویس راضی نبودید، کاملاً وجه شما را بازگشت می‌دهیم. رضایت شما برای ما مهم است.", Category: "خرید", SortOrder: 8, IsActive: true},
-		{Question: "کانفیگ VPN چه پروتکل‌هایی را پشتیبانی می‌کند؟", Answer: "ZedProxy از پروتکل‌های V2Ray، Vmess، Vless، Trojan و Shadowsocks پشتیبانی می‌کند. آموزش کامل نصب برای هر پروتکل در بخش آموزش‌ها موجود است.", Category: "فنی", SortOrder: 9, IsActive: true},
-		{Question: "آیا سرعت در ساعات پیک هم حفظ می‌شود؟", Answer: "بله! زیرساخت ما طوری طراحی شده که حتی در ساعات اوج مصرف نیز سرعت مطلوب را تجربه کنید.", Category: "فنی", SortOrder: 10, IsActive: true},
+		{Question: "چطور می‌توانم ZedProxy را خریداری کنم؟", Answer: "خرید بسیار ساده است! کافیست به ربات تلگرام ما به آدرس @zedproxy_bot مراجعه کنید، طرح مورد نظر خود را انتخاب کرده و پرداخت را انجام دهید. تنظیمات به صورت خودکار برای شما ارسال می‌شود.", Category: "خرید", SortOrder: 1, IsActive: true, ShowOnHomepage: true, ShowOnFAQ: true},
+		{Question: "آیا ZedProxy روی موبایل هم کار می‌کند؟", Answer: "بله! ZedProxy کاملاً با iOS، اندروید، ویندوز، مک و لینوکس سازگار است. می‌توانید روی تمام دستگاه‌های خود از آن استفاده کنید.", Category: "فنی", SortOrder: 2, IsActive: true, ShowOnHomepage: true, ShowOnFAQ: true},
+		{Question: "آیا سرعت اینترنت کاهش می‌یابد؟", Answer: "خیر! با زیرساخت ۱ گیگابیتی ما، تفاوت سرعت بسیار ناچیز است. اکثر کاربران ما حتی سرعت بهتری نسبت به قبل تجربه می‌کنند.", Category: "فنی", SortOrder: 3, IsActive: true, ShowOnHomepage: true, ShowOnFAQ: true},
+		{Question: "آیا اطلاعاتم امن است؟", Answer: "کاملاً! ما از رمزگذاری سطح نظامی استفاده می‌کنیم. هیچ‌گونه لاگ از فعالیت‌های شما نگه نمی‌داریم. حریم خصوصی شما برای ما اولویت است.", Category: "امنیت", SortOrder: 4, IsActive: true, ShowOnHomepage: false, ShowOnFAQ: true},
+		{Question: "اگر مشکلی داشتم، پشتیبانی چطور انجام می‌شود؟", Answer: "تیم پشتیبانی ما ۲۴ ساعته و ۷ روز هفته از طریق تلگرام در دسترس است. معمولاً در کمتر از ۳۰ دقیقه پاسخ می‌دهیم.", Category: "پشتیبانی", SortOrder: 5, IsActive: true, ShowOnHomepage: true, ShowOnFAQ: true},
+		{Question: "آیا می‌توانم چند دستگاه را همزمان متصل کنم؟", Answer: "بله! بسته به طرح انتخابی، می‌توانید از ۱ تا ۱۰ دستگاه را به صورت همزمان متصل کنید.", Category: "فنی", SortOrder: 6, IsActive: true, ShowOnHomepage: false, ShowOnFAQ: true},
+		{Question: "روش‌های پرداخت کدامند؟", Answer: "ما از کارت‌های بانکی ایرانی، کیف‌پول‌های اینترنتی و ارزهای دیجیتال پشتیبانی می‌کنیم. پرداخت از طریق ربات تلگرام ما به سادگی انجام می‌شود.", Category: "خرید", SortOrder: 7, IsActive: true, ShowOnHomepage: false, ShowOnFAQ: true},
+		{Question: "آیا امکان بازگشت وجه وجود دارد؟", Answer: "بله! اگر در ۲۴ ساعت اول از سرویس راضی نبودید، کاملاً وجه شما را بازگشت می‌دهیم. رضایت شما برای ما مهم است.", Category: "خرید", SortOrder: 8, IsActive: true, ShowOnHomepage: true, ShowOnFAQ: true},
+		{Question: "کانفیگ از ربات تلگرام چه پروتکل‌هایی دارد؟", Answer: "ZedProxy از پروتکل‌های V2Ray، Vmess، Vless، Trojan و Shadowsocks پشتیبانی می‌کند. پس از خرید از ربات @zedproxy_bot، کانفیگ مناسب دستگاه شما ارسال می‌شود.", Category: "فنی", SortOrder: 9, IsActive: true, ShowOnHomepage: false, ShowOnFAQ: true},
+		{Question: "آیا سرعت در ساعات پیک هم حفظ می‌شود؟", Answer: "بله! زیرساخت ما طوری طراحی شده که حتی در ساعات اوج مصرف نیز سرعت مطلوب را تجربه کنید.", Category: "فنی", SortOrder: 10, IsActive: true, ShowOnHomepage: false, ShowOnFAQ: true},
 	}
 
 	for _, f := range faqs {
@@ -230,26 +243,17 @@ func seedPages() {
 			MetaTitle:       "شرایط و ضوابط - ZedProxy",
 			MetaDescription: "شرایط و ضوابط استفاده از خدمات ZedProxy را مطالعه کنید.",
 			Content: `<h2>شرایط و ضوابط استفاده از خدمات ZedProxy</h2>
-
-<p>با استفاده از خدمات ZedProxy، شما با شرایط و ضوابط زیر موافقت می‌کنید. لطفاً این موارد را با دقت مطالعه کنید.</p>
-
+<p>با استفاده از خدمات ZedProxy، شما با شرایط و ضوابط زیر موافقت می‌کنید.</p>
 <h3>۱. پذیرش شرایط</h3>
-<p>استفاده از خدمات ZedProxy به منزله پذیرش کامل این شرایط است. اگر با این شرایط موافق نیستید، لطفاً از خدمات ما استفاده نکنید.</p>
-
+<p>استفاده از خدمات ZedProxy به منزله پذیرش کامل این شرایط است.</p>
 <h3>۲. استفاده مجاز</h3>
-<p>خدمات ZedProxy تنها برای استفاده قانونی و شخصی ارائه می‌شود. استفاده برای فعالیت‌های غیرقانونی، آسیب به دیگران یا نقض حریم خصوصی دیگران کاملاً ممنوع است.</p>
-
+<p>خدمات ZedProxy تنها برای استفاده قانونی و شخصی ارائه می‌شود. استفاده برای فعالیت‌های غیرقانونی ممنوع است.</p>
 <h3>۳. حریم خصوصی</h3>
-<p>ما هیچ‌گونه اطلاعاتی درباره فعالیت‌های اینترنتی شما ذخیره نمی‌کنیم. حریم خصوصی شما برای ما اولویت است.</p>
-
+<p>ما هیچ‌گونه اطلاعاتی درباره فعالیت‌های اینترنتی شما ذخیره نمی‌کنیم.</p>
 <h3>۴. پرداخت و بازگشت وجه</h3>
-<p>تمام پرداخت‌ها قطعی هستند مگر اینکه در ۲۴ ساعت اول از خدمت ما رضایت نداشته باشید، در این صورت وجه کاملاً بازگردانده می‌شود.</p>
-
+<p>تمام پرداخت‌ها قطعی هستند مگر اینکه در ۲۴ ساعت اول رضایت نداشته باشید.</p>
 <h3>۵. محدودیت‌ها</h3>
-<p>اشتراک‌گذاری حساب با دیگران ممنوع است. هر اکانت تنها برای تعداد دستگاه‌های مشخص شده قابل استفاده است.</p>
-
-<h3>۶. تغییرات</h3>
-<p>ZedProxy حق دارد این شرایط را در هر زمانی تغییر دهد. کاربران از طریق کانال تلگرام ما مطلع خواهند شد.</p>`,
+<p>اشتراک‌گذاری حساب با دیگران ممنوع است.</p>`,
 		},
 		{
 			Slug:            "privacy",
@@ -257,29 +261,20 @@ func seedPages() {
 			MetaTitle:       "سیاست حریم خصوصی - ZedProxy",
 			MetaDescription: "سیاست حریم خصوصی ZedProxy - چگونه از اطلاعات شما محافظت می‌کنیم.",
 			Content: `<h2>سیاست حریم خصوصی ZedProxy</h2>
-
-<p>ZedProxy متعهد به حفاظت از حریم خصوصی کاربران خود است. این سند توضیح می‌دهد که چه اطلاعاتی جمع‌آوری می‌کنیم و چگونه از آن استفاده می‌کنیم.</p>
-
+<p>ZedProxy متعهد به حفاظت از حریم خصوصی کاربران خود است.</p>
 <h3>اطلاعاتی که جمع‌آوری می‌کنیم</h3>
 <ul>
 <li>نام کاربری تلگرام برای ارائه خدمات</li>
 <li>اطلاعات پرداخت برای پردازش تراکنش‌ها</li>
-<li>اطلاعات فنی برای بهبود سرویس</li>
 </ul>
-
 <h3>اطلاعاتی که جمع‌آوری نمی‌کنیم</h3>
 <ul>
 <li>تاریخچه مرور اینترنت</li>
 <li>محتوای ارتباطات شما</li>
-<li>آدرس‌های IP واقعی شما</li>
 <li>هیچ‌گونه لاگ از فعالیت‌های اینترنتی</li>
 </ul>
-
 <h3>امنیت داده‌ها</h3>
-<p>تمام اطلاعات شما با رمزگذاری پیشرفته محافظت می‌شود. ما هرگز اطلاعات شما را به اشخاص ثالث نمی‌فروشیم.</p>
-
-<h3>تماس با ما</h3>
-<p>برای هرگونه سوال درباره حریم خصوصی خود، با پشتیبانی ما از طریق تلگرام در ارتباط باشید.</p>`,
+<p>تمام اطلاعات شما با رمزگذاری پیشرفته محافظت می‌شود.</p>`,
 		},
 	}
 
@@ -300,12 +295,12 @@ func seedStatusUpdates() {
 	updates := []models.StatusUpdate{
 		{
 			Title:   "تمام سرویس‌ها عملیاتی هستند",
-			Content: "سرویس‌های ZedProxy در تمام لوکیشن‌ها به خوبی کار می‌کنند. سرعت و پایداری در بهترین حالت قرار دارد.",
+			Content: "سرویس‌های ZedProxy در تمام لوکیشن‌ها به خوبی کار می‌کنند.",
 			Status:  "success",
 		},
 		{
 			Title:   "لوکیشن جدید: ژاپن اضافه شد",
-			Content: "با خوشحالی اعلام می‌کنیم که لوکیشن جدید ژاپن با سرعت ۱ گیگابیت به مجموعه لوکیشن‌های ZedProxy اضافه شد.",
+			Content: "لوکیشن جدید ژاپن با سرعت ۱ گیگابیت به مجموعه ZedProxy اضافه شد.",
 			Status:  "info",
 		},
 	}
@@ -313,6 +308,114 @@ func seedStatusUpdates() {
 	for _, u := range updates {
 		if err := models.CreateStatusUpdate(u); err != nil {
 			log.Printf("failed to seed status update: %v", err)
+		}
+	}
+}
+
+func seedStatusItems() {
+	var count int
+	database.DB.QueryRow("SELECT COUNT(*) FROM status_items").Scan(&count)
+	if count > 0 {
+		return
+	}
+
+	items := []models.StatusItem{
+		{Name: "سرورهای آلمان", ServiceType: "server", Status: "operational", Description: "سرعت ۱ گیگابیت", SortOrder: 1, IsActive: true},
+		{Name: "سرورهای آمریکا", ServiceType: "server", Status: "operational", Description: "سرعت ۱ گیگابیت", SortOrder: 2, IsActive: true},
+		{Name: "لوکیشن یوتیوب", ServiceType: "service", Status: "operational", Description: "پخش ۴K بدون بافر", SortOrder: 3, IsActive: true},
+		{Name: "ربات تلگرام", ServiceType: "bot", Status: "operational", Description: "خرید و تمدید سرویس", SortOrder: 4, IsActive: true},
+		{Name: "پشتیبانی آنلاین", ServiceType: "support", Status: "operational", Description: "پاسخگو ۲۴/۷", SortOrder: 5, IsActive: true},
+		{Name: "درگاه پرداخت", ServiceType: "payment", Status: "operational", Description: "پرداخت امن", SortOrder: 6, IsActive: true},
+	}
+
+	for _, s := range items {
+		if err := models.CreateStatusItem(s); err != nil {
+			log.Printf("failed to seed status item: %v", err)
+		}
+	}
+}
+
+func seedTrustCards() {
+	var count int
+	database.DB.QueryRow("SELECT COUNT(*) FROM trust_cards").Scan(&count)
+	if count > 0 {
+		return
+	}
+
+	cards := []models.TrustCard{
+		{Icon: "👥", Title: "۵۰۰۰+ کاربر فعال", Description: "هزاران کاربر روزانه به ZedProxy اعتماد می‌کنند و از خدمات ما راضی هستند", SortOrder: 1, IsActive: true},
+		{Icon: "⏱️", Title: "پشتیبانی زیر ۳۰ دقیقه", Description: "تیم پشتیبانی ما به‌طور میانگین در کمتر از ۳۰ دقیقه به پیام‌ها پاسخ می‌دهد", SortOrder: 2, IsActive: true},
+		{Icon: "🔄", Title: "۳ سال سابقه فعالیت", Description: "از سال ۱۴۰۱ تاکنون خدمات پروکسی باکیفیت ارائه می‌دهیم", SortOrder: 3, IsActive: true},
+		{Icon: "🛡️", Title: "بدون لاگ و کاملاً خصوصی", Description: "هیچ‌گونه اطلاعاتی از فعالیت اینترنتی شما ذخیره نمی‌شود", SortOrder: 4, IsActive: true},
+	}
+
+	for _, c := range cards {
+		if err := models.CreateTrustCard(c); err != nil {
+			log.Printf("failed to seed trust card: %v", err)
+		}
+	}
+}
+
+func seedCampaigns() {
+	var count int
+	database.DB.QueryRow("SELECT COUNT(*) FROM campaigns").Scan(&count)
+	if count > 0 {
+		return
+	}
+
+	campaigns := []models.Campaign{
+		{
+			Slug:            "off393",
+			Title:           "جشنواره تخفیف ۳۰٪",
+			Subtitle:        "فقط تا آخر ماه",
+			Description:     "<p>به مناسبت سالگرد ZedProxy، تمام پلن‌ها با ۳۰٪ تخفیف در دسترس هستند. همین الان از ربات تلگرام خرید کنید.</p>",
+			DiscountCode:    "ZED30",
+			DiscountPercent: 30,
+			CTAText:         "خرید با تخفیف از ربات",
+			MetaTitle:       "تخفیف ۳۰٪ ZedProxy - جشنواره خرید",
+			MetaDescription: "با کد ZED30 سی درصد تخفیف روی تمام پلن‌های ZedProxy دریافت کنید.",
+			IsActive:        true,
+		},
+		{
+			Slug:            "youtube",
+			Title:           "یوتیوب بدون بافر",
+			Subtitle:        "پخش ۴K با ZedProxy",
+			Description:     "<p>با ZedProxy یوتیوب را با کیفیت ۴K و بدون بافر تماشا کنید. لوکیشن اختصاصی یوتیوب با سرعت بالا.</p>",
+			DiscountCode:    "YTUBE",
+			DiscountPercent: 15,
+			CTAText:         "خرید پلن یوتیوب",
+			MetaTitle:       "فیلترشکن یوتیوب - ZedProxy",
+			MetaDescription: "با ZedProxy یوتیوب را در بهترین کیفیت تماشا کنید.",
+			IsActive:        true,
+		},
+	}
+
+	for _, c := range campaigns {
+		if err := models.CreateCampaign(c); err != nil {
+			log.Printf("failed to seed campaign: %v", err)
+		}
+	}
+}
+
+func seedPlanComparisons() {
+	var count int
+	database.DB.QueryRow("SELECT COUNT(*) FROM plan_comparisons").Scan(&count)
+	if count > 0 {
+		return
+	}
+
+	comparisons := []models.PlanComparison{
+		{FeatureName: "حجم ترافیک", BronzeValue: "۳۰ گیگ", SilverValue: "۷۵ گیگ", GoldValue: "۱۵۰ گیگ", PlatinumValue: "نامحدود", SortOrder: 1},
+		{FeatureName: "سرعت", BronzeValue: "۵۰۰ مگابیت", SilverValue: "۱ گیگابیت", GoldValue: "۱ گیگابیت", PlatinumValue: "۱ گیگابیت", SortOrder: 2},
+		{FeatureName: "تعداد دستگاه", BronzeValue: "۲", SilverValue: "۳", GoldValue: "۵", PlatinumValue: "۱۰", SortOrder: 3},
+		{FeatureName: "پشتیبانی", BronzeValue: "عادی", SilverValue: "۲۴/۷", GoldValue: "اولویت‌دار", PlatinumValue: "VIP", SortOrder: 4},
+		{FeatureName: "لوکیشن‌های پریمیوم", BronzeValue: "❌", SilverValue: "❌", GoldValue: "✅", PlatinumValue: "✅", SortOrder: 5},
+		{FeatureName: "IP اختصاصی", BronzeValue: "❌", SilverValue: "❌", GoldValue: "❌", PlatinumValue: "✅", SortOrder: 6},
+	}
+
+	for _, c := range comparisons {
+		if err := models.CreatePlanComparison(c); err != nil {
+			log.Printf("failed to seed plan comparison: %v", err)
 		}
 	}
 }

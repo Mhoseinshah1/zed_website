@@ -1,0 +1,75 @@
+{{define "admin-content"}}
+<div class="space-y-6">
+  <h1 class="text-xl font-bold text-white">آمار و تحلیل کلیک‌ها</h1>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-3 gap-4">
+    <div class="admin-card p-5 text-center">
+      <div class="text-3xl font-black text-white mb-1">{{.Analytics.TotalClicks}}</div>
+      <div class="text-gray-400 text-sm">کل کلیک‌ها</div>
+    </div>
+    <div class="admin-card p-5 text-center">
+      <div class="text-3xl font-black text-indigo-400 mb-1">{{.Analytics.TodayClicks}}</div>
+      <div class="text-gray-400 text-sm">امروز</div>
+    </div>
+    <div class="admin-card p-5 text-center">
+      <div class="text-3xl font-black text-purple-400 mb-1">{{.Analytics.WeekClicks}}</div>
+      <div class="text-gray-400 text-sm">۷ روز اخیر</div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Top Pages -->
+    <div class="admin-card">
+      <div class="p-4 border-b border-white/5"><h2 class="text-white font-bold">پرکلیک‌ترین صفحات</h2></div>
+      <div class="p-4 space-y-3">
+        {{range .Analytics.TopPages}}
+        <div class="flex items-center justify-between">
+          <span class="text-gray-300 text-sm">{{.Label}}</span>
+          <span class="text-indigo-400 font-bold">{{.Count}}</span>
+        </div>
+        {{else}}<p class="text-gray-500 text-sm">داده‌ای موجود نیست</p>{{end}}
+      </div>
+    </div>
+
+    <!-- Top Sources -->
+    <div class="admin-card">
+      <div class="p-4 border-b border-white/5"><h2 class="text-white font-bold">منابع کلیک</h2></div>
+      <div class="p-4 space-y-3">
+        {{range .Analytics.TopSources}}
+        <div class="flex items-center justify-between">
+          <span class="text-gray-300 text-sm">{{.Label}}</span>
+          <span class="text-purple-400 font-bold">{{.Count}}</span>
+        </div>
+        {{else}}<p class="text-gray-500 text-sm">داده‌ای موجود نیست</p>{{end}}
+      </div>
+    </div>
+
+    <!-- Device Breakdown -->
+    <div class="admin-card">
+      <div class="p-4 border-b border-white/5"><h2 class="text-white font-bold">نوع دستگاه</h2></div>
+      <div class="p-4 space-y-3">
+        {{range .Analytics.DeviceBreakdown}}
+        <div class="flex items-center justify-between">
+          <span class="text-gray-300 text-sm">{{.Label}}</span>
+          <span class="text-cyan-400 font-bold">{{.Count}}</span>
+        </div>
+        {{else}}<p class="text-gray-500 text-sm">داده‌ای موجود نیست</p>{{end}}
+      </div>
+    </div>
+
+    <!-- Top Campaigns -->
+    <div class="admin-card">
+      <div class="p-4 border-b border-white/5"><h2 class="text-white font-bold">کمپین‌های پرکلیک</h2></div>
+      <div class="p-4 space-y-3">
+        {{range .Analytics.TopCampaigns}}
+        <div class="flex items-center justify-between">
+          <span class="text-gray-300 text-sm">{{.Label}}</span>
+          <span class="text-green-400 font-bold">{{.Count}}</span>
+        </div>
+        {{else}}<p class="text-gray-500 text-sm">داده‌ای موجود نیست</p>{{end}}
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}

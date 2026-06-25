@@ -1,0 +1,28 @@
+{{define "admin-content"}}
+<div class="max-w-md">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/zed-admin/users" class="text-gray-400 hover:text-white">← برگشت</a>
+    <h1 class="text-xl font-bold text-white">ادمین جدید</h1>
+  </div>
+  {{if .Error}}<div class="bg-red-500/20 border border-red-500/30 text-red-300 p-4 rounded-xl mb-4">{{.Error}}</div>{{end}}
+  <form method="POST" action="/zed-admin/users/save" class="admin-card p-6 space-y-5">
+    <div>
+      <label class="form-label">نام کاربری *</label>
+      <input type="text" name="username" class="form-input font-mono" required autocomplete="off">
+    </div>
+    <div>
+      <label class="form-label">رمز عبور *</label>
+      <input type="password" name="password" class="form-input" required minlength="8" autocomplete="new-password">
+    </div>
+    <div>
+      <label class="form-label">نقش</label>
+      <select name="role" class="form-input">
+        <option value="support">پشتیبانی</option>
+        <option value="content_manager">مدیر محتوا</option>
+      </select>
+    </div>
+    <p class="text-xs text-gray-500">نقش «مالک» فقط یک نفر می‌تواند باشد و از طریق این فرم تغییر نمی‌کند.</p>
+    <button type="submit" class="btn-save">ایجاد ادمین</button>
+  </form>
+</div>
+{{end}}
