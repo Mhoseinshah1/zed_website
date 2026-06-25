@@ -144,13 +144,19 @@ copy_assets() {
   # Preserve uploaded files; only copy non-uploads static content
   rsync -a --exclude 'uploads/' "$BUILD_DIR/static/" "$INSTALL_DIR/static/" 2>/dev/null || \
     cp -r "$BUILD_DIR/static/"* "$INSTALL_DIR/static/" 2>/dev/null || true
-  # Install update script
+  info "فایل‌های قالب کپی شدند"
+}
+
+install_update_script() {
+  step "نصب اسکریپت بروزرسانی"
   if [[ -f "$BUILD_DIR/update.sh" ]]; then
     cp "$BUILD_DIR/update.sh" "$INSTALL_DIR/update.sh"
     chmod +x "$INSTALL_DIR/update.sh"
-    info "update.sh نصب شد در $INSTALL_DIR/update.sh"
+    chown root:root "$INSTALL_DIR/update.sh"
+    info "update.sh نصب شد: $INSTALL_DIR/update.sh"
+  else
+    warn "update.sh در کد پروژه یافت نشد — رد شد"
   fi
-  info "فایل‌های قالب کپی شدند"
 }
 
 seed_database() {
@@ -338,9 +344,10 @@ print_result() {
   echo -e "${YELLOW}⚠️  رمز عبور را در جای امنی ذخیره کنید!${NC}"
   echo ""
   echo -e "${WHITE}دستورات مفید:${NC}"
-  echo -e "  sudo systemctl status zedproxy   # وضعیت سرویس"
-  echo -e "  sudo systemctl restart zedproxy  # ریستارت سرویس"
-  echo -e "  sudo journalctl -u zedproxy -f   # مشاهده لاگ"
+  echo -e "  sudo systemctl status zedproxy         # وضعیت سرویس"
+  echo -e "  sudo systemctl restart zedproxy        # ریستارت سرویس"
+  echo -e "  sudo journalctl -u zedproxy -f         # مشاهده لاگ"
+  echo -e "  sudo bash /opt/zedproxy/update.sh      # بروزرسانی سایت"
   echo ""
 }
 
@@ -357,6 +364,7 @@ setup_directory
 clone_or_copy
 build_app
 copy_assets
+install_update_script
 create_env
 seed_database
 set_permissions
