@@ -107,7 +107,7 @@ install_go() {
 
 setup_directory() {
   step "ایجاد ساختار پوشه‌ها"
-  mkdir -p "$INSTALL_DIR"/{data,templates,static/uploads,logs}
+  mkdir -p "$INSTALL_DIR"/{data/backups,templates,static/uploads,logs}
   info "پوشه‌ها ایجاد شدند: $INSTALL_DIR"
 }
 
@@ -141,7 +141,15 @@ build_app() {
 copy_assets() {
   step "کپی فایل‌های قالب و استاتیک"
   cp -r "$BUILD_DIR/templates/"* "$INSTALL_DIR/templates/"
-  cp -r "$BUILD_DIR/static/"* "$INSTALL_DIR/static/" 2>/dev/null || true
+  # Preserve uploaded files; only copy non-uploads static content
+  rsync -a --exclude 'uploads/' "$BUILD_DIR/static/" "$INSTALL_DIR/static/" 2>/dev/null || \
+    cp -r "$BUILD_DIR/static/"* "$INSTALL_DIR/static/" 2>/dev/null || true
+  # Install update script
+  if [[ -f "$BUILD_DIR/update.sh" ]]; then
+    cp "$BUILD_DIR/update.sh" "$INSTALL_DIR/update.sh"
+    chmod +x "$INSTALL_DIR/update.sh"
+    info "update.sh نصب شد در $INSTALL_DIR/update.sh"
+  fi
   info "فایل‌های قالب کپی شدند"
 }
 
@@ -195,6 +203,7 @@ ExecStart=${INSTALL_DIR}/zedproxy \\
   --templates=${INSTALL_DIR}/templates \\
   --static=${INSTALL_DIR}/static \\
   --uploads=${INSTALL_DIR}/static/uploads \\
+  --backups=${INSTALL_DIR}/data/backups \\
   --secret=\${SESSION_SECRET}
 Restart=always
 RestartSec=5

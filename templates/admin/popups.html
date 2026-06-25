@@ -1,0 +1,36 @@
+{{define "admin-content"}}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold text-white">پاپ‌آپ فروش</h1>
+    <a href="/zed-admin/popups/new" class="btn-save text-sm">+ پاپ‌آپ جدید</a>
+  </div>
+  <div class="text-yellow-400 text-sm bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
+    ⚠️ فقط یک پاپ‌آپ فعال توصیه می‌شود. پاپ‌آپ یک‌بار در هر session نمایش داده می‌شود.
+  </div>
+  <div class="admin-card">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead><tr><th>عنوان</th><th>تاخیر (ثانیه)</th><th>exit intent</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+        <tbody>
+          {{range .Popups}}
+          <tr>
+            <td class="text-white font-medium">{{.Title}}</td>
+            <td class="text-gray-400">{{.DelaySeconds}}s</td>
+            <td>{{if .ExitIntent}}<span class="badge badge-green">فعال</span>{{else}}<span class="badge badge-red">غیرفعال</span>{{end}}</td>
+            <td>{{if .IsActive}}<span class="badge badge-green">فعال</span>{{else}}<span class="badge badge-red">غیرفعال</span>{{end}}</td>
+            <td class="flex gap-2">
+              <a href="/zed-admin/popups/{{.ID}}/edit" class="btn-edit">ویرایش</a>
+              <form method="POST" action="/zed-admin/popups/{{.ID}}/delete" onsubmit="return confirm('حذف شود؟')">
+                <button class="btn-danger">حذف</button>
+              </form>
+            </td>
+          </tr>
+          {{else}}
+          <tr><td colspan="5" class="text-center text-gray-500 py-8">هیچ پاپ‌آپی ثبت نشده</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{end}}

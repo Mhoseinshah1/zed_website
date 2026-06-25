@@ -38,13 +38,18 @@
 <div class="admin-card overflow-hidden">
   <div class="overflow-x-auto">
     <table class="data-table w-full">
-      <thead><tr><th>پیش‌نمایش</th><th>نام فایل</th><th>نوع</th><th>حجم</th><th>آدرس</th><th>تاریخ</th><th>عملیات</th></tr></thead>
+      <thead><tr><th>پیش‌نمایش</th><th>نام فایل</th><th>Alt Text</th><th>حجم</th><th>آدرس</th><th>تاریخ</th><th>عملیات</th></tr></thead>
       <tbody>
         {{range .Files}}
         <tr>
-          <td><img src="{{.Path}}" alt="" class="w-12 h-12 object-cover rounded-lg" onerror="this.style.display='none'"></td>
+          <td><img src="{{.Path}}" alt="{{.AltText}}" class="w-12 h-12 object-cover rounded-lg" onerror="this.style.display='none'"></td>
           <td class="text-white text-sm max-w-xs truncate">{{.OriginalName}}</td>
-          <td class="text-gray-400 text-xs">{{.MimeType}}</td>
+          <td>
+            <form method="POST" action="/zed-admin/media/{{.ID}}/alt" class="flex gap-1">
+              <input type="text" name="alt_text" value="{{.AltText}}" class="form-input text-xs py-1 px-2 w-32" placeholder="توضیح تصویر">
+              <button type="submit" class="btn-edit text-xs py-1 px-2">ذخیره</button>
+            </form>
+          </td>
           <td class="text-gray-400 text-xs">{{.Size}} B</td>
           <td>
             <button onclick="navigator.clipboard.writeText('{{.Path}}').then(()=>alert('کپی شد!'))"

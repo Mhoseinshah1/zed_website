@@ -1,0 +1,38 @@
+{{define "admin-content"}}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold text-white">مدیریت ادمین‌ها</h1>
+    <a href="/zed-admin/users/new" class="btn-save text-sm">+ ادمین جدید</a>
+  </div>
+  <div class="admin-card">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead><tr><th>نام کاربری</th><th>نقش</th><th>عملیات</th></tr></thead>
+        <tbody>
+          {{range .Admins}}
+          <tr>
+            <td class="text-white font-medium font-mono">{{.Username}}</td>
+            <td>
+              {{if eq .Role "owner"}}<span class="badge badge-green">مالک</span>
+              {{else if eq .Role "content_manager"}}<span class="badge" style="background:rgba(99,102,241,0.2);color:#a5b4fc;border-color:rgba(99,102,241,0.3)">مدیر محتوا</span>
+              {{else}}<span class="badge" style="background:rgba(100,116,139,0.2);color:#94a3b8;border-color:rgba(100,116,139,0.3)">پشتیبانی</span>{{end}}
+            </td>
+            <td class="flex gap-2">
+              {{if ne .Role "owner"}}
+              <form method="POST" action="/zed-admin/users/{{.ID}}/delete" onsubmit="return confirm('این ادمین حذف شود؟')">
+                <button class="btn-danger">حذف</button>
+              </form>
+              {{else}}
+              <span class="text-gray-600 text-sm">حذف ممکن نیست</span>
+              {{end}}
+            </td>
+          </tr>
+          {{else}}
+          <tr><td colspan="3" class="text-center text-gray-500 py-8">هیچ ادمینی یافت نشد</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{end}}

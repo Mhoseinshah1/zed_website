@@ -26,6 +26,18 @@
         <label class="form-label">متن فوتر</label>
         <input type="text" name="footer_text" value="{{index .Settings "footer_text"}}" class="form-input">
       </div>
+      <div>
+        <label class="form-label">لوگو (مسیر فایل یا URL)</label>
+        <input type="text" name="logo_image" value="{{index .Settings "logo_image"}}" class="form-input" dir="ltr" placeholder="/uploads/logo.png">
+      </div>
+      <div>
+        <label class="form-label">فاوآیکون (مسیر فایل یا URL)</label>
+        <input type="text" name="favicon" value="{{index .Settings "favicon"}}" class="form-input" dir="ltr" placeholder="/uploads/favicon.ico">
+      </div>
+      <div>
+        <label class="form-label">تصویر OG (Open Graph)</label>
+        <input type="text" name="og_image" value="{{index .Settings "og_image"}}" class="form-input" dir="ltr" placeholder="/uploads/og.jpg">
+      </div>
     </div>
   </div>
 
@@ -120,15 +132,24 @@
         <input type="text" name="google_analytics" value="{{index .Settings "google_analytics"}}" class="form-input" dir="ltr" placeholder="G-XXXXXXXXXX">
       </div>
       <div>
+        <label class="form-label">Google Search Console Verification</label>
+        <input type="text" name="gsc_verification" value="{{index .Settings "gsc_verification"}}" class="form-input" dir="ltr" placeholder="google-site-verification=...">
+      </div>
+      <div>
         <label class="form-label">CSS سفارشی</label>
         <textarea name="custom_css" class="form-input font-mono text-sm" rows="5" dir="ltr" placeholder="/* CSS سفارشی شما */">{{index .Settings "custom_css"}}</textarea>
       </div>
       <div>
-        <label class="form-label">حالت تعمیر</label>
-        <select name="maintenance_mode" class="form-input">
-          <option value="0" {{if eq (index .Settings "maintenance_mode") "0"}}selected{{end}}>غیرفعال</option>
-          <option value="1" {{if eq (index .Settings "maintenance_mode") "1"}}selected{{end}}>فعال</option>
-        </select>
+        <label class="form-label">JavaScript سفارشی</label>
+        <textarea name="custom_js" class="form-input font-mono text-sm" rows="4" dir="ltr" placeholder="// JS سفارشی شما">{{index .Settings "custom_js"}}</textarea>
+      </div>
+      <div>
+        <label class="form-label">اضافه‌کردن به robots.txt</label>
+        <textarea name="robots_txt_extra" class="form-input font-mono text-sm" rows="3" dir="ltr" placeholder="Disallow: /private/">{{index .Settings "robots_txt_extra"}}</textarea>
+      </div>
+      <div>
+        <label class="form-label">پیام حالت تعمیر</label>
+        <input type="text" name="maintenance_msg" value="{{index .Settings "maintenance_msg"}}" class="form-input" placeholder="سایت در حال بروزرسانی است. به زودی برمی‌گردیم.">
       </div>
     </div>
   </div>

@@ -1,0 +1,36 @@
+{{define "admin-content"}}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold text-white">پشتیبان‌گیری دیتابیس</h1>
+    <form method="POST" action="/zed-admin/backups/create">
+      <button class="btn-save text-sm">+ پشتیبان جدید</button>
+    </form>
+  </div>
+  {{if .Message}}<div class="bg-green-500/20 border border-green-500/30 text-green-300 p-4 rounded-xl">{{.Message}}</div>{{end}}
+  {{if .Error}}<div class="bg-red-500/20 border border-red-500/30 text-red-300 p-4 rounded-xl">{{.Error}}</div>{{end}}
+  <div class="admin-card">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead><tr><th>نام فایل</th><th>حجم</th><th>تاریخ</th><th>عملیات</th></tr></thead>
+        <tbody>
+          {{range .Backups}}
+          <tr>
+            <td class="font-mono text-sm text-gray-300">{{.Filename}}</td>
+            <td class="text-gray-400 text-sm">{{.SizeKB}} KB</td>
+            <td class="text-gray-400 text-sm">{{.CreatedAt}}</td>
+            <td class="flex gap-2">
+              <a href="/zed-admin/backups/{{.ID}}/download" class="btn-edit">دانلود</a>
+              <form method="POST" action="/zed-admin/backups/{{.ID}}/delete" onsubmit="return confirm('این فایل پشتیبان حذف شود؟')">
+                <button class="btn-danger">حذف</button>
+              </form>
+            </td>
+          </tr>
+          {{else}}
+          <tr><td colspan="4" class="text-center text-gray-500 py-8">هیچ پشتیبانی موجود نیست</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{end}}

@@ -1,0 +1,33 @@
+{{define "admin-content"}}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold text-white">اطلاعیه‌های بنر</h1>
+    <a href="/zed-admin/announcements/new" class="btn-save text-sm">+ اطلاعیه جدید</a>
+  </div>
+  <div class="admin-card">
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead><tr><th>پیام</th><th>رنگ</th><th>وضعیت</th><th>صفحات هدف</th><th>عملیات</th></tr></thead>
+        <tbody>
+          {{range .Announcements}}
+          <tr>
+            <td class="text-white max-w-xs truncate">{{.Message}}</td>
+            <td><span class="badge badge-blue">{{.Color}}</span></td>
+            <td>{{if .IsActive}}<span class="badge badge-green">فعال</span>{{else}}<span class="badge badge-red">غیرفعال</span>{{end}}</td>
+            <td class="text-gray-400 text-sm">{{.TargetPages}}</td>
+            <td class="flex gap-2">
+              <a href="/zed-admin/announcements/{{.ID}}/edit" class="btn-edit">ویرایش</a>
+              <form method="POST" action="/zed-admin/announcements/{{.ID}}/delete" onsubmit="return confirm('حذف شود؟')">
+                <button class="btn-danger">حذف</button>
+              </form>
+            </td>
+          </tr>
+          {{else}}
+          <tr><td colspan="5" class="text-center text-gray-500 py-8">هیچ اطلاعیه‌ای ثبت نشده</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{end}}
