@@ -135,34 +135,35 @@ func AdminTelegramSave(c *gin.Context) {
 
 	// Only owner can change token / chat ID
 	if isOwner {
-		rawToken := strings.TrimSpace(c.PostForm("bot_token"))
-		// Accept new token only if it's not empty and not a masked placeholder
-		if rawToken != "" && !strings.Contains(rawToken, "...") && rawToken != "***" {
-			// Validate token via getMe before saving
-			if _, err := tg.GetMe(rawToken); err != nil {
-				sess.Set("flash_err", "توکن نامعتبر است: "+err.Error())
-				sess.Save()
-				c.Redirect(http.StatusFound, "/zed-admin/integrations/telegram")
-				return
+		// Handle token removal
+		if c.PostForm("remove_telegram_token") == "1" {
+			models.SetSetting("telegram_admin_bot_token", "")
+			models.SetSetting("telegram_admin_bot_username", "")
+		} else {
+			rawToken := strings.TrimSpace(c.PostForm("telegram_admin_bot_token"))
+			// Accept new token only if it's not empty and not a masked placeholder
+			if rawToken != "" && !strings.Contains(rawToken, "...") && rawToken != "***" {
+				models.SetSetting("telegram_admin_bot_token", rawToken)
+				// Try to resolve bot username in background (non-blocking)
+				if me, err := tg.GetMe(rawToken); err == nil && me != nil {
+					models.SetSetting("telegram_admin_bot_username", me.Username)
+				}
 			}
-			models.SetSetting("telegram_admin_bot_token", rawToken)
 		}
 
-		chatID := strings.TrimSpace(c.PostForm("chat_id"))
+		chatID := strings.TrimSpace(c.PostForm("telegram_admin_chat_id"))
+		existingChatID := models.GetSetting("telegram_admin_chat_id")
 		if chatID != "" {
-			// Validate chat ID
-			currentToken := models.GetSetting("telegram_admin_bot_token")
-			if currentToken != "" {
-				chat, err := tg.GetChat(currentToken, chatID)
-				if err != nil {
-					sess.Set("flash_err", "Chat ID نامعتبر است: "+err.Error())
-					sess.Save()
-					c.Redirect(http.StatusFound, "/zed-admin/integrations/telegram")
-					return
-				}
-				models.SetSetting("telegram_admin_group_title", chat.Title)
-			}
 			models.SetSetting("telegram_admin_chat_id", chatID)
+			// Only attempt chat title lookup if chat ID changed and token is present
+			if chatID != existingChatID {
+				currentToken := models.GetSetting("telegram_admin_bot_token")
+				if currentToken != "" {
+					if chat, err := tg.GetChat(currentToken, chatID); err == nil {
+						models.SetSetting("telegram_admin_group_title", chat.Title)
+					}
+				}
+			}
 		}
 	}
 
@@ -173,9 +174,9 @@ func AdminTelegramSave(c *gin.Context) {
 		return "0"
 	}
 
-	models.SetSetting("telegram_admin_bot_enabled", checkbox("bot_enabled"))
-	models.SetSetting("telegram_admin_daily_report_enabled", checkbox("daily_enabled"))
-	models.SetSetting("telegram_admin_alerts_enabled", checkbox("alerts_enabled"))
+	models.SetSetting("telegram_admin_bot_enabled", checkbox("telegram_admin_bot_enabled"))
+	models.SetSetting("telegram_admin_daily_report_enabled", checkbox("telegram_admin_daily_report_enabled"))
+	models.SetSetting("telegram_admin_alerts_enabled", checkbox("telegram_admin_alerts_enabled"))
 	models.SetSetting("telegram_admin_security_alerts_enabled", checkbox("security_enabled"))
 	models.SetSetting("telegram_admin_update_alerts_enabled", checkbox("updates_enabled"))
 	models.SetSetting("telegram_admin_backup_alerts_enabled", checkbox("backups_enabled"))
@@ -185,22 +186,24 @@ func AdminTelegramSave(c *gin.Context) {
 	models.SetSetting("telegram_admin_admin_activity_enabled", checkbox("admin_activity_enabled"))
 
 	// Backup-to-Telegram toggles
-	models.SetSetting("telegram_admin_send_db_zip_enabled", checkbox("send_db_zip_enabled"))
-	models.SetSetting("telegram_admin_daily_db_backup_enabled", checkbox("daily_db_backup_enabled"))
+	models.SetSetting("telegram_admin_send_db_zip_enabled", checkbox("telegram_backup_db_zip_enabled"))
+	models.SetSetting("telegram_admin_daily_db_backup_enabled", checkbox("telegram_backup_daily_enabled"))
 	models.SetSetting("telegram_admin_backup_before_update", checkbox("backup_before_update"))
 	models.SetSetting("telegram_admin_backup_before_rollback", checkbox("backup_before_rollback"))
 
-	if t := c.PostForm("daily_time"); t != "" {
+	if t := c.PostForm("telegram_admin_daily_report_time"); t != "" {
 		models.SetSetting("telegram_admin_daily_report_time", t)
 	}
-	if tz := c.PostForm("daily_timezone"); tz != "" {
+	if tz := c.PostForm("telegram_admin_daily_report_timezone"); tz != "" {
 		models.SetSetting("telegram_admin_daily_report_timezone", tz)
 	}
-	if t := c.PostForm("daily_db_backup_time"); t != "" {
+	if t := c.PostForm("telegram_backup_daily_time"); t != "" {
 		models.SetSetting("telegram_admin_daily_db_backup_time", t)
 	}
 
-	sess.Set("flash_ok", "تنظیمات تلگرام ذخیره شد")
+	LogAdminActivity(c, "telegram_settings_updated", "تنظیمات تلگرام ذخیره شد")
+
+	sess.Set("flash_ok", "تنظیمات تلگرام ذخیره شد.")
 	sess.Save()
 	c.Redirect(http.StatusFound, "/zed-admin/integrations/telegram")
 }

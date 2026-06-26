@@ -72,22 +72,28 @@
 
       <label class="flex items-center justify-between cursor-pointer py-1">
         <span class="text-sm" style="color:var(--admin-text)">🤖 فعال‌کردن بات تلگرام</span>
-        <input type="hidden" name="bot_enabled" value="0">
-        <input type="checkbox" name="bot_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGEnabled "1"}}checked{{end}}>
+        <input type="hidden" name="telegram_admin_bot_enabled" value="0">
+        <input type="checkbox" name="telegram_admin_bot_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGEnabled "1"}}checked{{end}}>
       </label>
 
       <div class="grid md:grid-cols-2 gap-4">
         <div class="space-y-1">
           <label class="text-xs" style="color:var(--admin-muted)">توکن بات</label>
-          <input type="password" name="bot_token"
+          <input type="password" name="telegram_admin_bot_token"
             placeholder="{{if .TGTokenSet}}{{.TGTokenMasked}} — برای تغییر وارد کنید{{else}}123456789:ABCDefgh...{{end}}"
             autocomplete="new-password"
             class="admin-input w-full font-mono">
           <p class="text-xs" style="color:var(--admin-muted)">توکن را از @BotFather دریافت کنید. پس از ذخیره مخفی می‌شود.</p>
+          {{if .TGTokenSet}}
+          <label class="flex items-center gap-2 mt-1 cursor-pointer">
+            <input type="checkbox" name="remove_telegram_token" value="1" class="w-3 h-3 rounded" style="accent-color:#f87171">
+            <span class="text-xs" style="color:#f87171">حذف توکن فعلی</span>
+          </label>
+          {{end}}
         </div>
         <div class="space-y-1">
           <label class="text-xs" style="color:var(--admin-muted)">شناسه گروه (Chat ID)</label>
-          <input type="text" name="chat_id" value="{{.TGChatID}}"
+          <input type="text" name="telegram_admin_chat_id" value="{{.TGChatID}}"
             placeholder="-1001234567890"
             class="admin-input w-full font-mono">
           <p class="text-xs" style="color:var(--admin-muted)">سوپرگروه با Topics فعال. معمولاً با ‑100 شروع می‌شود.</p>
@@ -101,8 +107,8 @@
       <h2 class="text-sm font-semibold pb-2 mb-3" style="color:var(--admin-muted);border-bottom:1px solid var(--admin-border)">🔔 اعلان‌ها به تفکیک دسته</h2>
       <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
         <span class="text-sm" style="color:var(--admin-text)">🔔 هشدارهای عمومی</span>
-        <input type="hidden" name="alerts_enabled" value="0">
-        <input type="checkbox" name="alerts_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGAlerts "1"}}checked{{end}}>
+        <input type="hidden" name="telegram_admin_alerts_enabled" value="0">
+        <input type="checkbox" name="telegram_admin_alerts_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGAlerts "1"}}checked{{end}}>
       </label>
       <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
         <span class="text-sm" style="color:var(--admin-text)">🔐 هشدارهای امنیتی</span>
@@ -147,17 +153,17 @@
 
       <label class="flex items-center justify-between cursor-pointer py-1">
         <span class="text-sm" style="color:var(--admin-text)">📊 گزارش روزانه خودکار</span>
-        <input type="hidden" name="daily_enabled" value="0">
-        <input type="checkbox" name="daily_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGDailyEnabled "1"}}checked{{end}}>
+        <input type="hidden" name="telegram_admin_daily_report_enabled" value="0">
+        <input type="checkbox" name="telegram_admin_daily_report_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGDailyEnabled "1"}}checked{{end}}>
       </label>
       <div class="grid grid-cols-2 gap-3">
         <div class="space-y-1">
           <label class="text-xs" style="color:var(--admin-muted)">زمان ارسال گزارش</label>
-          <input type="time" name="daily_time" value="{{.TGDailyTime}}" class="admin-input w-full">
+          <input type="time" name="telegram_admin_daily_report_time" value="{{.TGDailyTime}}" class="admin-input w-full">
         </div>
         <div class="space-y-1">
           <label class="text-xs" style="color:var(--admin-muted)">منطقه زمانی</label>
-          <input type="text" name="daily_timezone" value="{{.TGDailyTZ}}" placeholder="Asia/Tehran" class="admin-input w-full font-mono">
+          <input type="text" name="telegram_admin_daily_report_timezone" value="{{.TGDailyTZ}}" placeholder="Asia/Tehran" class="admin-input w-full font-mono">
         </div>
       </div>
 
@@ -165,13 +171,13 @@
         <div class="text-xs mb-2" style="color:var(--admin-muted)">ارسال بکاپ ZIP به تلگرام</div>
         <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
           <span class="text-sm" style="color:var(--admin-text)">💾 ارسال ZIP هنگام بکاپ دستی</span>
-          <input type="hidden" name="send_db_zip_enabled" value="0">
-          <input type="checkbox" name="send_db_zip_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGSendDBZip "1"}}checked{{end}}>
+          <input type="hidden" name="telegram_backup_db_zip_enabled" value="0">
+          <input type="checkbox" name="telegram_backup_db_zip_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGSendDBZip "1"}}checked{{end}}>
         </label>
         <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
           <span class="text-sm" style="color:var(--admin-text)">⏰ بکاپ روزانه دیتابیس به تلگرام</span>
-          <input type="hidden" name="daily_db_backup_enabled" value="0">
-          <input type="checkbox" name="daily_db_backup_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGDailyDBBackup "1"}}checked{{end}}>
+          <input type="hidden" name="telegram_backup_daily_enabled" value="0">
+          <input type="checkbox" name="telegram_backup_daily_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGDailyDBBackup "1"}}checked{{end}}>
         </label>
         <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
           <span class="text-sm" style="color:var(--admin-text)">🔄 بکاپ قبل از آپدیت</span>
@@ -185,12 +191,12 @@
         </label>
         <div class="space-y-1 mt-3">
           <label class="text-xs" style="color:var(--admin-muted)">زمان بکاپ روزانه</label>
-          <input type="time" name="daily_db_backup_time" value="{{.TGDailyDBBackupTime}}" class="admin-input w-full md:w-40">
+          <input type="time" name="telegram_backup_daily_time" value="{{.TGDailyDBBackupTime}}" class="admin-input w-full md:w-40">
         </div>
       </div>
     </div>
 
-    <button type="submit" class="admin-btn-primary">💾 ذخیره تنظیمات</button>
+    <button type="submit" class="admin-btn-primary">💾 ذخیره تغییرات</button>
   </form>
 
   <!-- Card 3: تاپیک‌های گروه -->
