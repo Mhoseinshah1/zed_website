@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"zedproxy/internal/models"
+	tg "zedproxy/internal/telegram"
 )
 
 var uploadDir string
@@ -74,6 +75,7 @@ func AdminLoginPost(c *gin.Context) {
 
 	admin, err := models.GetAdminByUsername(username)
 	if err != nil || bcrypt.CompareHashAndPassword([]byte(admin.PasswordHash), []byte(password)) != nil {
+		tg.Send(tg.LevelWarn, tg.CatSecurity, "🔐 تلاش ورود ناموفق", fmt.Sprintf("نام کاربری: %s", username))
 		c.Redirect(http.StatusFound, "/zed-admin/login?error=invalid")
 		return
 	}
@@ -81,6 +83,7 @@ func AdminLoginPost(c *gin.Context) {
 	session := sessions.Default(c)
 	session.Set("admin_id", admin.ID)
 	session.Set("admin_username", admin.Username)
+	session.Set("role", admin.Role)
 	session.Save()
 	c.Redirect(http.StatusFound, "/zed-admin")
 }
@@ -680,6 +683,7 @@ func AdminPasswordPost(c *gin.Context) {
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte(newPass), bcrypt.DefaultCost)
 	models.UpdateAdminPassword(admin.ID, string(hash))
+	tg.Send(tg.LevelWarn, tg.CatSecurity, "🔑 رمز عبور ادمین تغییر کرد", fmt.Sprintf("کاربر: %s", username))
 
 	data := adminData(c, "password")
 	data["Success"] = "رمز عبور با موفقیت تغییر یافت"

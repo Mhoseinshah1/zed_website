@@ -1,0 +1,217 @@
+{{define "admin-content"}}
+<div class="space-y-6 max-w-4xl">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold text-white">یکپارچه‌سازی تلگرام</h1>
+    <a href="/zed-admin/system/health" class="btn-secondary text-sm">سلامت سیستم</a>
+  </div>
+
+  {{if .FlashOK}}
+  <div class="bg-green-500/20 border border-green-500/40 text-green-400 px-4 py-3 rounded-xl text-sm">{{.FlashOK}}</div>
+  {{end}}
+
+  <!-- Connection Status -->
+  <div class="admin-card p-5 space-y-3">
+    <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">وضعیت اتصال</h2>
+    <div class="flex items-center gap-3 flex-wrap">
+      {{if eq .TGEnabled "1"}}
+      <span class="inline-flex items-center gap-1.5 text-green-400 text-sm"><span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span> بات فعال است</span>
+      {{else}}
+      <span class="inline-flex items-center gap-1.5 text-gray-400 text-sm"><span class="w-2 h-2 rounded-full bg-gray-500 inline-block"></span> بات غیرفعال است</span>
+      {{end}}
+      {{if .TGBotUsername}}<span class="text-cyan-400 text-sm font-mono">@{{.TGBotUsername}}</span>{{end}}
+      {{if .TGGroupTitle}}<span class="text-gray-400 text-sm">| گروه: {{.TGGroupTitle}}</span>{{end}}
+    </div>
+    <div class="flex flex-wrap gap-2 pt-2">
+      <button onclick="apiAction('/zed-admin/integrations/telegram/test','تست اتصال')" class="btn-secondary text-xs">🔍 تست اتصال</button>
+      <button onclick="apiAction('/zed-admin/integrations/telegram/send-test','ارسال پیام تست')" class="btn-secondary text-xs">📨 ارسال پیام تست</button>
+      <button onclick="apiAction('/zed-admin/integrations/telegram/create-topics','ساخت تاپیک‌ها')" class="btn-secondary text-xs">📂 ساخت تاپیک‌های گروه</button>
+      <button onclick="apiAction('/zed-admin/integrations/telegram/daily-report','ارسال گزارش روزانه')" class="btn-secondary text-xs">📊 گزارش روزانه الان</button>
+      {{if eq .TGEnabled "1"}}
+      <form method="post" action="/zed-admin/integrations/telegram/disable" class="inline">
+        <button type="submit" class="btn-secondary text-xs text-red-400">⛔ غیرفعال‌کردن</button>
+      </form>
+      {{end}}
+    </div>
+    <div id="result-box" class="hidden mt-2 text-sm px-3 py-2 rounded-lg bg-white/5 text-gray-300"></div>
+  </div>
+
+  <!-- Settings Form -->
+  <form method="post" action="/zed-admin/integrations/telegram/save" class="space-y-5">
+
+    {{if .IsOwner}}
+    <div class="admin-card p-5 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">تنظیمات بات (فقط مالک)</h2>
+      <div class="space-y-1">
+        <label class="text-xs text-gray-400">توکن بات</label>
+        <input type="password" name="bot_token"
+          placeholder="{{if .TGTokenSet}}{{.TGTokenMasked}} — برای تغییر وارد کنید{{else}}123456789:ABCDefgh...{{end}}"
+          autocomplete="new-password"
+          class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-cyan-500">
+        <p class="text-xs text-gray-500">توکن را از @BotFather دریافت کنید. بعد از ذخیره نمایش داده نمی‌شود.</p>
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs text-gray-400">شناسه گروه (Chat ID)</label>
+        <input type="text" name="chat_id" value="{{.TGChatID}}"
+          placeholder="-1001234567890"
+          class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-cyan-500">
+        <p class="text-xs text-gray-500">سوپرگروهی با Topics فعال. Chat ID معمولاً با ‑100 شروع می‌شود.</p>
+      </div>
+    </div>
+    {{end}}
+
+    <div class="admin-card p-5 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">فعال‌سازی و دسته‌بندی اعلان‌ها</h2>
+
+      <label class="flex items-center justify-between cursor-pointer py-1">
+        <span class="text-sm text-gray-300">🤖 فعال‌کردن بات تلگرام</span>
+        <input type="hidden" name="bot_enabled" value="0">
+        <input type="checkbox" name="bot_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGEnabled "1"}}checked{{end}}>
+      </label>
+      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
+        <span class="text-sm text-gray-300">🔔 هشدارهای عمومی</span>
+        <input type="hidden" name="alerts_enabled" value="0">
+        <input type="checkbox" name="alerts_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGAlerts "1"}}checked{{end}}>
+      </label>
+      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
+        <span class="text-sm text-gray-300">🔐 هشدارهای امنیتی</span>
+        <input type="hidden" name="security_enabled" value="0">
+        <input type="checkbox" name="security_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGSecurity "1"}}checked{{end}}>
+      </label>
+      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
+        <span class="text-sm text-gray-300">🔄 اطلاعیه بروزرسانی</span>
+        <input type="hidden" name="updates_enabled" value="0">
+        <input type="checkbox" name="updates_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGUpdates "1"}}checked{{end}}>
+      </label>
+      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
+        <span class="text-sm text-gray-300">💾 بکاپ‌ها</span>
+        <input type="hidden" name="backups_enabled" value="0">
+        <input type="checkbox" name="backups_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGBackups "1"}}checked{{end}}>
+      </label>
+      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
+        <span class="text-sm text-gray-300">❌ خطاها و پنیک‌ها</span>
+        <input type="hidden" name="errors_enabled" value="0">
+        <input type="checkbox" name="errors_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGErrors "1"}}checked{{end}}>
+      </label>
+      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
+        <span class="text-sm text-gray-300">🧰 حالت تعمیرات</span>
+        <input type="hidden" name="maintenance_enabled" value="0">
+        <input type="checkbox" name="maintenance_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGMaintenance "1"}}checked{{end}}>
+      </label>
+      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
+        <span class="text-sm text-gray-300">🧾 فعالیت ادمین</span>
+        <input type="hidden" name="admin_activity_enabled" value="0">
+        <input type="checkbox" name="admin_activity_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGAdminActivity "1"}}checked{{end}}>
+      </label>
+      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
+        <span class="text-sm text-gray-300">📈 آمار کلیک (روزانه)</span>
+        <input type="hidden" name="analytics_enabled" value="0">
+        <input type="checkbox" name="analytics_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGAnalytics "1"}}checked{{end}}>
+      </label>
+    </div>
+
+    <div class="admin-card p-5 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">📊 گزارش روزانه</h2>
+      <label class="flex items-center justify-between cursor-pointer py-1">
+        <span class="text-sm text-gray-300">ارسال گزارش روزانه خودکار</span>
+        <input type="hidden" name="daily_enabled" value="0">
+        <input type="checkbox" name="daily_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGDailyEnabled "1"}}checked{{end}}>
+      </label>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1">
+          <label class="text-xs text-gray-400">زمان ارسال</label>
+          <input type="time" name="daily_time" value="{{.TGDailyTime}}"
+            class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs text-gray-400">منطقه زمانی</label>
+          <input type="text" name="daily_timezone" value="{{.TGDailyTZ}}"
+            placeholder="Asia/Tehran"
+            class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-cyan-500">
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-primary">ذخیره تنظیمات</button>
+  </form>
+
+  <!-- Topics -->
+  {{if .Topics}}
+  <div class="admin-card overflow-x-auto">
+    <div class="px-4 py-3 border-b border-white/10 text-sm font-semibold text-gray-300">تاپیک‌های گروه تلگرام</div>
+    <table class="w-full text-sm text-right">
+      <thead class="text-gray-400 border-b border-white/10">
+        <tr>
+          <th class="p-3">کلید داخلی</th>
+          <th class="p-3">عنوان</th>
+          <th class="p-3">Thread ID</th>
+          <th class="p-3">وضعیت</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Topics}}
+        <tr class="border-b border-white/5 hover:bg-white/5">
+          <td class="p-3 text-gray-400 font-mono text-xs">{{.Key}}</td>
+          <td class="p-3 text-white">{{.Title}}</td>
+          <td class="p-3 text-cyan-400 font-mono text-xs">{{if .ThreadID}}{{.ThreadID}}{{else}}—{{end}}</td>
+          <td class="p-3">{{if .Enabled}}<span class="text-green-400 text-xs">✓ فعال</span>{{else}}<span class="text-gray-500 text-xs">غیرفعال</span>{{end}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{end}}
+
+  <!-- Recent Notifications -->
+  {{if .Notifications}}
+  <div class="admin-card overflow-x-auto">
+    <div class="px-4 py-3 border-b border-white/10 text-sm font-semibold text-gray-300">آخرین اعلان‌های ارسال‌شده</div>
+    <table class="w-full text-sm text-right">
+      <thead class="text-gray-400 border-b border-white/10">
+        <tr>
+          <th class="p-3">دسته</th>
+          <th class="p-3">وضعیت</th>
+          <th class="p-3">خطا</th>
+          <th class="p-3">زمان</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Notifications}}
+        <tr class="border-b border-white/5 hover:bg-white/5">
+          <td class="p-3 text-cyan-400 font-mono text-xs">{{.TopicKey}}</td>
+          <td class="p-3">
+            {{if eq .Status "sent"}}<span class="text-green-400 text-xs">✓ ارسال شد</span>
+            {{else}}<span class="text-red-400 text-xs">✗ خطا</span>{{end}}
+          </td>
+          <td class="p-3 text-gray-500 text-xs">{{.Error}}</td>
+          <td class="p-3 text-gray-500 text-xs">{{.CreatedAt}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{end}}
+</div>
+
+<script>
+async function apiAction(url, label) {
+  const box = document.getElementById('result-box');
+  box.classList.remove('hidden');
+  box.className = 'mt-2 text-sm px-3 py-2 rounded-lg bg-white/5 text-gray-300';
+  box.textContent = label + '...';
+  try {
+    const r = await fetch(url, {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}});
+    const d = await r.json();
+    if (d.ok) {
+      box.textContent = '✓ ' + (d.description || label + ' انجام شد');
+      box.className = 'mt-2 text-sm px-3 py-2 rounded-lg bg-green-500/10 text-green-400';
+    } else {
+      box.textContent = '✗ ' + (d.error || 'خطا');
+      box.className = 'mt-2 text-sm px-3 py-2 rounded-lg bg-red-500/10 text-red-400';
+    }
+  } catch(e) {
+    box.textContent = '✗ ' + e.message;
+    box.className = 'mt-2 text-sm px-3 py-2 rounded-lg bg-red-500/10 text-red-400';
+  }
+}
+</script>
+{{end}}

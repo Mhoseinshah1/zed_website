@@ -18,6 +18,7 @@ import (
 	"zedproxy/internal/middleware"
 	"zedproxy/internal/models"
 	"zedproxy/internal/seed"
+	tg "zedproxy/internal/telegram"
 )
 
 // Set via ldflags: -X main.Version=... -X main.BuildDate=... -X main.GitCommit=...
@@ -45,11 +46,26 @@ func main() {
 		maintenanceOff    = flag.Bool("maintenance-off", false, "disable maintenance mode and exit")
 		maintenanceStatus = flag.Bool("maintenance-status", false, "show maintenance mode status and exit")
 		selfTest          = flag.Bool("self-test", false, "run self-test and exit")
+
+		// Telegram CLI flags
+		telegramStatus       = flag.Bool("telegram-status", false, "show Telegram bot status and exit")
+		telegramTest         = flag.Bool("telegram-test", false, "test Telegram bot connection and exit")
+		telegramCreateTopics = flag.Bool("telegram-create-topics", false, "create forum topics in group and exit")
+		telegramSendTest     = flag.Bool("telegram-send-test", false, "send test message via Telegram and exit")
+		sendDailyReport      = flag.Bool("send-daily-report", false, "send daily report now and exit")
+		telegramEnable       = flag.Bool("telegram-enable", false, "enable Telegram bot and exit")
+		telegramDisable      = flag.Bool("telegram-disable", false, "disable Telegram bot and exit")
+		telegramSetToken     = flag.String("telegram-set-token", "", "set Telegram bot token and exit")
+		telegramSetChatID    = flag.String("telegram-set-chat-id", "", "set Telegram chat ID and exit")
+		telegramNotifyTitle  = flag.String("telegram-notify-title", "", "notification title (use with --telegram-notify-msg)")
+		telegramNotifyMsg    = flag.String("telegram-notify-msg", "", "notification message body")
+		telegramNotifyCat    = flag.String("telegram-notify-cat", "system_status", "notification category/topic key")
 	)
 	flag.Parse()
 
 	// Init DB
 	database.Init(*dbPath)
+	tg.SeedDefaultTopics()
 
 	// CLI maintenance controls (exit after action)
 	if *maintenanceOn {
@@ -73,6 +89,76 @@ func main() {
 	}
 	if *selfTest {
 		runSelfTest(*dbPath, *templateDir, *staticDir, *uploadDirFlag)
+		return
+	}
+
+	// Telegram CLI flags
+	if *telegramSetToken != "" {
+		models.SetSetting("telegram_admin_bot_token", *telegramSetToken)
+		fmt.Println("[✓] Telegram bot token updated")
+		return
+	}
+	if *telegramSetChatID != "" {
+		models.SetSetting("telegram_admin_chat_id", *telegramSetChatID)
+		fmt.Println("[✓] Telegram chat ID updated")
+		return
+	}
+	if *telegramEnable {
+		models.SetSetting("telegram_admin_bot_enabled", "1")
+		fmt.Println("[✓] Telegram bot enabled")
+		return
+	}
+	if *telegramDisable {
+		models.SetSetting("telegram_admin_bot_enabled", "0")
+		fmt.Println("[✓] Telegram bot disabled")
+		return
+	}
+	if *telegramStatus {
+		enabled := models.GetSetting("telegram_admin_bot_enabled")
+		chatID := models.GetSetting("telegram_admin_chat_id")
+		botUser := models.GetSetting("telegram_admin_bot_username")
+		fmt.Printf("[i] Telegram bot enabled: %s\n", enabled)
+		fmt.Printf("[i] Chat ID: %s\n", chatID)
+		fmt.Printf("[i] Bot username: %s\n", botUser)
+		return
+	}
+	if *telegramTest {
+		desc, err := tg.TestConnection()
+		if err != nil {
+			fmt.Printf("[✗] Connection test failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("[✓] %s\n", desc)
+		return
+	}
+	if *telegramSendTest {
+		if err := tg.SendTestMessage(); err != nil {
+			fmt.Printf("[✗] Test message failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("[✓] Test message sent")
+		return
+	}
+	if *telegramCreateTopics {
+		if err := tg.CreateTopicsInGroup(); err != nil {
+			fmt.Printf("[!] Some topics failed: %v\n", err)
+		} else {
+			fmt.Println("[✓] Forum topics created")
+		}
+		return
+	}
+	if *sendDailyReport {
+		if err := tg.SendDailyReport(); err != nil {
+			fmt.Printf("[✗] Daily report failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("[✓] Daily report sent")
+		return
+	}
+	if *telegramNotifyTitle != "" {
+		tg.Send(tg.LevelInfo, tg.Category(*telegramNotifyCat), *telegramNotifyTitle, *telegramNotifyMsg)
+		tg.ProcessQueue() // flush synchronously since we're exiting
+		fmt.Println("[✓] Notification sent")
 		return
 	}
 
@@ -348,6 +434,18 @@ func main() {
 			// System
 			protected.GET("/system/logs", handlers.AdminSystemLogsPage)
 			protected.GET("/system/health", handlers.AdminSystemHealthPage)
+
+			// Telegram Integration
+			integrations := protected.Group("/integrations")
+			{
+				integrations.GET("/telegram", handlers.AdminTelegramPage)
+				integrations.POST("/telegram/save", handlers.AdminTelegramSave)
+				integrations.POST("/telegram/disable", handlers.AdminTelegramDisable)
+				integrations.POST("/telegram/test", handlers.AdminTelegramTest)
+				integrations.POST("/telegram/send-test", handlers.AdminTelegramSendTest)
+				integrations.POST("/telegram/create-topics", handlers.AdminTelegramCreateTopics)
+				integrations.POST("/telegram/daily-report", handlers.AdminTelegramSendDailyReport)
+			}
 		}
 	}
 

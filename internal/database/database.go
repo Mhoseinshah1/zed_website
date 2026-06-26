@@ -297,6 +297,39 @@ func Migrate() {
 			ip_hash TEXT DEFAULT '',
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS telegram_topics (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			key TEXT NOT NULL UNIQUE,
+			title TEXT NOT NULL,
+			message_thread_id INTEGER DEFAULT 0,
+			enabled INTEGER DEFAULT 1,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS telegram_notifications (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			level TEXT DEFAULT '',
+			category TEXT DEFAULT '',
+			topic_key TEXT DEFAULT '',
+			title TEXT DEFAULT '',
+			message TEXT DEFAULT '',
+			status TEXT DEFAULT 'sent',
+			error TEXT DEFAULT '',
+			sent_at DATETIME,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS telegram_queue (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			level TEXT DEFAULT '',
+			category TEXT DEFAULT '',
+			topic_key TEXT DEFAULT '',
+			payload TEXT NOT NULL,
+			attempts INTEGER DEFAULT 0,
+			last_error TEXT DEFAULT '',
+			status TEXT DEFAULT 'pending',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	for _, q := range queries {
@@ -352,6 +385,30 @@ func Migrate() {
 
 	// Seed maintenance_enabled default (idempotent)
 	DB.Exec("INSERT INTO settings (key, value) VALUES ('maintenance_enabled', '0') ON CONFLICT(key) DO NOTHING")
+
+	// Seed Telegram admin bot settings defaults
+	tgDefaults := []struct{ key, val string }{
+		{"telegram_admin_bot_enabled", "0"},
+		{"telegram_admin_bot_token", ""},
+		{"telegram_admin_chat_id", ""},
+		{"telegram_admin_group_title", ""},
+		{"telegram_admin_bot_username", ""},
+		{"telegram_admin_daily_report_enabled", "0"},
+		{"telegram_admin_daily_report_time", "09:00"},
+		{"telegram_admin_daily_report_timezone", "Asia/Tehran"},
+		{"telegram_admin_last_daily_report_date", ""},
+		{"telegram_admin_alerts_enabled", "1"},
+		{"telegram_admin_security_alerts_enabled", "1"},
+		{"telegram_admin_update_alerts_enabled", "1"},
+		{"telegram_admin_backup_alerts_enabled", "1"},
+		{"telegram_admin_analytics_enabled", "0"},
+		{"telegram_admin_error_alerts_enabled", "1"},
+		{"telegram_admin_maintenance_alerts_enabled", "1"},
+		{"telegram_admin_admin_activity_enabled", "1"},
+	}
+	for _, s := range tgDefaults {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
+	}
 
 	log.Println("Database migrations completed")
 }

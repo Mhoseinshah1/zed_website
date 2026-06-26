@@ -172,6 +172,20 @@ install_update_script() {
   fi
 }
 
+install_manage_script() {
+  step "Installing manager script"
+  if [[ -f "$BUILD_DIR/manage.sh" ]]; then
+    cp "$BUILD_DIR/manage.sh" "$INSTALL_DIR/manage.sh"
+    chmod +x "$INSTALL_DIR/manage.sh"
+    chown root:root "$INSTALL_DIR/manage.sh"
+    ln -sf "$INSTALL_DIR/manage.sh" /usr/local/bin/zedproxy-manager
+    info "Manager installed: $INSTALL_DIR/manage.sh"
+    info "Shortcut: zedproxy-manager (run as root)"
+  else
+    warn "manage.sh not found — skipping"
+  fi
+}
+
 seed_database() {
   step "Initializing database"
   # Skip seeding if DB already exists (reinstall protection)
@@ -356,6 +370,45 @@ start_service() {
   fi
 }
 
+setup_telegram_optional() {
+  step "Optional: Telegram Admin Bot"
+  echo ""
+  echo -e "${CYAN}Do you want to configure the Telegram admin bot now? (y/N):${NC}"
+  read -rp "Choice: " TG_CHOICE
+  if [[ "${TG_CHOICE,,}" != "y" ]]; then
+    info "Telegram bot skipped. Configure later at /zed-admin/integrations/telegram"
+    return
+  fi
+
+  read -rsp "Enter Telegram bot token (from @BotFather): " TG_TOKEN
+  echo ""
+  if [[ -z "$TG_TOKEN" ]]; then
+    warn "No token entered — skipping Telegram setup"
+    return
+  fi
+
+  read -rp "Enter Telegram group Chat ID (e.g. -1001234567890): " TG_CHAT
+  if [[ -z "$TG_CHAT" ]]; then
+    warn "No Chat ID entered — skipping Telegram setup"
+    return
+  fi
+
+  "$INSTALL_DIR/zedproxy" --db="$INSTALL_DIR/data/zedproxy.db" --telegram-set-token="$TG_TOKEN"
+  "$INSTALL_DIR/zedproxy" --db="$INSTALL_DIR/data/zedproxy.db" --telegram-set-chat-id="$TG_CHAT"
+  "$INSTALL_DIR/zedproxy" --db="$INSTALL_DIR/data/zedproxy.db" --telegram-enable
+
+  echo ""
+  echo -e "${CYAN}Create forum topics in your Telegram group now? (y/N):${NC}"
+  read -rp "Choice: " TOPICS_CHOICE
+  if [[ "${TOPICS_CHOICE,,}" == "y" ]]; then
+    "$INSTALL_DIR/zedproxy" --db="$INSTALL_DIR/data/zedproxy.db" --telegram-create-topics || \
+      warn "Topic creation failed — try later from admin panel or manage.sh option 37"
+  fi
+
+  info "Telegram bot configured"
+  info "Test with: sudo zedproxy-manager (option 35)"
+}
+
 print_result() {
   SITE_URL="https://$DOMAIN"
   ADMIN_URL="$SITE_URL/zed-admin"
@@ -399,6 +452,7 @@ clone_or_copy
 build_app
 copy_assets
 install_update_script
+install_manage_script
 create_env
 seed_database
 set_permissions
@@ -407,4 +461,5 @@ setup_nginx
 setup_firewall
 start_service
 setup_ssl
+setup_telegram_optional
 print_result

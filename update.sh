@@ -41,6 +41,18 @@ error()   { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 step()    { echo -e "\n${WHITE}━━━ $1 ━━━${NC}"; }
 detail()  { echo -e "    ${BLUE}->  ${NC}$1"; }
 
+tg_notify() {
+  # Best-effort Telegram notification — never allowed to fail the update
+  local title="$1"
+  local msg="${2:-}"
+  local cat="${3:-updates}"
+  "${INSTALL_DIR}/zedproxy" \
+    --db="${DB_FILE}" \
+    --telegram-notify-title="$title" \
+    --telegram-notify-msg="$msg" \
+    --telegram-notify-cat="$cat" 2>/dev/null || true
+}
+
 # ── Cleanup trap ────────────────────────────────────
 # Called on EXIT; only removes the temp build dir.
 # Never touches INSTALL_DIR data.
@@ -156,6 +168,18 @@ create_backups() {
 }
 
 # ── Clone ────────────────────────────────────────────
+notify_update_start() {
+  tg_notify "🔄 Update started" "Update process started on $(hostname)" "updates"
+}
+
+notify_update_done() {
+  tg_notify "✅ Update completed" "ZedProxy updated successfully on $(hostname)" "updates"
+}
+
+notify_update_fail() {
+  tg_notify "❌ Update failed" "Update failed on $(hostname). Check logs: ${LOG_FILE}" "critical_alerts"
+}
+
 clone_repo() {
   step "Fetching latest code from GitHub"
   detail "Repository: $REPO_URL"
@@ -345,11 +369,14 @@ print_result() {
 setup_logging
 banner
 check_root
+# Register Telegram failure notification
+trap 'notify_update_fail' ERR
 check_installed
 check_env
 check_go
 check_git
 create_backups
+notify_update_start
 clone_repo
 build_binary
 stop_service
@@ -360,4 +387,5 @@ deploy_update_script
 fix_permissions
 start_service
 health_check
+notify_update_done
 print_result

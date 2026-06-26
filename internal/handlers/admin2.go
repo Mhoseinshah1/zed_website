@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"zedproxy/internal/models"
+	tg "zedproxy/internal/telegram"
 )
 
 // -- Announcements --
@@ -656,6 +657,7 @@ func AdminUserSave(c *gin.Context) {
 			renderAdmin(c, "user-form", data)
 			return
 		}
+		tg.Send(tg.LevelWarn, tg.CatAdminActivity, "🧾 ادمین جدید ایجاد شد", fmt.Sprintf("نام کاربری: %s\nنقش: %s", username, role))
 	}
 	c.Redirect(http.StatusFound, "/zed-admin/users")
 }
@@ -735,6 +737,7 @@ func AdminBackupCreate(c *gin.Context) {
 	}
 
 	models.RecordBackup(filename, size)
+	tg.Send(tg.LevelInfo, tg.CatBackups, "💾 بکاپ ایجاد شد", fmt.Sprintf("فایل: %s\nحجم: %d بایت", filename, size))
 	c.Redirect(http.StatusFound, "/zed-admin/backups")
 }
 
@@ -779,8 +782,16 @@ func AdminMaintenanceSave(c *gin.Context) {
 	if c.PostForm("maintenance_mode") == "1" {
 		mode = "1"
 	}
+	prev := models.GetSetting("maintenance_enabled")
 	models.SetSetting("maintenance_enabled", mode)
 	models.SetSetting("maintenance_msg", c.PostForm("maintenance_msg"))
+	if mode != prev {
+		if mode == "1" {
+			tg.Send(tg.LevelWarn, tg.CatMaintenance, "🧰 حالت تعمیرات فعال شد", "سایت در حالت تعمیر قرار گرفت.")
+		} else {
+			tg.Send(tg.LevelInfo, tg.CatMaintenance, "✅ حالت تعمیرات غیرفعال شد", "سایت به حالت عادی بازگشت.")
+		}
+	}
 	c.Redirect(http.StatusFound, "/zed-admin/maintenance")
 }
 

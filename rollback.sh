@@ -24,6 +24,17 @@ warn()   { echo -e "${YELLOW}[!]${NC} $1"; }
 error()  { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 step()   { echo -e "\n${WHITE}━━━ $1 ━━━${NC}"; }
 
+tg_notify() {
+  local title="$1"
+  local msg="${2:-}"
+  local cat="${3:-updates}"
+  "${INSTALL_DIR}/zedproxy" \
+    --db="${INSTALL_DIR}/data/zedproxy.db" \
+    --telegram-notify-title="$title" \
+    --telegram-notify-msg="$msg" \
+    --telegram-notify-cat="$cat" 2>/dev/null || true
+}
+
 if [[ $EUID -ne 0 ]]; then
   error "This script must be run as root. Please use sudo."
 fi
@@ -76,6 +87,8 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
 else
   error "Service failed to start — check logs: journalctl -u $SERVICE_NAME -n 50"
 fi
+
+tg_notify "🔙 Rollback completed" "ZedProxy rolled back to: $(basename "${LATEST}")" "updates"
 
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"
