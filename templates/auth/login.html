@@ -1,0 +1,86 @@
+{{template "base" .}}
+{{define "content"}}
+<div class="min-h-screen flex items-center justify-center px-4 py-16">
+  <div class="w-full max-w-md">
+    <div class="text-center mb-8">
+      <a href="/" class="inline-block mb-4">
+        <span class="text-3xl font-black" style="background:linear-gradient(135deg,var(--site-accent),#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">ZedProxy</span>
+      </a>
+      <h1 class="text-2xl font-bold text-white mb-1">ورود به حساب کاربری</h1>
+      <p class="text-sm" style="color:var(--site-muted,#94a3b8)">با ایمیل یا شماره موبایل وارد شوید</p>
+    </div>
+
+    {{if .Error}}
+    <div class="mb-5 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2"
+         style="background:rgba(239,68,68,0.12);color:#f87171;border:1px solid rgba(239,68,68,0.25)">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      {{.Error}}
+    </div>
+    {{end}}
+
+    <div class="rounded-2xl p-8" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1)">
+      <form method="POST" action="/auth/login" class="space-y-5">
+        {{if .Next}}<input type="hidden" name="next" value="{{.Next}}">{{end}}
+        <div>
+          <label class="block text-sm font-semibold mb-2 text-white">ایمیل یا شماره موبایل</label>
+          <input type="text" name="identifier" autocomplete="username" required
+                 value="{{.Identifier}}"
+                 placeholder="example@email.com یا 09XXXXXXXXX"
+                 class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                 style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#f1f5f9"
+                 onfocus="this.style.borderColor='var(--site-accent)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-2 text-white">رمز عبور</label>
+          <div class="relative">
+            <input type="password" name="password" id="login-pw" autocomplete="current-password" required
+                   placeholder="••••••••"
+                   class="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                   style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#f1f5f9;padding-left:2.75rem"
+                   onfocus="this.style.borderColor='var(--site-accent)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
+            <button type="button" onclick="togglePw('login-pw',this)" aria-label="نمایش رمز عبور"
+                    class="absolute left-3 top-1/2 -translate-y-1/2 p-0.5" style="color:#94a3b8;background:none;border:none;cursor:pointer">
+              <svg class="eye-show w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              <svg class="eye-hide w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="flex items-center justify-between text-sm">
+          <label class="flex items-center gap-2 cursor-pointer" style="color:#94a3b8">
+            <input type="checkbox" name="remember" value="1" class="rounded">
+            مرا به خاطر بسپار
+          </label>
+          <a href="/auth/forgot-password" style="color:var(--site-accent)" class="hover:opacity-80 transition-opacity">فراموشی رمز عبور</a>
+        </div>
+        <button type="submit" class="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 hover:-translate-y-0.5"
+                style="background:linear-gradient(135deg,var(--site-accent),color-mix(in srgb,var(--site-accent) 80%,#7c3aed))">
+          ورود به پنل
+        </button>
+      </form>
+    </div>
+
+    <p class="text-center mt-6 text-sm" style="color:#94a3b8">
+      حساب کاربری ندارید؟
+      <a href="/auth/register" style="color:var(--site-accent)" class="font-semibold hover:opacity-80 transition-opacity">ثبت‌نام کنید</a>
+    </p>
+  </div>
+</div>
+<script>
+function togglePw(id, btn) {
+  var inp = document.getElementById(id);
+  var show = btn.querySelector('.eye-show');
+  var hide = btn.querySelector('.eye-hide');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    show.classList.add('hidden');
+    hide.classList.remove('hidden');
+    btn.setAttribute('aria-label', 'مخفی کردن رمز عبور');
+  } else {
+    inp.type = 'password';
+    show.classList.remove('hidden');
+    hide.classList.add('hidden');
+    btn.setAttribute('aria-label', 'نمایش رمز عبور');
+  }
+}
+</script>
+{{end}}

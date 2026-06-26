@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,6 +17,176 @@ import (
 	tg "zedproxy/internal/telegram"
 )
 
+var adminAppearanceKeys = []string{
+	"admin_theme_name", "admin_accent_color", "admin_background_color",
+	"admin_sidebar_color", "admin_card_color", "admin_text_color",
+	"admin_muted_text_color", "admin_border_color", "admin_button_color",
+	"admin_hover_color", "admin_sidebar_mode", "admin_sidebar_width",
+	"admin_icon_size", "admin_menu_text_size", "admin_font_size",
+	"admin_card_radius", "admin_card_shadow", "admin_card_border",
+	"admin_glass_effect_enabled", "admin_animations_enabled",
+	"admin_compact_mode_enabled", "admin_dashboard_density",
+	"admin_custom_logo", "admin_custom_background",
+}
+
+// buildAdminCSSVars converts saved appearance settings into a CSS :root block
+// injected into every admin page so themes apply immediately.
+func buildAdminCSSVars(s map[string]string) string {
+	get := func(key, def string) string {
+		if v := s[key]; v != "" {
+			return v
+		}
+		return def
+	}
+	radius := map[string]string{
+		"none": "0", "md": "8px", "xl": "12px", "2xl": "18px",
+	}[get("admin_card_radius", "xl")]
+	if radius == "" {
+		radius = "12px"
+	}
+	shadow := map[string]string{
+		"none":   "none",
+		"soft":   "0 2px 8px rgba(0,0,0,0.3)",
+		"medium": "0 4px 16px rgba(0,0,0,0.5)",
+		"strong": "0 8px 32px rgba(0,0,0,0.7)",
+		"neon":   "0 0 24px " + get("admin_accent_color", "#06b6d4") + "40",
+	}[get("admin_card_shadow", "soft")]
+	if shadow == "" {
+		shadow = "0 2px 8px rgba(0,0,0,0.3)"
+	}
+	fontSize := map[string]string{
+		"small": "13px", "normal": "15px", "large": "17px",
+	}[get("admin_font_size", "normal")]
+	if fontSize == "" {
+		fontSize = "15px"
+	}
+	iconSize := map[string]string{
+		"small": "14px", "medium": "16px", "large": "20px", "xl": "24px",
+	}[get("admin_icon_size", "medium")]
+	if iconSize == "" {
+		iconSize = "16px"
+	}
+	menuTextSize := map[string]string{
+		"small": "12px", "medium": "13px", "large": "15px",
+	}[get("admin_menu_text_size", "medium")]
+	if menuTextSize == "" {
+		menuTextSize = "13px"
+	}
+	sidebarWidth := map[string]string{
+		"narrow": "200px", "normal": "240px", "wide": "280px",
+	}[get("admin_sidebar_width", "normal")]
+	if sidebarWidth == "" {
+		sidebarWidth = "240px"
+	}
+
+	accent := get("admin_accent_color", "#06b6d4")
+	bg := get("admin_background_color", "#0d0d16")
+	sidebar := get("admin_sidebar_color", "#0f0f1a")
+	card := get("admin_card_color", "#1a1a2e")
+	text := get("admin_text_color", "#f1f5f9")
+	muted := get("admin_muted_text_color", "#94a3b8")
+	border := get("admin_border_color", "rgba(255,255,255,0.1)")
+	button := get("admin_button_color", accent)
+	hover := get("admin_hover_color", "rgba(255,255,255,0.08)")
+
+	customBG := get("admin_custom_background", "")
+	bgStyle := ""
+	if customBG != "" {
+		if strings.HasPrefix(customBG, "/") || strings.HasPrefix(customBG, "http") {
+			bgStyle = fmt.Sprintf("url('%s') center/cover no-repeat fixed", customBG)
+		} else {
+			bgStyle = customBG
+		}
+	}
+
+	css := fmt.Sprintf(`
+:root {
+  --admin-accent: %s;
+  --admin-bg: %s;
+  --admin-sidebar: %s;
+  --admin-card: %s;
+  --admin-text: %s;
+  --admin-muted: %s;
+  --admin-border: %s;
+  --admin-button: %s;
+  --admin-hover: %s;
+  --admin-radius: %s;
+  --admin-shadow: %s;
+  --admin-font-size: %s;
+  --admin-icon-size: %s;
+  --admin-menu-text: %s;
+  --admin-sidebar-width: %s;
+}`, accent, bg, sidebar, card, text, muted, border, button, hover,
+		radius, shadow, fontSize, iconSize, menuTextSize, sidebarWidth)
+
+	if bgStyle != "" {
+		css += fmt.Sprintf("\nbody.admin-body { background: %s !important; }", bgStyle)
+	}
+	return css
+}
+
+// buildSiteCSSVars converts saved public site appearance settings into a CSS :root block.
+func buildSiteCSSVars(s map[string]string) string {
+	get := func(key, def string) string {
+		if v := s[key]; v != "" {
+			return v
+		}
+		return def
+	}
+	radius := map[string]string{
+		"none": "0", "md": "8px", "xl": "12px", "2xl": "18px",
+	}[get("site_card_radius", "xl")]
+	if radius == "" {
+		radius = "12px"
+	}
+	shadow := map[string]string{
+		"none":   "none",
+		"soft":   "0 2px 8px rgba(0,0,0,0.3)",
+		"medium": "0 4px 16px rgba(0,0,0,0.5)",
+		"strong": "0 8px 32px rgba(0,0,0,0.7)",
+	}[get("site_card_shadow", "medium")]
+	if shadow == "" {
+		shadow = "0 4px 16px rgba(0,0,0,0.5)"
+	}
+
+	accent := get("site_accent_color", "#6366f1")
+	bg := get("site_background_color", "#0a0a0f")
+	card := get("site_card_color", "rgba(255,255,255,0.05)")
+	text := get("site_text_color", "#e2e8f0")
+	muted := get("site_muted_text_color", "#94a3b8")
+	border := get("site_border_color", "rgba(255,255,255,0.1)")
+	button := get("site_button_color", accent)
+	hover := get("site_hover_color", "rgba(255,255,255,0.05)")
+
+	customBG := get("site_custom_background", "")
+	bgStyle := ""
+	if customBG != "" {
+		if strings.HasPrefix(customBG, "/") || strings.HasPrefix(customBG, "http") {
+			bgStyle = fmt.Sprintf("url('%s') center/cover no-repeat fixed", customBG)
+		} else {
+			bgStyle = customBG
+		}
+	}
+
+	css := fmt.Sprintf(`:root {
+  --site-accent: %s;
+  --site-bg: %s;
+  --site-card: %s;
+  --site-text: %s;
+  --site-muted: %s;
+  --site-border: %s;
+  --site-button: %s;
+  --site-hover: %s;
+  --site-radius: %s;
+  --site-shadow: %s;
+}`, accent, bg, card, text, muted, border, button, hover, radius, shadow)
+
+	if bgStyle != "" {
+		css += fmt.Sprintf("\nbody { background: %s !important; }", bgStyle)
+	}
+	return css
+}
+
 var uploadDir string
 
 func SetUploadDir(dir string) {
@@ -23,14 +194,26 @@ func SetUploadDir(dir string) {
 }
 
 func renderAdmin(c *gin.Context, name string, data map[string]interface{}) {
+	// Inject appearance settings as CSS vars for every admin page
+	if data != nil {
+		settings := models.GetAllSettings()
+		data["AdminCSS"] = buildAdminCSSVars(settings)
+		// Also pass appearance keys so templates can reference them
+		for _, k := range adminAppearanceKeys {
+			if _, exists := data[k]; !exists {
+				data[k] = settings[k]
+			}
+		}
+	}
+
 	t, err := getAdminTemplate(name)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Admin template error (%s): %v", name, err)
+		renderAdminError(c, fmt.Sprintf("خطای قالب (%s): %v", name, err))
 		return
 	}
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	if err := t.ExecuteTemplate(c.Writer, "admin", data); err != nil {
-		_ = err
+		log.Printf("admin template execute error (%s): %v", name, err)
 	}
 }
 
@@ -111,6 +294,19 @@ func AdminDashboard(c *gin.Context) {
 	data["PostCount"] = len(posts)
 	data["TutorialCount"] = len(tutorials)
 	data["Title"] = "داشبورد مدیریت"
+
+	// System status cards
+	settings := models.GetAllSettings()
+	data["MaintenanceEnabled"] = settings["maintenance_enabled"]
+	data["TGBotEnabled"] = settings["telegram_admin_bot_enabled"]
+	data["TGBotUsername"] = settings["telegram_admin_bot_username"]
+	data["AppVersionDash"] = AppVersion
+
+	// Latest backup
+	backups, _ := models.GetAllBackups()
+	if len(backups) > 0 {
+		data["LastBackup"] = backups[len(backups)-1]
+	}
 
 	renderAdmin(c, "dashboard", data)
 }

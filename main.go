@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
+	bkp "zedproxy/internal/backup"
 	"zedproxy/internal/database"
 	"zedproxy/internal/handlers"
 	"zedproxy/internal/middleware"
@@ -67,6 +68,12 @@ func main() {
 		telegramNotifyTitle  = flag.String("telegram-notify-title", "", "notification title (use with --telegram-notify-msg)")
 		telegramNotifyMsg    = flag.String("telegram-notify-msg", "", "notification message body")
 		telegramNotifyCat    = flag.String("telegram-notify-cat", "system_status", "notification category/topic key")
+
+		// Backup CLI flags
+		createDBBackup        = flag.Bool("create-db-backup", false, "create a ZIP database backup and exit")
+		createFullBackup      = flag.Bool("create-full-backup", false, "create a ZIP full backup (db+uploads) and exit")
+		sendDBBackupTelegram  = flag.Bool("send-db-backup-telegram", false, "create ZIP backup and send to Telegram and exit")
+		sendLatestBackupTG    = flag.Bool("send-latest-backup-telegram", false, "send the latest local ZIP backup to Telegram and exit")
 	)
 	flag.Parse()
 
@@ -197,6 +204,77 @@ func main() {
 		return
 	}
 
+	// Backup CLI commands
+	if *createDBBackup || *sendDBBackupTelegram {
+		zipData, filename, err := bkp.CreateDBZip(*dbPath)
+		if err != nil {
+			fmt.Printf("[✗] Backup failed: %v\n", err)
+			os.Exit(1)
+		}
+		savedPath, err := bkp.SaveZipToDir(zipData, *backupDirFlag, filename)
+		if err != nil {
+			fmt.Printf("[✗] Save backup failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("[✓] DB backup created: %s\n", savedPath)
+		if *sendDBBackupTelegram {
+			caption := fmt.Sprintf("💾 بکاپ دیتابیس ZedProxy\nتاریخ: %s", time.Now().Format("2006/01/02 15:04"))
+			if err := tg.SendBackupToTelegram(zipData, filename, caption); err != nil {
+				fmt.Printf("[!] Telegram upload failed (local backup kept): %v\n", err)
+			} else {
+				fmt.Println("[✓] Backup sent to Telegram")
+			}
+		}
+		return
+	}
+	if *createFullBackup {
+		uploadsDir := *uploadDirFlag
+		zipData, filename, err := bkp.CreateFullZip(*dbPath, uploadsDir)
+		if err != nil {
+			fmt.Printf("[✗] Full backup failed: %v\n", err)
+			os.Exit(1)
+		}
+		savedPath, err := bkp.SaveZipToDir(zipData, *backupDirFlag, filename)
+		if err != nil {
+			fmt.Printf("[✗] Save full backup failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("[✓] Full backup created: %s\n", savedPath)
+		return
+	}
+	if *sendLatestBackupTG {
+		entries, err := os.ReadDir(*backupDirFlag)
+		if err != nil || len(entries) == 0 {
+			fmt.Println("[✗] No backups found in backup directory")
+			os.Exit(1)
+		}
+		var latest string
+		for i := len(entries) - 1; i >= 0; i-- {
+			name := entries[i].Name()
+			if !entries[i].IsDir() && (len(name) > 4 && name[len(name)-4:] == ".zip") {
+				latest = filepath.Join(*backupDirFlag, name)
+				break
+			}
+		}
+		if latest == "" {
+			fmt.Println("[✗] No ZIP backup files found")
+			os.Exit(1)
+		}
+		data, err := os.ReadFile(latest)
+		if err != nil {
+			fmt.Printf("[✗] Read backup failed: %v\n", err)
+			os.Exit(1)
+		}
+		filename := filepath.Base(latest)
+		caption := fmt.Sprintf("💾 بکاپ ZedProxy\nفایل: %s\nتاریخ: %s", filename, time.Now().Format("2006/01/02 15:04"))
+		if err := tg.SendBackupToTelegram(data, filename, caption); err != nil {
+			fmt.Printf("[!] Telegram upload failed (local backup kept): %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("[✓] Backup %s sent to Telegram\n", filename)
+		return
+	}
+
 	// Seed if requested
 	if *seedFlag {
 		if *adminPass == "" {
@@ -300,6 +378,54 @@ func main() {
 
 	// Track clicks API
 	r.POST("/api/track", handlers.TrackClick)
+
+	// ── Customer Auth routes ─────────────────────────
+	auth := r.Group("/auth")
+	{
+		auth.GET("/register", handlers.AuthRegisterPage)
+		auth.POST("/register", middleware.RateLimit(10, 15*time.Minute), handlers.AuthRegisterPost)
+		auth.GET("/login", handlers.AuthLoginPage)
+		auth.POST("/login", middleware.RateLimit(10, 15*time.Minute), handlers.AuthLoginPost)
+		auth.GET("/logout", handlers.AuthLogout)
+		auth.GET("/forgot-password", handlers.AuthForgotPasswordPage)
+		auth.POST("/forgot-password", middleware.RateLimit(5, 15*time.Minute), handlers.AuthForgotPasswordPost)
+		auth.GET("/reset-password", handlers.AuthResetPasswordPage)
+		auth.POST("/reset-password", handlers.AuthResetPasswordPost)
+	}
+
+	// ── Customer user panel routes ────────────────────
+	user := r.Group("/user")
+	user.Use(middleware.UserRequired())
+	{
+		user.GET("/dashboard", handlers.UserDashboard)
+		user.GET("/profile", handlers.UserProfilePage)
+		user.POST("/profile", handlers.UserProfilePost)
+		user.GET("/services", handlers.UserServicesPage)
+		user.GET("/services/:id", handlers.UserServiceDetailPage)
+		user.GET("/orders", handlers.UserOrdersPage)
+		user.GET("/orders/:order_number", handlers.UserOrderDetailPage)
+		user.GET("/wallet", handlers.UserWalletPage)
+		user.GET("/tickets", handlers.UserTicketsPage)
+		user.GET("/tickets/new", handlers.UserTicketNewPage)
+		user.POST("/tickets", handlers.UserTicketCreate)
+		user.GET("/tickets/:ticket_number", handlers.UserTicketDetailPage)
+		user.POST("/tickets/:ticket_number/reply", handlers.UserTicketReply)
+		user.GET("/notifications", handlers.UserNotificationsPage)
+		user.POST("/notifications/:id/read", handlers.UserMarkNotificationRead)
+		user.GET("/tutorials", handlers.UserTutorialsPage)
+		user.GET("/security", handlers.UserSecurityPage)
+		user.POST("/security/change-password", handlers.UserChangePassword)
+		user.POST("/security/logout-all", handlers.UserLogoutAll)
+		user.GET("/connect-telegram", handlers.UserConnectTelegramPage)
+		user.POST("/connect-telegram/create-token", handlers.UserConnectTelegramCreateToken)
+		user.POST("/connect-telegram/disconnect", handlers.UserDisconnectTelegram)
+	}
+
+	// ── Internal API ──────────────────────────────────
+	apiInternal := r.Group("/api/internal")
+	{
+		apiInternal.POST("/telegram/connect-user", handlers.APITelegramConnectUser)
+	}
 
 	// 404 handler
 	r.NoRoute(handlers.NotFoundPage)
@@ -456,6 +582,24 @@ func main() {
 			protected.POST("/users/save", handlers.AdminUserSave)
 			protected.POST("/users/:id/delete", handlers.AdminUserDelete)
 
+			// Customer User Management
+			protected.GET("/customers", handlers.AdminCustomersPage)
+			protected.GET("/customers/:public_id", handlers.AdminCustomerDetailPage)
+			protected.POST("/customers/:public_id/status", handlers.AdminCustomerSetStatus)
+			protected.POST("/customers/:public_id/wallet-adjust", handlers.AdminCustomerWalletAdjust)
+			protected.POST("/customers/:public_id/note", handlers.AdminCustomerNote)
+			protected.POST("/customers/:public_id/service", handlers.AdminCustomerAddService)
+			protected.POST("/customers/:public_id/notification", handlers.AdminCustomerAddNotification)
+
+			// Support Tickets (admin)
+			support := protected.Group("/support")
+			{
+				support.GET("/tickets", handlers.AdminSupportTicketsPage)
+				support.GET("/tickets/:ticket_number", handlers.AdminSupportTicketDetailPage)
+				support.POST("/tickets/:ticket_number/reply", handlers.AdminSupportTicketReply)
+				support.POST("/tickets/:ticket_number/status", handlers.AdminSupportTicketSetStatus)
+			}
+
 			// DB Backups
 			protected.GET("/backups", handlers.AdminBackupsPage)
 			protected.POST("/backups/create", handlers.AdminBackupCreate)
@@ -470,6 +614,16 @@ func main() {
 			protected.GET("/system/logs", handlers.AdminSystemLogsPage)
 			protected.GET("/system/health", handlers.AdminSystemHealthPage)
 
+			// Appearance settings
+			protected.GET("/settings/appearance", handlers.AdminAppearancePage)
+			protected.POST("/settings/appearance/save", handlers.AdminAppearanceSave)
+			protected.POST("/settings/appearance/reset", handlers.AdminAppearanceReset)
+
+			// Email settings
+			protected.GET("/settings/email", handlers.AdminEmailSettingsPage)
+			protected.POST("/settings/email", handlers.AdminEmailSettingsSave)
+			protected.POST("/settings/email/test", handlers.AdminEmailSettingsTest)
+
 			// Telegram Integration
 			integrations := protected.Group("/integrations")
 			{
@@ -480,6 +634,7 @@ func main() {
 				integrations.POST("/telegram/send-test", handlers.AdminTelegramSendTest)
 				integrations.POST("/telegram/create-topics", handlers.AdminTelegramCreateTopics)
 				integrations.POST("/telegram/daily-report", handlers.AdminTelegramSendDailyReport)
+				integrations.POST("/telegram/send-db-backup", handlers.AdminTelegramSendDBBackup)
 			}
 		}
 	}
@@ -545,6 +700,23 @@ func runSelfTest(dbPath, templateDir, staticDir, uploadDir string) {
 
 	_, errMng := os.Stat("/opt/zedproxy/manage.sh")
 	check("manage.sh", "/opt/zedproxy/manage.sh", errMng == nil)
+
+	// User system checks
+	var userCount int
+	database.DB.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount)
+	fmt.Printf("[✓] user_system: ok (%d registered users)\n", userCount)
+
+	var ticketCount int
+	database.DB.QueryRow("SELECT COUNT(*) FROM support_tickets").Scan(&ticketCount)
+	fmt.Printf("[✓] ticket_system: ok (%d tickets)\n", ticketCount)
+
+	// Check template directories exist
+	authTmplDir := filepath.Join(templateDir, "auth")
+	userTmplDir := filepath.Join(templateDir, "user")
+	_, errAuth := os.Stat(authTmplDir)
+	check("templates/auth", authTmplDir, errAuth == nil)
+	_, errUser := os.Stat(userTmplDir)
+	check("templates/user", userTmplDir, errUser == nil)
 
 	fmt.Printf("[✓] Build: version=%s date=%s commit=%s\n", Version, BuildDate, GitCommit)
 

@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	bkp "zedproxy/internal/backup"
 	"zedproxy/internal/models"
 	tg "zedproxy/internal/telegram"
 )
@@ -694,60 +694,70 @@ func AdminBackupsPage(c *gin.Context) {
 }
 
 func AdminBackupCreate(c *gin.Context) {
-	if err := os.MkdirAll(backupDir, 0755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "خطا در ایجاد پوشه پشتیبان"})
+	dbp := resolveDBPath()
+	zipData, filename, err := bkp.CreateDBZip(dbp)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "خطا در ایجاد بکاپ: " + err.Error()})
 		return
 	}
-	filename := fmt.Sprintf("zedproxy-backup-%s.db", time.Now().Format("20060102-150405"))
-	destPath := filepath.Join(backupDir, filename)
 
-	// Copy DB file by reading WAL checkpoint first
-	dbPath := models.GetSetting("_db_path")
-	if dbPath == "" {
-		dbPath = "./data/zedproxy.db"
-	}
-
-	src, err := os.Open(dbPath)
+	savedPath, err := bkp.SaveZipToDir(zipData, backupDir, filename)
 	if err != nil {
-		// Try common paths
-		for _, p := range []string{"./data/zedproxy.db", "/opt/zedproxy/data/zedproxy.db"} {
-			src, err = os.Open(p)
-			if err == nil {
-				break
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "خطا در ذخیره بکاپ: " + err.Error()})
+		return
+	}
+	_ = savedPath
+
+	models.RecordBackup(filename, int64(len(zipData)))
+	tg.Send(tg.LevelInfo, tg.CatBackups, "💾 بکاپ ZIP ایجاد شد",
+		fmt.Sprintf("فایل: %s\nحجم: %d بایت", filename, len(zipData)))
+
+	// Optionally send to Telegram
+	if models.GetSetting("telegram_admin_send_db_zip_enabled") == "1" {
+		go func() {
+			caption := fmt.Sprintf("💾 بکاپ دیتابیس ZedProxy\nتاریخ: %s", time.Now().Format("2006/01/02 15:04"))
+			if err := tg.SendBackupToTelegram(zipData, filename, caption); err != nil {
+				tg.Send(tg.LevelWarn, tg.CatBackups, "⚠️ ارسال بکاپ به تلگرام ناموفق", err.Error())
 			}
-		}
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "فایل دیتابیس یافت نشد"})
-			return
-		}
-	}
-	defer src.Close()
-
-	dst, err := os.Create(destPath)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "خطا در ایجاد فایل پشتیبان"})
-		return
-	}
-	defer dst.Close()
-
-	size, err := io.Copy(dst, src)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "خطا در کپی دیتابیس"})
-		return
+		}()
 	}
 
-	models.RecordBackup(filename, size)
-	tg.Send(tg.LevelInfo, tg.CatBackups, "💾 بکاپ ایجاد شد", fmt.Sprintf("فایل: %s\nحجم: %d بایت", filename, size))
 	c.Redirect(http.StatusFound, "/zed-admin/backups")
 }
 
 func AdminBackupDownload(c *gin.Context) {
+	// Only owner can download backups
+	sess := sessions.Default(c)
+	role, _ := sess.Get("role").(string)
+	if role != "owner" && role != "" {
+		c.Status(http.StatusForbidden)
+		return
+	}
+
 	id, _ := strconv.Atoi(c.Param("id"))
+	// Validate id is positive to prevent manipulation
+	if id <= 0 {
+		c.Status(http.StatusBadRequest)
+		return
+	}
 	backups, _ := models.GetAllBackups()
 	for _, b := range backups {
 		if b.ID == id {
-			path := filepath.Join(backupDir, b.Filename)
-			c.FileAttachment(path, b.Filename)
+			// Sanitize filename to prevent path traversal
+			cleanName := filepath.Base(b.Filename)
+			if cleanName == "." || cleanName == "/" {
+				c.Status(http.StatusBadRequest)
+				return
+			}
+			path := filepath.Join(backupDir, cleanName)
+			// Ensure the resolved path is inside backupDir
+			absBackup, _ := filepath.Abs(backupDir)
+			absPath, _ := filepath.Abs(path)
+			if len(absPath) < len(absBackup) || absPath[:len(absBackup)] != absBackup {
+				c.Status(http.StatusForbidden)
+				return
+			}
+			c.FileAttachment(path, cleanName)
 			return
 		}
 	}
@@ -933,4 +943,19 @@ var currentDBPath string
 func SetDBPath(path string) {
 	currentDBPath = path
 	models.SetSetting("_db_path", path)
+}
+
+func resolveDBPath() string {
+	if currentDBPath != "" {
+		return currentDBPath
+	}
+	if p := models.GetSetting("_db_path"); p != "" {
+		return p
+	}
+	for _, p := range []string{"./data/zedproxy.db", "/opt/zedproxy/data/zedproxy.db"} {
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+	return "./data/zedproxy.db"
 }

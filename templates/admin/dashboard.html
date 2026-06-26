@@ -1,5 +1,38 @@
 {{define "admin-content"}}
-<div class="space-y-6">
+<div class="space-y-6" dir="rtl">
+
+  <!-- System Status Row -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="admin-card p-4">
+      <div class="text-xs text-gray-500 mb-1">وضعیت سایت</div>
+      {{if eq .MaintenanceEnabled "1"}}
+      <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span><span class="text-yellow-400 font-bold text-sm">تعمیرات</span></div>
+      {{else}}
+      <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span><span class="text-green-400 font-bold text-sm">آنلاین</span></div>
+      {{end}}
+    </div>
+    <div class="admin-card p-4">
+      <div class="text-xs text-gray-500 mb-1">بات تلگرام</div>
+      {{if eq .TGBotEnabled "1"}}
+      <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-cyan-400 inline-block"></span><span class="text-cyan-400 font-bold text-sm">{{if .TGBotUsername}}@{{.TGBotUsername}}{{else}}فعال{{end}}</span></div>
+      {{else}}
+      <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-gray-600 inline-block"></span><span class="text-gray-500 font-bold text-sm">غیرفعال</span></div>
+      {{end}}
+    </div>
+    <div class="admin-card p-4">
+      <div class="text-xs text-gray-500 mb-1">آخرین بکاپ</div>
+      {{if .LastBackup}}
+      <div class="text-white text-xs font-mono truncate">{{.LastBackup.Filename}}</div>
+      {{else}}
+      <div class="text-gray-600 text-sm">—</div>
+      {{end}}
+    </div>
+    <div class="admin-card p-4">
+      <div class="text-xs text-gray-500 mb-1">نسخه برنامه</div>
+      <div class="text-white font-mono text-sm">{{.AppVersionDash}}</div>
+    </div>
+  </div>
+
   <!-- Stats Row -->
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
     <div class="admin-card p-5">
@@ -53,6 +86,20 @@
     </div>
   </div>
 
+  <!-- Quick Actions -->
+  <div class="admin-card p-5">
+    <h2 class="text-gray-400 font-bold mb-4 text-xs uppercase tracking-wider">عملیات سریع</h2>
+    <div class="flex flex-wrap gap-2" id="quick-actions">
+      <button onclick="dashAction('/zed-admin/integrations/telegram/daily-report','ارسال گزارش تلگرام')" class="btn-secondary text-xs">📊 گزارش روزانه</button>
+      <button onclick="dashAction('/zed-admin/integrations/telegram/send-db-backup','بکاپ ZIP به تلگرام')" class="btn-secondary text-xs">💾 بکاپ ZIP</button>
+      <button onclick="dashAction('/zed-admin/integrations/telegram/send-test','پیام تست تلگرام')" class="btn-secondary text-xs">📨 تست تلگرام</button>
+      <a href="/zed-admin/maintenance" class="btn-secondary text-xs">🧰 تعمیرات</a>
+      <a href="/zed-admin/system/health" class="btn-secondary text-xs">🩺 سلامت سیستم</a>
+      <a href="/zed-admin/system/logs" class="btn-secondary text-xs">📋 لاگ‌ها</a>
+    </div>
+    <div id="dash-result" class="hidden mt-3 text-sm px-3 py-2 rounded-lg bg-white/5 text-gray-300"></div>
+  </div>
+
   <!-- Recent Clicks -->
   {{if .RecentClicks}}
   <div class="admin-card">
@@ -84,4 +131,26 @@
   </div>
   {{end}}
 </div>
+<script>
+async function dashAction(url, label) {
+  const box = document.getElementById('dash-result');
+  box.classList.remove('hidden');
+  box.className = 'mt-3 text-sm px-3 py-2 rounded-lg bg-white/5 text-gray-300';
+  box.textContent = label + '...';
+  try {
+    const r = await fetch(url, {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}});
+    const d = await r.json();
+    if (d.ok) {
+      box.textContent = '✓ ' + (d.description || label + ' انجام شد');
+      box.className = 'mt-3 text-sm px-3 py-2 rounded-lg bg-green-500/10 text-green-400';
+    } else {
+      box.textContent = '✗ ' + (d.error || 'خطا');
+      box.className = 'mt-3 text-sm px-3 py-2 rounded-lg bg-red-500/10 text-red-400';
+    }
+  } catch(e) {
+    box.textContent = '✗ ' + e.message;
+    box.className = 'mt-3 text-sm px-3 py-2 rounded-lg bg-red-500/10 text-red-400';
+  }
+}
+</script>
 {{end}}

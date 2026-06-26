@@ -1,0 +1,64 @@
+{{template "user" .}}
+{{define "user-content"}}
+<div class="max-w-xl space-y-6">
+  {{if .User.TelegramConnected}}
+  <!-- Connected state -->
+  <div class="u-card p-6">
+    <div class="flex items-center gap-4 mb-5">
+      <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0" style="background:rgba(6,182,212,0.15)">
+        <svg class="w-6 h-6" fill="none" stroke="#06b6d4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+      </div>
+      <div>
+        <h2 class="text-sm font-bold text-white">تلگرام متصل است</h2>
+        {{if .User.TelegramUsername.Valid}}
+        <p class="text-sm mt-0.5" style="color:#06b6d4">@{{.User.TelegramUsername.String}}</p>
+        {{end}}
+      </div>
+      <span class="badge badge-green mr-auto">متصل</span>
+    </div>
+    <p class="text-sm mb-5" style="color:var(--u-muted)">حساب تلگرام شما به پنل کاربری متصل است. برای قطع ارتباط، دکمه زیر را بزنید.</p>
+    <form method="POST" action="/user/connect-telegram/disconnect" onsubmit="return confirm('آیا از قطع ارتباط تلگرام مطمئنید؟')">
+      <button type="submit" class="btn-danger text-sm">قطع ارتباط تلگرام</button>
+    </form>
+  </div>
+
+  {{else if .ConnectURL}}
+  <!-- Token generated -->
+  <div class="u-card p-6">
+    <h2 class="text-sm font-bold mb-4 text-white">اتصال حساب تلگرام</h2>
+    <p class="text-sm mb-5" style="color:var(--u-muted)">برای اتصال، روی دکمه زیر کلیک کنید تا به ربات تلگرام ما هدایت شوید:</p>
+    <a href="{{safeURL .ConnectURL}}" target="_blank" rel="noopener"
+       class="btn-primary inline-flex items-center gap-2 text-sm">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+      اتصال به تلگرام
+    </a>
+    <p class="text-xs mt-4" style="color:var(--u-muted)">این لینک ۱۰ دقیقه اعتبار دارد. پس از اتصال، صفحه را رفرش کنید.</p>
+  </div>
+
+  {{else}}
+  <!-- Not connected -->
+  <div class="u-card p-6">
+    <div class="flex items-center gap-4 mb-5">
+      <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0" style="background:rgba(148,163,184,0.12)">
+        <svg class="w-6 h-6" fill="none" stroke="#94a3b8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+      </div>
+      <div>
+        <h2 class="text-sm font-bold text-white">اتصال حساب تلگرام</h2>
+        <p class="text-xs mt-0.5" style="color:var(--u-muted)">متصل نشده</p>
+      </div>
+    </div>
+
+    {{if .BotUsername}}
+    <p class="text-sm mb-5" style="color:var(--u-muted)">
+      با اتصال تلگرام، اعلان‌های سرویس، تجدید اشتراک و پیام‌های پشتیبانی را در تلگرام دریافت خواهید کرد.
+    </p>
+    <form method="POST" action="/user/connect-telegram/create-token">
+      <button type="submit" class="btn-primary text-sm">دریافت لینک اتصال</button>
+    </form>
+    {{else}}
+    <p class="text-sm" style="color:var(--u-muted)">ربات مشتری هنوز توسط مدیر تنظیم نشده است. لطفاً با پشتیبانی تماس بگیرید.</p>
+    {{end}}
+  </div>
+  {{end}}
+</div>
+{{end}}

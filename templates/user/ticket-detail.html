@@ -1,0 +1,66 @@
+{{template "user" .}}
+{{define "user-content"}}
+<div class="max-w-3xl space-y-5">
+  <div class="flex items-center gap-3">
+    <a href="/user/tickets" class="btn-secondary text-xs px-3 py-2">← بازگشت</a>
+  </div>
+
+  {{if .Ticket}}
+  <!-- Ticket header -->
+  <div class="u-card p-5">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h2 class="font-bold text-white text-sm mb-1">{{.Ticket.Subject}}</h2>
+        <div class="flex items-center gap-3 text-xs" style="color:var(--u-muted)">
+          <span>#{{.Ticket.TicketNumber}}</span>
+          <span>{{.Ticket.Category}}</span>
+          <span>{{formatTime .Ticket.CreatedAt}}</span>
+        </div>
+      </div>
+      <div>
+        {{if eq .Ticket.Status "open"}}<span class="badge badge-blue">باز</span>
+        {{else if eq .Ticket.Status "waiting_admin"}}<span class="badge badge-yellow">در انتظار پشتیبانی</span>
+        {{else if eq .Ticket.Status "waiting_user"}}<span class="badge badge-green">پاسخ داده شد</span>
+        {{else if eq .Ticket.Status "closed"}}<span class="badge badge-gray">بسته شده</span>
+        {{else}}<span class="badge badge-gray">{{.Ticket.Status}}</span>{{end}}
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="space-y-3">
+    {{range .Ticket.Messages}}
+    <div class="u-card p-4 {{if eq .SenderType "admin"}}mr-8{{else}}ml-8{{end}}">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+             style="background:{{if eq .SenderType "admin"}}rgba(6,182,212,0.2){{else}}rgba(99,102,241,0.2)}}">
+          {{if eq .SenderType "admin"}}پ{{else}}ک{{end}}
+        </div>
+        <span class="text-xs font-semibold" style="color:{{if eq .SenderType "admin"}}#06b6d4{{else}}var(--u-accent){{end}}">
+          {{if eq .SenderType "admin"}}پشتیبانی{{else}}کاربر{{end}}
+        </span>
+        <span class="text-xs mr-auto" style="color:var(--u-muted)">{{formatTime .CreatedAt}}</span>
+      </div>
+      <p class="text-sm text-white whitespace-pre-wrap">{{.Message}}</p>
+    </div>
+    {{end}}
+  </div>
+
+  <!-- Reply form -->
+  {{if ne .Ticket.Status "closed"}}
+  <div class="u-card p-5">
+    <h3 class="text-sm font-bold mb-4 text-white">ارسال پیام</h3>
+    <form method="POST" action="/user/tickets/{{.Ticket.TicketNumber}}/reply" class="space-y-4">
+      <textarea name="message" required class="u-input" rows="4"
+                placeholder="پیام خود را بنویسید..."></textarea>
+      <button type="submit" class="btn-primary text-sm">ارسال پیام</button>
+    </form>
+  </div>
+  {{else}}
+  <div class="p-4 rounded-xl text-sm text-center" style="background:rgba(148,163,184,0.08);color:var(--u-muted)">
+    این تیکت بسته شده است. برای ارسال مشکل جدید، تیکت جدید باز کنید.
+  </div>
+  {{end}}
+  {{end}}
+</div>
+{{end}}

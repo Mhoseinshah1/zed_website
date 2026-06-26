@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"strings"
 	"time"
@@ -118,4 +119,52 @@ func CreateForumTopic(token, chatID, name, iconEmoji string) (int, error) {
 		return 0, err
 	}
 	return t.MessageThreadID, nil
+}
+
+// SendDocument uploads a file to chatID, optionally in a forum thread.
+// filename is the display name shown in Telegram.
+func SendDocument(token, chatID string, fileData []byte, filename, caption string, threadID int) error {
+	url := apiBase + token + "/sendDocument"
+
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+
+	_ = w.WriteField("chat_id", chatID)
+	if threadID > 0 {
+		_ = w.WriteField("message_thread_id", fmt.Sprintf("%d", threadID))
+	}
+	if caption != "" {
+		_ = w.WriteField("caption", caption)
+	}
+
+	part, err := w.CreateFormFile("document", filename)
+	if err != nil {
+		return fmt.Errorf("telegram sendDocument: create form file: %w", err)
+	}
+	if _, err := part.Write(fileData); err != nil {
+		return fmt.Errorf("telegram sendDocument: write file: %w", err)
+	}
+	w.Close()
+
+	req, err := http.NewRequest(http.MethodPost, url, &buf)
+	if err != nil {
+		return fmt.Errorf("telegram sendDocument: new request: %w", err)
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("telegram sendDocument: %w", err)
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+
+	var result apiResponse[json.RawMessage]
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return fmt.Errorf("telegram sendDocument decode: %w", err)
+	}
+	if !result.OK {
+		return fmt.Errorf("telegram sendDocument: %s", result.Description)
+	}
+	return nil
 }

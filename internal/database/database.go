@@ -405,10 +405,293 @@ func Migrate() {
 		{"telegram_admin_error_alerts_enabled", "1"},
 		{"telegram_admin_maintenance_alerts_enabled", "1"},
 		{"telegram_admin_admin_activity_enabled", "1"},
+		// Backup-to-Telegram settings
+		{"telegram_admin_send_db_zip_enabled", "0"},
+		{"telegram_admin_daily_db_backup_enabled", "0"},
+		{"telegram_admin_daily_db_backup_time", "02:00"},
+		{"telegram_admin_backup_before_update", "1"},
+		{"telegram_admin_backup_before_rollback", "1"},
 	}
 	for _, s := range tgDefaults {
 		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
 	}
+
+	// Seed admin appearance settings defaults
+	appearanceDefaults := []struct{ key, val string }{
+		{"admin_theme_name", "zed-dark-neon"},
+		{"admin_accent_color", "#06b6d4"},
+		{"admin_background_color", "#0d0d16"},
+		{"admin_sidebar_color", "#0f0f1a"},
+		{"admin_card_color", "#1a1a2e"},
+		{"admin_text_color", "#f1f5f9"},
+		{"admin_muted_text_color", "#94a3b8"},
+		{"admin_border_color", "rgba(255,255,255,0.1)"},
+		{"admin_button_color", "#06b6d4"},
+		{"admin_hover_color", "rgba(255,255,255,0.07)"},
+		{"admin_sidebar_mode", "full"},
+		{"admin_sidebar_width", "normal"},
+		{"admin_icon_size", "medium"},
+		{"admin_menu_text_size", "medium"},
+		{"admin_font_size", "normal"},
+		{"admin_card_radius", "xl"},
+		{"admin_card_shadow", "soft"},
+		{"admin_card_border", "subtle"},
+		{"admin_glass_effect_enabled", "1"},
+		{"admin_animations_enabled", "1"},
+		{"admin_compact_mode_enabled", "0"},
+		{"admin_dashboard_density", "comfortable"},
+		{"admin_custom_logo", ""},
+		{"admin_custom_background", ""},
+	}
+	for _, s := range appearanceDefaults {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
+	}
+
+	// Seed public site appearance settings defaults
+	siteAppearanceDefaults := []struct{ key, val string }{
+		{"site_theme_name", "default"},
+		{"site_accent_color", "#6366f1"},
+		{"site_background_color", "#0a0a0f"},
+		{"site_card_color", "rgba(255,255,255,0.05)"},
+		{"site_text_color", "#e2e8f0"},
+		{"site_muted_text_color", "#94a3b8"},
+		{"site_border_color", "rgba(255,255,255,0.1)"},
+		{"site_button_color", "#6366f1"},
+		{"site_hover_color", "rgba(255,255,255,0.05)"},
+		{"site_hero_style", "gradient"},
+		{"site_card_radius", "xl"},
+		{"site_card_shadow", "medium"},
+		{"site_glass_effect_enabled", "1"},
+		{"site_animations_enabled", "1"},
+		{"site_custom_logo", ""},
+		{"site_custom_background", ""},
+	}
+	for _, s := range siteAppearanceDefaults {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
+	}
+
+	// ── Customer User System ─────────────────────────
+	userTables := []string{
+		`CREATE TABLE IF NOT EXISTS users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			public_id TEXT NOT NULL UNIQUE,
+			email TEXT UNIQUE,
+			phone TEXT UNIQUE,
+			password_hash TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'active',
+			role TEXT NOT NULL DEFAULT 'user',
+			telegram_id TEXT,
+			telegram_username TEXT,
+			telegram_connected_at DATETIME,
+			email_verified_at DATETIME,
+			phone_verified_at DATETIME,
+			last_login_at DATETIME,
+			last_login_ip_hash TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			deleted_at DATETIME
+		)`,
+		`CREATE TABLE IF NOT EXISTS user_profiles (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL UNIQUE,
+			first_name TEXT,
+			last_name TEXT,
+			display_name TEXT,
+			timezone TEXT DEFAULT 'Asia/Tehran',
+			country TEXT,
+			primary_device TEXT,
+			usage_type TEXT,
+			avatar_path TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY(user_id) REFERENCES users(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS user_sessions (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			session_token_hash TEXT NOT NULL,
+			ip_hash TEXT,
+			user_agent TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			expires_at DATETIME NOT NULL,
+			revoked_at DATETIME
+		)`,
+		`CREATE TABLE IF NOT EXISTS password_reset_tokens (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			token_hash TEXT NOT NULL UNIQUE,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			expires_at DATETIME NOT NULL,
+			used_at DATETIME
+		)`,
+		`CREATE TABLE IF NOT EXISTS telegram_connect_tokens (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			token_hash TEXT NOT NULL UNIQUE,
+			token_public TEXT NOT NULL,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			expires_at DATETIME NOT NULL,
+			used_at DATETIME
+		)`,
+		`CREATE TABLE IF NOT EXISTS user_services (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			title TEXT NOT NULL,
+			plan_name TEXT,
+			status TEXT NOT NULL DEFAULT 'pending',
+			traffic_total_bytes INTEGER NOT NULL DEFAULT 0,
+			traffic_used_bytes INTEGER NOT NULL DEFAULT 0,
+			traffic_remaining_bytes INTEGER NOT NULL DEFAULT 0,
+			started_at DATETIME,
+			expires_at DATETIME,
+			location TEXT,
+			subscription_url TEXT,
+			qr_code_path TEXT,
+			source TEXT NOT NULL DEFAULT 'manual',
+			external_service_id TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS user_orders (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			order_number TEXT NOT NULL UNIQUE,
+			plan_name TEXT,
+			amount INTEGER NOT NULL DEFAULT 0,
+			currency TEXT NOT NULL DEFAULT 'IRT',
+			payment_method TEXT,
+			payment_status TEXT NOT NULL DEFAULT 'pending',
+			order_status TEXT NOT NULL DEFAULT 'pending',
+			discount_code TEXT,
+			source TEXT,
+			telegram_start_param TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS wallet_transactions (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			type TEXT NOT NULL,
+			amount INTEGER NOT NULL,
+			currency TEXT NOT NULL DEFAULT 'IRT',
+			balance_after INTEGER NOT NULL DEFAULT 0,
+			description TEXT,
+			reference_type TEXT,
+			reference_id TEXT,
+			created_by_admin_id INTEGER,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS support_tickets (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			ticket_number TEXT NOT NULL UNIQUE,
+			subject TEXT NOT NULL,
+			category TEXT NOT NULL,
+			priority TEXT NOT NULL DEFAULT 'normal',
+			status TEXT NOT NULL DEFAULT 'open',
+			last_message_at DATETIME,
+			assigned_admin_id INTEGER,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			closed_at DATETIME
+		)`,
+		`CREATE TABLE IF NOT EXISTS support_ticket_messages (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			ticket_id INTEGER NOT NULL,
+			sender_type TEXT NOT NULL,
+			sender_user_id INTEGER,
+			sender_admin_id INTEGER,
+			message TEXT NOT NULL,
+			attachment_path TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS user_notifications (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			title TEXT NOT NULL,
+			message TEXT NOT NULL,
+			type TEXT NOT NULL DEFAULT 'info',
+			link_url TEXT,
+			read_at DATETIME,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS user_activity_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			action TEXT NOT NULL,
+			description TEXT,
+			ip_hash TEXT,
+			user_agent TEXT,
+			metadata_json TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS admin_user_notes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			admin_id INTEGER NOT NULL,
+			note TEXT NOT NULL,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		// Indexes
+		`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`,
+		`CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone)`,
+		`CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_user_services_user_id ON user_services(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_user_orders_user_id ON user_orders(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_user_orders_number ON user_orders(order_number)`,
+		`CREATE INDEX IF NOT EXISTS idx_wallet_user_id ON wallet_transactions(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_tickets_user_id ON support_tickets(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_tickets_number ON support_tickets(ticket_number)`,
+		`CREATE INDEX IF NOT EXISTS idx_ticket_msgs_ticket_id ON support_ticket_messages(ticket_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON user_notifications(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON user_activity_logs(user_id)`,
+	}
+	for _, q := range userTables {
+		safeExec(q)
+	}
+
+	// Seed internal API key for bot callbacks
+	DB.Exec("INSERT INTO settings (key, value) VALUES ('internal_api_key', '') ON CONFLICT(key) DO NOTHING")
+	// Seed customer bot username
+	DB.Exec("INSERT INTO settings (key, value) VALUES ('customer_telegram_bot_username', '') ON CONFLICT(key) DO NOTHING")
+
+	// Email / SMTP settings
+	smtpDefaults := [][2]string{
+		{"smtp_enabled", "0"},
+		{"smtp_host", ""},
+		{"smtp_port", "587"},
+		{"smtp_username", ""},
+		{"smtp_password", ""},
+		{"smtp_from_email", ""},
+		{"smtp_from_name", "ZedProxy"},
+		{"smtp_use_tls", "1"},
+		{"email_verification_code_ttl_minutes", "5"},
+		{"email_verification_resend_cooldown_seconds", "60"},
+		{"email_verification_max_attempts", "5"},
+	}
+	for _, kv := range smtpDefaults {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING", kv[0], kv[1])
+	}
+
+	// Email verification codes table
+	DB.Exec(`CREATE TABLE IF NOT EXISTS email_verification_codes (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		email TEXT NOT NULL,
+		code_hash TEXT NOT NULL,
+		purpose TEXT NOT NULL DEFAULT 'register',
+		attempts INTEGER NOT NULL DEFAULT 0,
+		max_attempts INTEGER NOT NULL DEFAULT 5,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		expires_at DATETIME NOT NULL,
+		used_at DATETIME,
+		sent_at DATETIME,
+		ip_hash TEXT
+	)`)
+	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_email_verification_user ON email_verification_codes(user_id)`)
+	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_email_verification_email ON email_verification_codes(email)`)
 
 	log.Println("Database migrations completed")
 }

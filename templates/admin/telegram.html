@@ -1,159 +1,224 @@
 {{define "admin-content"}}
-<div class="space-y-6 max-w-4xl">
-  <div class="flex items-center justify-between">
-    <h1 class="text-xl font-bold text-white">یکپارچه‌سازی تلگرام</h1>
-    <a href="/zed-admin/system/health" class="btn-secondary text-sm">سلامت سیستم</a>
+<div class="space-y-6 max-w-5xl" dir="rtl">
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <h1 class="text-xl font-bold" style="color:var(--admin-text)">یکپارچه‌سازی تلگرام</h1>
+    <a href="/zed-admin/system/health" class="admin-btn-secondary text-sm">سلامت سیستم</a>
   </div>
 
   {{if .FlashOK}}
-  <div class="bg-green-500/20 border border-green-500/40 text-green-400 px-4 py-3 rounded-xl text-sm">{{.FlashOK}}</div>
+  <div class="rounded-xl px-4 py-3 text-sm flex items-center gap-2" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);color:#34d399">
+    <span>✓</span> {{.FlashOK}}
+  </div>
+  {{end}}
+  {{if .FlashErr}}
+  <div class="rounded-xl px-4 py-3 text-sm flex items-center gap-2" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171">
+    <span>✗</span> {{.FlashErr}}
+  </div>
   {{end}}
 
-  <!-- Connection Status -->
-  <div class="admin-card p-5 space-y-3">
-    <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">وضعیت اتصال</h2>
-    <div class="flex items-center gap-3 flex-wrap">
-      {{if eq .TGEnabled "1"}}
-      <span class="inline-flex items-center gap-1.5 text-green-400 text-sm"><span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span> بات فعال است</span>
-      {{else}}
-      <span class="inline-flex items-center gap-1.5 text-gray-400 text-sm"><span class="w-2 h-2 rounded-full bg-gray-500 inline-block"></span> بات غیرفعال است</span>
-      {{end}}
-      {{if .TGBotUsername}}<span class="text-cyan-400 text-sm font-mono">@{{.TGBotUsername}}</span>{{end}}
-      {{if .TGGroupTitle}}<span class="text-gray-400 text-sm">| گروه: {{.TGGroupTitle}}</span>{{end}}
+  <!-- Card 1: وضعیت اتصال -->
+  <div class="admin-card p-5 space-y-4">
+    <h2 class="text-sm font-semibold pb-2" style="color:var(--admin-muted);border-bottom:1px solid var(--admin-border)">📡 وضعیت اتصال</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+      <div class="rounded-lg px-3 py-2" style="background:var(--admin-hover)">
+        <div class="text-xs mb-1" style="color:var(--admin-muted)">وضعیت بات</div>
+        {{if eq .TGEnabled "1"}}
+        <span class="flex items-center gap-1.5" style="color:#34d399"><span class="w-2 h-2 rounded-full inline-block" style="background:#34d399"></span> فعال</span>
+        {{else}}
+        <span class="flex items-center gap-1.5" style="color:var(--admin-muted)"><span class="w-2 h-2 rounded-full inline-block" style="background:#475569"></span> غیرفعال</span>
+        {{end}}
+      </div>
+      <div class="rounded-lg px-3 py-2" style="background:var(--admin-hover)">
+        <div class="text-xs mb-1" style="color:var(--admin-muted)">نام بات</div>
+        <span class="font-mono text-xs" style="color:var(--admin-accent)">{{if .TGBotUsername}}@{{.TGBotUsername}}{{else}}—{{end}}</span>
+      </div>
+      <div class="rounded-lg px-3 py-2" style="background:var(--admin-hover)">
+        <div class="text-xs mb-1" style="color:var(--admin-muted)">گروه</div>
+        <span class="text-xs" style="color:var(--admin-text)">{{if .TGGroupTitle}}{{.TGGroupTitle}}{{else}}—{{end}}</span>
+      </div>
+      <div class="rounded-lg px-3 py-2" style="background:var(--admin-hover)">
+        <div class="text-xs mb-1" style="color:var(--admin-muted)">توکن</div>
+        <span class="font-mono text-xs" style="color:var(--admin-muted)">{{if .TGTokenSet}}{{.TGTokenMasked}}{{else}}تنظیم نشده{{end}}</span>
+      </div>
     </div>
-    <div class="flex flex-wrap gap-2 pt-2">
-      <button onclick="apiAction('/zed-admin/integrations/telegram/test','تست اتصال')" class="btn-secondary text-xs">🔍 تست اتصال</button>
-      <button onclick="apiAction('/zed-admin/integrations/telegram/send-test','ارسال پیام تست')" class="btn-secondary text-xs">📨 ارسال پیام تست</button>
-      <button onclick="apiAction('/zed-admin/integrations/telegram/create-topics','ساخت تاپیک‌ها')" class="btn-secondary text-xs">📂 ساخت تاپیک‌های گروه</button>
-      <button onclick="apiAction('/zed-admin/integrations/telegram/daily-report','ارسال گزارش روزانه')" class="btn-secondary text-xs">📊 گزارش روزانه الان</button>
-      {{if eq .TGEnabled "1"}}
-      <form method="post" action="/zed-admin/integrations/telegram/disable" class="inline">
-        <button type="submit" class="btn-secondary text-xs text-red-400">⛔ غیرفعال‌کردن</button>
-      </form>
-      {{end}}
+
+    <!-- Card 4: ابزارها (داخل وضعیت اتصال) -->
+    <div class="pt-3" style="border-top:1px solid var(--admin-border)">
+      <h3 class="text-xs font-semibold mb-3" style="color:var(--admin-muted)">🔧 تست و ابزارها</h3>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="apiAction('/zed-admin/integrations/telegram/test','تست اتصال')" class="admin-btn-secondary text-xs">🔍 تست اتصال</button>
+        <button onclick="apiAction('/zed-admin/integrations/telegram/send-test','ارسال پیام تست')" class="admin-btn-secondary text-xs">📨 پیام تست</button>
+        <button onclick="apiAction('/zed-admin/integrations/telegram/create-topics','ساخت تاپیک‌ها')" class="admin-btn-secondary text-xs">📂 ساخت تاپیک‌ها</button>
+        <button onclick="apiAction('/zed-admin/integrations/telegram/daily-report','ارسال گزارش روزانه')" class="admin-btn-secondary text-xs">📊 گزارش الان</button>
+        <button onclick="apiAction('/zed-admin/integrations/telegram/send-db-backup','ارسال بکاپ ZIP')" class="admin-btn-secondary text-xs">💾 بکاپ ZIP الان</button>
+        {{if eq .TGEnabled "1"}}
+        <form method="post" action="/zed-admin/integrations/telegram/disable" class="inline">
+          <button type="submit" class="admin-btn-secondary text-xs" style="color:#f87171">⛔ غیرفعال‌کردن</button>
+        </form>
+        {{end}}
+      </div>
+      <div id="result-box" class="hidden mt-3 text-sm px-3 py-2 rounded-lg" style="background:var(--admin-hover);color:var(--admin-muted)"></div>
     </div>
-    <div id="result-box" class="hidden mt-2 text-sm px-3 py-2 rounded-lg bg-white/5 text-gray-300"></div>
   </div>
 
-  <!-- Settings Form -->
+  <!-- Card 2: تنظیمات بات -->
   <form method="post" action="/zed-admin/integrations/telegram/save" class="space-y-5">
-
     {{if .IsOwner}}
     <div class="admin-card p-5 space-y-4">
-      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">تنظیمات بات (فقط مالک)</h2>
-      <div class="space-y-1">
-        <label class="text-xs text-gray-400">توکن بات</label>
-        <input type="password" name="bot_token"
-          placeholder="{{if .TGTokenSet}}{{.TGTokenMasked}} — برای تغییر وارد کنید{{else}}123456789:ABCDefgh...{{end}}"
-          autocomplete="new-password"
-          class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-cyan-500">
-        <p class="text-xs text-gray-500">توکن را از @BotFather دریافت کنید. بعد از ذخیره نمایش داده نمی‌شود.</p>
-      </div>
-      <div class="space-y-1">
-        <label class="text-xs text-gray-400">شناسه گروه (Chat ID)</label>
-        <input type="text" name="chat_id" value="{{.TGChatID}}"
-          placeholder="-1001234567890"
-          class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-cyan-500">
-        <p class="text-xs text-gray-500">سوپرگروهی با Topics فعال. Chat ID معمولاً با ‑100 شروع می‌شود.</p>
+      <h2 class="text-sm font-semibold pb-2" style="color:var(--admin-muted);border-bottom:1px solid var(--admin-border)">
+        ⚙️ تنظیمات بات
+        <span class="text-xs font-normal mr-2" style="color:#fbbf24">(فقط مالک)</span>
+      </h2>
+
+      <label class="flex items-center justify-between cursor-pointer py-1">
+        <span class="text-sm" style="color:var(--admin-text)">🤖 فعال‌کردن بات تلگرام</span>
+        <input type="hidden" name="bot_enabled" value="0">
+        <input type="checkbox" name="bot_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGEnabled "1"}}checked{{end}}>
+      </label>
+
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="space-y-1">
+          <label class="text-xs" style="color:var(--admin-muted)">توکن بات</label>
+          <input type="password" name="bot_token"
+            placeholder="{{if .TGTokenSet}}{{.TGTokenMasked}} — برای تغییر وارد کنید{{else}}123456789:ABCDefgh...{{end}}"
+            autocomplete="new-password"
+            class="admin-input w-full font-mono">
+          <p class="text-xs" style="color:var(--admin-muted)">توکن را از @BotFather دریافت کنید. پس از ذخیره مخفی می‌شود.</p>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs" style="color:var(--admin-muted)">شناسه گروه (Chat ID)</label>
+          <input type="text" name="chat_id" value="{{.TGChatID}}"
+            placeholder="-1001234567890"
+            class="admin-input w-full font-mono">
+          <p class="text-xs" style="color:var(--admin-muted)">سوپرگروه با Topics فعال. معمولاً با ‑100 شروع می‌شود.</p>
+        </div>
       </div>
     </div>
     {{end}}
 
-    <div class="admin-card p-5 space-y-4">
-      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">فعال‌سازی و دسته‌بندی اعلان‌ها</h2>
-
-      <label class="flex items-center justify-between cursor-pointer py-1">
-        <span class="text-sm text-gray-300">🤖 فعال‌کردن بات تلگرام</span>
-        <input type="hidden" name="bot_enabled" value="0">
-        <input type="checkbox" name="bot_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGEnabled "1"}}checked{{end}}>
-      </label>
-      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
-        <span class="text-sm text-gray-300">🔔 هشدارهای عمومی</span>
+    <!-- اعلان‌ها به تفکیک دسته -->
+    <div class="admin-card p-5 space-y-2">
+      <h2 class="text-sm font-semibold pb-2 mb-3" style="color:var(--admin-muted);border-bottom:1px solid var(--admin-border)">🔔 اعلان‌ها به تفکیک دسته</h2>
+      <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
+        <span class="text-sm" style="color:var(--admin-text)">🔔 هشدارهای عمومی</span>
         <input type="hidden" name="alerts_enabled" value="0">
-        <input type="checkbox" name="alerts_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGAlerts "1"}}checked{{end}}>
+        <input type="checkbox" name="alerts_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGAlerts "1"}}checked{{end}}>
       </label>
-      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
-        <span class="text-sm text-gray-300">🔐 هشدارهای امنیتی</span>
+      <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
+        <span class="text-sm" style="color:var(--admin-text)">🔐 هشدارهای امنیتی</span>
         <input type="hidden" name="security_enabled" value="0">
-        <input type="checkbox" name="security_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGSecurity "1"}}checked{{end}}>
+        <input type="checkbox" name="security_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGSecurity "1"}}checked{{end}}>
       </label>
-      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
-        <span class="text-sm text-gray-300">🔄 اطلاعیه بروزرسانی</span>
+      <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
+        <span class="text-sm" style="color:var(--admin-text)">🔄 بروزرسانی‌ها</span>
         <input type="hidden" name="updates_enabled" value="0">
-        <input type="checkbox" name="updates_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGUpdates "1"}}checked{{end}}>
+        <input type="checkbox" name="updates_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGUpdates "1"}}checked{{end}}>
       </label>
-      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
-        <span class="text-sm text-gray-300">💾 بکاپ‌ها</span>
+      <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
+        <span class="text-sm" style="color:var(--admin-text)">💾 بکاپ‌ها</span>
         <input type="hidden" name="backups_enabled" value="0">
-        <input type="checkbox" name="backups_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGBackups "1"}}checked{{end}}>
+        <input type="checkbox" name="backups_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGBackups "1"}}checked{{end}}>
       </label>
-      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
-        <span class="text-sm text-gray-300">❌ خطاها و پنیک‌ها</span>
+      <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
+        <span class="text-sm" style="color:var(--admin-text)">❌ خطاها</span>
         <input type="hidden" name="errors_enabled" value="0">
-        <input type="checkbox" name="errors_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGErrors "1"}}checked{{end}}>
+        <input type="checkbox" name="errors_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGErrors "1"}}checked{{end}}>
       </label>
-      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
-        <span class="text-sm text-gray-300">🧰 حالت تعمیرات</span>
+      <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
+        <span class="text-sm" style="color:var(--admin-text)">🧰 حالت تعمیرات</span>
         <input type="hidden" name="maintenance_enabled" value="0">
-        <input type="checkbox" name="maintenance_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGMaintenance "1"}}checked{{end}}>
+        <input type="checkbox" name="maintenance_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGMaintenance "1"}}checked{{end}}>
       </label>
-      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
-        <span class="text-sm text-gray-300">🧾 فعالیت ادمین</span>
+      <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
+        <span class="text-sm" style="color:var(--admin-text)">🧾 فعالیت ادمین</span>
         <input type="hidden" name="admin_activity_enabled" value="0">
-        <input type="checkbox" name="admin_activity_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGAdminActivity "1"}}checked{{end}}>
+        <input type="checkbox" name="admin_activity_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGAdminActivity "1"}}checked{{end}}>
       </label>
-      <label class="flex items-center justify-between cursor-pointer py-1 border-t border-white/5">
-        <span class="text-sm text-gray-300">📈 آمار کلیک (روزانه)</span>
+      <label class="flex items-center justify-between cursor-pointer py-1.5">
+        <span class="text-sm" style="color:var(--admin-text)">📈 آمار کلیک</span>
         <input type="hidden" name="analytics_enabled" value="0">
-        <input type="checkbox" name="analytics_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGAnalytics "1"}}checked{{end}}>
+        <input type="checkbox" name="analytics_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGAnalytics "1"}}checked{{end}}>
       </label>
     </div>
 
+    <!-- گزارش روزانه و بکاپ -->
     <div class="admin-card p-5 space-y-4">
-      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">📊 گزارش روزانه</h2>
+      <h2 class="text-sm font-semibold pb-2" style="color:var(--admin-muted);border-bottom:1px solid var(--admin-border)">📊 گزارش‌ها و بکاپ‌ها</h2>
+
       <label class="flex items-center justify-between cursor-pointer py-1">
-        <span class="text-sm text-gray-300">ارسال گزارش روزانه خودکار</span>
+        <span class="text-sm" style="color:var(--admin-text)">📊 گزارش روزانه خودکار</span>
         <input type="hidden" name="daily_enabled" value="0">
-        <input type="checkbox" name="daily_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .TGDailyEnabled "1"}}checked{{end}}>
+        <input type="checkbox" name="daily_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGDailyEnabled "1"}}checked{{end}}>
       </label>
       <div class="grid grid-cols-2 gap-3">
         <div class="space-y-1">
-          <label class="text-xs text-gray-400">زمان ارسال</label>
-          <input type="time" name="daily_time" value="{{.TGDailyTime}}"
-            class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+          <label class="text-xs" style="color:var(--admin-muted)">زمان ارسال گزارش</label>
+          <input type="time" name="daily_time" value="{{.TGDailyTime}}" class="admin-input w-full">
         </div>
         <div class="space-y-1">
-          <label class="text-xs text-gray-400">منطقه زمانی</label>
-          <input type="text" name="daily_timezone" value="{{.TGDailyTZ}}"
-            placeholder="Asia/Tehran"
-            class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-cyan-500">
+          <label class="text-xs" style="color:var(--admin-muted)">منطقه زمانی</label>
+          <input type="text" name="daily_timezone" value="{{.TGDailyTZ}}" placeholder="Asia/Tehran" class="admin-input w-full font-mono">
+        </div>
+      </div>
+
+      <div class="pt-3" style="border-top:1px solid var(--admin-border)">
+        <div class="text-xs mb-2" style="color:var(--admin-muted)">ارسال بکاپ ZIP به تلگرام</div>
+        <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
+          <span class="text-sm" style="color:var(--admin-text)">💾 ارسال ZIP هنگام بکاپ دستی</span>
+          <input type="hidden" name="send_db_zip_enabled" value="0">
+          <input type="checkbox" name="send_db_zip_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGSendDBZip "1"}}checked{{end}}>
+        </label>
+        <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
+          <span class="text-sm" style="color:var(--admin-text)">⏰ بکاپ روزانه دیتابیس به تلگرام</span>
+          <input type="hidden" name="daily_db_backup_enabled" value="0">
+          <input type="checkbox" name="daily_db_backup_enabled" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGDailyDBBackup "1"}}checked{{end}}>
+        </label>
+        <label class="flex items-center justify-between cursor-pointer py-1.5" style="border-bottom:1px solid var(--admin-border)">
+          <span class="text-sm" style="color:var(--admin-text)">🔄 بکاپ قبل از آپدیت</span>
+          <input type="hidden" name="backup_before_update" value="0">
+          <input type="checkbox" name="backup_before_update" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGBackupBeforeUpdate "1"}}checked{{end}}>
+        </label>
+        <label class="flex items-center justify-between cursor-pointer py-1.5">
+          <span class="text-sm" style="color:var(--admin-text)">🔙 بکاپ قبل از بازگشت</span>
+          <input type="hidden" name="backup_before_rollback" value="0">
+          <input type="checkbox" name="backup_before_rollback" value="1" class="w-4 h-4 rounded" style="accent-color:var(--admin-accent)" {{if eq .TGBackupBeforeRollback "1"}}checked{{end}}>
+        </label>
+        <div class="space-y-1 mt-3">
+          <label class="text-xs" style="color:var(--admin-muted)">زمان بکاپ روزانه</label>
+          <input type="time" name="daily_db_backup_time" value="{{.TGDailyDBBackupTime}}" class="admin-input w-full md:w-40">
         </div>
       </div>
     </div>
 
-    <button type="submit" class="btn-primary">ذخیره تنظیمات</button>
+    <button type="submit" class="admin-btn-primary">💾 ذخیره تنظیمات</button>
   </form>
 
-  <!-- Topics -->
+  <!-- Card 3: تاپیک‌های گروه -->
   {{if .Topics}}
-  <div class="admin-card overflow-x-auto">
-    <div class="px-4 py-3 border-b border-white/10 text-sm font-semibold text-gray-300">تاپیک‌های گروه تلگرام</div>
+  <div class="admin-card overflow-hidden">
+    <div class="px-5 py-3 flex items-center justify-between" style="border-bottom:1px solid var(--admin-border)">
+      <h2 class="text-sm font-semibold" style="color:var(--admin-muted)">📂 تاپیک‌های گروه تلگرام</h2>
+      <button onclick="apiAction('/zed-admin/integrations/telegram/create-topics','همگام‌سازی')" class="admin-btn-secondary text-xs">🔄 همگام‌سازی</button>
+    </div>
     <table class="w-full text-sm text-right">
-      <thead class="text-gray-400 border-b border-white/10">
+      <thead style="color:var(--admin-muted);border-bottom:1px solid var(--admin-border)">
         <tr>
-          <th class="p-3">کلید داخلی</th>
-          <th class="p-3">عنوان</th>
+          <th class="p-3">کلید</th>
+          <th class="p-3">عنوان فارسی</th>
           <th class="p-3">Thread ID</th>
           <th class="p-3">وضعیت</th>
         </tr>
       </thead>
       <tbody>
         {{range .Topics}}
-        <tr class="border-b border-white/5 hover:bg-white/5">
-          <td class="p-3 text-gray-400 font-mono text-xs">{{.Key}}</td>
-          <td class="p-3 text-white">{{.Title}}</td>
-          <td class="p-3 text-cyan-400 font-mono text-xs">{{if .ThreadID}}{{.ThreadID}}{{else}}—{{end}}</td>
-          <td class="p-3">{{if .Enabled}}<span class="text-green-400 text-xs">✓ فعال</span>{{else}}<span class="text-gray-500 text-xs">غیرفعال</span>{{end}}</td>
+        <tr style="border-bottom:1px solid var(--admin-border)">
+          <td class="p-3 font-mono text-xs" style="color:var(--admin-muted)">{{.Key}}</td>
+          <td class="p-3" style="color:var(--admin-text)">{{.Title}}</td>
+          <td class="p-3 font-mono text-xs" style="color:var(--admin-accent)">{{if .ThreadID}}{{.ThreadID}}{{else}}<span style="color:var(--admin-muted)">—</span>{{end}}</td>
+          <td class="p-3">
+            {{if .Enabled}}<span class="text-xs px-2 py-0.5 rounded-full" style="color:#34d399;background:rgba(16,185,129,0.1)">✓ فعال</span>
+            {{else}}<span class="text-xs" style="color:var(--admin-muted)">غیرفعال</span>{{end}}
+          </td>
         </tr>
         {{end}}
       </tbody>
@@ -161,12 +226,14 @@
   </div>
   {{end}}
 
-  <!-- Recent Notifications -->
+  <!-- Card 5: آخرین اعلان‌ها -->
   {{if .Notifications}}
-  <div class="admin-card overflow-x-auto">
-    <div class="px-4 py-3 border-b border-white/10 text-sm font-semibold text-gray-300">آخرین اعلان‌های ارسال‌شده</div>
+  <div class="admin-card overflow-hidden">
+    <div class="px-5 py-3" style="border-bottom:1px solid var(--admin-border)">
+      <h2 class="text-sm font-semibold" style="color:var(--admin-muted)">📬 آخرین اعلان‌های ارسال‌شده</h2>
+    </div>
     <table class="w-full text-sm text-right">
-      <thead class="text-gray-400 border-b border-white/10">
+      <thead style="color:var(--admin-muted);border-bottom:1px solid var(--admin-border)">
         <tr>
           <th class="p-3">دسته</th>
           <th class="p-3">وضعیت</th>
@@ -176,41 +243,59 @@
       </thead>
       <tbody>
         {{range .Notifications}}
-        <tr class="border-b border-white/5 hover:bg-white/5">
-          <td class="p-3 text-cyan-400 font-mono text-xs">{{.TopicKey}}</td>
+        <tr style="border-bottom:1px solid var(--admin-border)">
+          <td class="p-3 font-mono text-xs" style="color:var(--admin-accent)">{{.TopicKey}}</td>
           <td class="p-3">
-            {{if eq .Status "sent"}}<span class="text-green-400 text-xs">✓ ارسال شد</span>
-            {{else}}<span class="text-red-400 text-xs">✗ خطا</span>{{end}}
+            {{if eq .Status "sent"}}<span class="text-xs px-2 py-0.5 rounded-full" style="color:#34d399;background:rgba(16,185,129,0.1)">✓ ارسال شد</span>
+            {{else}}<span class="text-xs px-2 py-0.5 rounded-full" style="color:#f87171;background:rgba(239,68,68,0.1)">✗ خطا</span>{{end}}
           </td>
-          <td class="p-3 text-gray-500 text-xs">{{.Error}}</td>
-          <td class="p-3 text-gray-500 text-xs">{{.CreatedAt}}</td>
+          <td class="p-3 text-xs max-w-xs truncate" style="color:var(--admin-muted)">{{.Error}}</td>
+          <td class="p-3 text-xs" style="color:var(--admin-muted)">{{.CreatedAt}}</td>
         </tr>
         {{end}}
       </tbody>
     </table>
   </div>
   {{end}}
+
+  <!-- Card 6: راهنمای اتصال -->
+  <div class="admin-card p-5 space-y-3">
+    <h2 class="text-sm font-semibold pb-2" style="color:var(--admin-muted);border-bottom:1px solid var(--admin-border)">📖 راهنمای اتصال تلگرام</h2>
+    <ol class="space-y-2 text-sm list-decimal list-inside" style="color:var(--admin-muted)">
+      <li>از <span class="font-mono" style="color:var(--admin-accent)">@BotFather</span> یک بات جدید بسازید و توکن را دریافت کنید.</li>
+      <li>یک سوپرگروه با قابلیت <strong style="color:var(--admin-text)">Topics</strong> ایجاد کنید.</li>
+      <li>بات را به‌عنوان ادمین با دسترسی ارسال پیام و مدیریت تاپیک اضافه کنید.</li>
+      <li>Chat ID گروه را از <span class="font-mono" style="color:var(--admin-accent)">@getmyid_bot</span> یا Telegram API دریافت کنید.</li>
+      <li>توکن و Chat ID را در فرم بالا وارد کرده و ذخیره کنید.</li>
+      <li>با دکمه <strong style="color:var(--admin-text)">تست اتصال</strong> صحت تنظیمات را تأیید کنید.</li>
+      <li>با دکمه <strong style="color:var(--admin-text)">ساخت تاپیک‌ها</strong> تاپیک‌های فارسی را در گروه ایجاد کنید.</li>
+    </ol>
+  </div>
 </div>
 
 <script>
 async function apiAction(url, label) {
   const box = document.getElementById('result-box');
   box.classList.remove('hidden');
-  box.className = 'mt-2 text-sm px-3 py-2 rounded-lg bg-white/5 text-gray-300';
+  box.style.background = 'var(--admin-hover)';
+  box.style.color = 'var(--admin-muted)';
   box.textContent = label + '...';
   try {
     const r = await fetch(url, {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}});
     const d = await r.json();
     if (d.ok) {
       box.textContent = '✓ ' + (d.description || label + ' انجام شد');
-      box.className = 'mt-2 text-sm px-3 py-2 rounded-lg bg-green-500/10 text-green-400';
+      box.style.background = 'rgba(16,185,129,0.1)';
+      box.style.color = '#34d399';
     } else {
       box.textContent = '✗ ' + (d.error || 'خطا');
-      box.className = 'mt-2 text-sm px-3 py-2 rounded-lg bg-red-500/10 text-red-400';
+      box.style.background = 'rgba(239,68,68,0.1)';
+      box.style.color = '#f87171';
     }
   } catch(e) {
     box.textContent = '✗ ' + e.message;
-    box.className = 'mt-2 text-sm px-3 py-2 rounded-lg bg-red-500/10 text-red-400';
+    box.style.background = 'rgba(239,68,68,0.1)';
+    box.style.color = '#f87171';
   }
 }
 </script>

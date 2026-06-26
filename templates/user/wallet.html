@@ -1,0 +1,68 @@
+{{template "user" .}}
+{{define "user-content"}}
+<div class="max-w-3xl space-y-6">
+  <!-- Balance card -->
+  <div class="u-card p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-xs font-semibold mb-1" style="color:var(--u-muted)">موجودی کیف پول</p>
+        <p class="text-3xl font-black text-white">{{.Balance}}</p>
+        <p class="text-sm mt-1" style="color:var(--u-muted)">تومان</p>
+      </div>
+      <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background:rgba(99,102,241,0.15)">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" style="color:var(--u-accent)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+      </div>
+    </div>
+    {{if .TelegramBot}}
+    <div class="mt-5 pt-4 text-sm" style="border-top:1px solid var(--u-border);color:var(--u-muted)">
+      برای شارژ کیف پول با پشتیبانی تماس بگیرید:
+      <a href="https://t.me/{{.TelegramBot}}" target="_blank" rel="noopener" class="font-semibold mr-1" style="color:var(--u-accent)">@{{.TelegramBot}}</a>
+    </div>
+    {{end}}
+  </div>
+
+  <!-- Transactions -->
+  <div class="u-card overflow-hidden">
+    <div class="px-5 py-4" style="border-bottom:1px solid var(--u-border)">
+      <h2 class="text-sm font-bold text-white">تاریخچه تراکنش‌ها</h2>
+    </div>
+    {{if .Transactions}}
+    <table class="w-full text-sm">
+      <thead>
+        <tr style="border-bottom:1px solid var(--u-border)">
+          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">نوع</th>
+          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">مبلغ</th>
+          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">موجودی پس از</th>
+          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">توضیح</th>
+          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">تاریخ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Transactions}}
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+          <td class="px-5 py-3">
+            {{if eq .Type "deposit"}}<span class="badge badge-green">واریز</span>
+            {{else if eq .Type "purchase"}}<span class="badge badge-blue">خرید</span>
+            {{else if eq .Type "refund"}}<span class="badge badge-purple">بازگشت</span>
+            {{else if eq .Type "admin_adjustment"}}<span class="badge badge-gray">تنظیم ادمین</span>
+            {{else}}<span class="badge badge-gray">{{.Type}}</span>{{end}}
+          </td>
+          <td class="px-5 py-3 font-semibold"
+              style="color:{{if eq .Type "deposit"}}#4ade80{{else if eq .Type "refund"}}#4ade80{{else}}#f87171{{end}}">
+            {{if or (eq .Type "deposit") (eq .Type "refund")}}+{{else}}-{{end}}{{.Amount}} {{.Currency}}
+          </td>
+          <td class="px-5 py-3 text-white text-xs">{{.BalanceAfter}}</td>
+          <td class="px-5 py-3 text-xs max-w-xs truncate" style="color:var(--u-muted)">{{.Description}}</td>
+          <td class="px-5 py-3 text-xs" style="color:var(--u-muted)">{{formatTime .CreatedAt}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="p-10 text-center">
+      <p class="text-sm" style="color:var(--u-muted)">هنوز تراکنشی ثبت نشده است</p>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

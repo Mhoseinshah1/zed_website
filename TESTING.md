@@ -92,7 +92,7 @@ bash -n /opt/zedproxy/manage.sh
 
 ```bash
 sudo zedproxy-manager
-# Menu must appear with 44 options
+# Menu must appear with 42 options
 ```
 
 ### Test: Maintenance off (option 10)
@@ -250,13 +250,14 @@ $BIN $DB --send-daily-report
 ```bash
 sudo zedproxy-manager
 # Option 34: Telegram Bot Status
-# Option 35: Set bot token (hidden input)
-# Option 36: Set Chat ID
-# Option 37: Test connection
-# Option 38: Send test message
-# Option 39: Create topics
-# Option 40: Enable
-# Option 42: Send daily report
+# Option 35: Test connection
+# Option 36: Send test message
+# Option 37: Create topics
+# Option 38: Enable
+# Option 39: Disable
+# Option 40: Send daily report
+# Note: Token and Chat ID must be configured from admin panel
+#   /zed-admin/integrations/telegram
 ```
 
 ---
@@ -311,3 +312,140 @@ ls -la /usr/local/bin/zedproxy-manager # symlink
 | `/health` | JSON health response |
 | `/sitemap.xml` | Valid XML sitemap |
 | `/robots.txt` | Robots file |
+
+---
+
+## Update System Tests
+
+### Test: update.sh creates ZIP backup before deploying
+
+```bash
+sudo bash /opt/zedproxy/update.sh
+ls -la /opt/zedproxy/backups/zedproxy-pre-update-*.zip
+# Must find a .zip file (binary + templates + static, no .env inside)
+```
+
+### Test: update.sh deploys manage.sh and rollback.sh
+
+```bash
+sudo bash /opt/zedproxy/update.sh
+ls -la /opt/zedproxy/manage.sh         # Must exist and be executable
+ls -la /opt/zedproxy/rollback.sh       # Must exist if present in repo
+```
+
+### Test: update.sh runs self-test before starting service
+
+```bash
+sudo bash /opt/zedproxy/update.sh 2>&1 | grep -E "Self-test|PASSED|FAILED"
+# Must show: Self-test passed
+```
+
+### Test: update.sh checks admin routes after start
+
+```bash
+sudo bash /opt/zedproxy/update.sh 2>&1 | grep -E "Route check|integrations/telegram|settings/appearance"
+# Must show HTTP 200 or 302 for both admin routes, never 404
+```
+
+### Test: update.sh preserves uploads and database
+
+```bash
+# Place a test file in uploads before update
+echo "test" > /opt/zedproxy/static/uploads/test-preserve.txt
+sudo bash /opt/zedproxy/update.sh
+test -f /opt/zedproxy/static/uploads/test-preserve.txt && echo "Uploads preserved" || echo "FAIL: uploads deleted"
+```
+
+### Test: update.sh template verification output
+
+```bash
+sudo bash /opt/zedproxy/update.sh 2>&1 | grep -E "integrations/telegram|admin-accent"
+# Must show [OK] lines for both checks
+```
+
+---
+
+## Telegram Configuration Tests (Web Admin Only)
+
+### Test: install.sh does NOT prompt for Telegram token
+
+```bash
+# Run install.sh in a test environment (or review the script)
+grep -n "read.*TG_TOKEN\|read.*TG_CHAT\|BotFather" install.sh
+# Must return NO matches
+```
+
+### Test: install.sh shows web admin link for Telegram
+
+```bash
+bash -n install.sh && echo OK
+grep "integrations/telegram" install.sh
+# Must show the admin panel URL reference
+```
+
+### Test: manage.sh has no token/chat prompts
+
+```bash
+grep -n "TG_TOKEN\|TG_CHAT\|BotFather\|read.*token\|read.*chat" manage.sh
+# Must return NO matches
+```
+
+### Test: manage.sh shows web panel info for Telegram config
+
+```bash
+grep "integrations/telegram" manage.sh
+# Must show the admin panel URL in the menu
+```
+
+### Test: Configure Telegram from web admin
+
+1. Log in to `/zed-admin/integrations/telegram` as owner
+2. Enter bot token → saved without logging to console or files
+3. Enter Chat ID → saved
+4. Toggle "Enable Telegram" → service starts reporting
+5. Click "Test Connection" → see success/failure with bot username
+6. Click "Create Group Topics" → Persian topic names created in Telegram group
+
+---
+
+## Appearance Settings Tests
+
+### Test: Save admin panel colors and verify CSS applied
+
+1. Go to `/zed-admin/settings/appearance`
+2. Select "Admin Panel" tab
+3. Change Accent Color to `#ff0000`
+4. Save
+5. Reload the admin panel
+6. Inspect `<style>` in `<head>`: must contain `--admin-accent: #ff0000`
+
+### Test: Save public site colors and verify CSS applied
+
+1. Go to `/zed-admin/settings/appearance`
+2. Select "Public Site" tab
+3. Change Site Accent Color to `#00ff00`
+4. Save
+5. Load the public homepage
+6. Inspect `<style>` in `<head>`: must contain `--site-accent: #00ff00`
+
+### Test: Theme presets populate color fields
+
+1. Go to `/zed-admin/settings/appearance` → Admin Panel tab
+2. Click "Cyber Blue" preset button
+3. Verify Accent Color field changes to `#3b82f6`
+4. Save and reload → sidebar glow uses blue
+
+### Test: Reset to default
+
+1. Go to `/zed-admin/settings/appearance`
+2. Click "Reset to Default"
+3. Verify accent color returns to `#06b6d4` for admin, `#6366f1` for site
+
+### Test: Appearance settings survive update
+
+```bash
+# Before update: set accent to #ff6600 from admin panel
+sudo bash /opt/zedproxy/update.sh
+# After update: load admin panel, verify --admin-accent is still #ff6600
+# Database must not be reset
+```

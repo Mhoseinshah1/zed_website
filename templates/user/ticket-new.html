@@ -1,0 +1,37 @@
+{{template "user" .}}
+{{define "user-content"}}
+<div class="max-w-2xl space-y-6">
+  <div class="flex items-center gap-3">
+    <a href="/user/tickets" class="btn-secondary text-xs px-3 py-2">← بازگشت</a>
+  </div>
+
+  <div class="u-card p-6">
+    <h2 class="text-sm font-bold mb-5 text-white">ارسال تیکت پشتیبانی</h2>
+    <form method="POST" action="/user/tickets" class="space-y-5">
+      <div>
+        <label class="u-label">موضوع</label>
+        <input type="text" name="subject" required maxlength="200"
+               class="u-input" placeholder="موضوع مشکل یا درخواست خود را بنویسید"
+               value="{{.Subject}}">
+      </div>
+      <div>
+        <label class="u-label">دسته‌بندی</label>
+        <select name="category" class="u-input">
+          {{range .Categories}}
+          <option value="{{.}}">{{.}}</option>
+          {{end}}
+        </select>
+      </div>
+      <div>
+        <label class="u-label">متن پیام</label>
+        <textarea name="message" required class="u-input" rows="6"
+                  placeholder="مشکل یا درخواست خود را با جزئیات کامل توضیح دهید...">{{.Message}}</textarea>
+      </div>
+      <div class="flex gap-3">
+        <button type="submit" class="btn-primary">ارسال تیکت</button>
+        <a href="/user/tickets" class="btn-secondary">انصراف</a>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

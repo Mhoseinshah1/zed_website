@@ -428,6 +428,13 @@ func RobotsTXT(c *gin.Context) {
 }
 
 func renderPage(c *gin.Context, name string, data map[string]interface{}) {
+	if data == nil {
+		data = map[string]interface{}{}
+	}
+	// Inject login state so public navbar can show user links
+	if _, ok := data["LoggedIn"]; !ok {
+		data["LoggedIn"] = isLoggedIn(c)
+	}
 	t, err := getTemplate(name)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Template error: %v", err)

@@ -237,6 +237,18 @@ func buildDailyReport() string {
 	)
 }
 
+// SendBackupToTelegram sends a ZIP backup file to the backups topic.
+// If the Telegram upload fails, the error is returned but the local file is NOT deleted.
+func SendBackupToTelegram(zipData []byte, filename, caption string) error {
+	token := models.GetSetting("telegram_admin_bot_token")
+	chatID := models.GetSetting("telegram_admin_chat_id")
+	if token == "" || chatID == "" {
+		return fmt.Errorf("bot token or chat ID not configured")
+	}
+	threadID := getTopicThreadID(string(CatBackups))
+	return SendDocument(token, chatID, zipData, filename, caption, threadID)
+}
+
 // SeedDefaultTopics inserts default forum topics if not already present.
 func SeedDefaultTopics() {
 	topics := []struct {

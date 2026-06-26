@@ -1,0 +1,407 @@
+{{define "admin-content"}}
+<div x-data="{
+  activeTab: (new URLSearchParams(window.location.search)).get('tab') === 'site' ? 'site' : 'admin',
+  applyAdminPreview(accent, bg, sidebar, card) {
+    document.documentElement.style.setProperty('--admin-accent', accent || '#06b6d4');
+    document.documentElement.style.setProperty('--admin-bg', bg || '#0d0d16');
+    document.documentElement.style.setProperty('--admin-sidebar', sidebar || '#0f0f1a');
+    document.documentElement.style.setProperty('--admin-card', card || '#1a1a2e');
+  }
+}">
+
+<!-- Page Header -->
+<div class="mb-6">
+  <h2 class="text-2xl font-bold" style="color:var(--admin-text)">تنظیمات ظاهر</h2>
+  <p class="text-sm mt-1" style="color:var(--admin-muted)">شخصی‌سازی ظاهر پنل مدیریت و سایت عمومی به‌صورت مجزا</p>
+</div>
+
+<!-- Tabs -->
+<div class="mb-6 inline-flex p-1 rounded-xl" style="background:var(--admin-card);border:1px solid var(--admin-border)">
+  <button @click="activeTab='admin'" type="button"
+    :style="activeTab==='admin' ? 'background:var(--admin-accent);color:#fff' : 'color:var(--admin-muted)'"
+    class="px-5 py-2 rounded-lg text-sm font-semibold transition-all">
+    پنل مدیریت
+  </button>
+  <button @click="activeTab='site'" type="button"
+    :style="activeTab==='site' ? 'background:var(--admin-accent);color:#fff' : 'color:var(--admin-muted)'"
+    class="px-5 py-2 rounded-lg text-sm font-semibold transition-all">
+    سایت عمومی
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     TAB 1: Admin Panel Appearance
+═══════════════════════════════════════════════════════ -->
+<div x-show="activeTab==='admin'">
+<form method="POST" action="/zed-admin/settings/appearance/save">
+  <input type="hidden" name="tab" value="admin">
+  <input type="hidden" id="admin_theme_name" name="admin_theme_name" value="{{.admin_theme_name}}">
+
+  <!-- Theme Presets -->
+  <div class="admin-card p-5 mb-5">
+    <h3 class="text-base font-bold mb-1" style="color:var(--admin-text)">تم‌های آماده پنل</h3>
+    <p class="text-xs mb-4" style="color:var(--admin-muted)">انتخاب تم — پیش‌نمایش بلافاصله اعمال می‌شود</p>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {{range .AdminThemePresets}}
+      <button type="button"
+        @click="
+          document.getElementById('admin_theme_name').value='{{.ID}}';
+          document.getElementById('admin_accent_color').value='{{.AccentColor}}';
+          document.getElementById('admin_background_color').value='{{.BGColor}}';
+          document.getElementById('admin_sidebar_color').value='{{.SidebarColor}}';
+          document.getElementById('admin_card_color').value='{{.CardColor}}';
+          applyAdminPreview('{{.AccentColor}}','{{.BGColor}}','{{.SidebarColor}}','{{.CardColor}}')
+        "
+        class="rounded-xl p-3 border-2 transition-all hover:scale-105 text-right"
+        style="background:{{.BGColor}};border-color:{{.AccentColor}}55">
+        <div class="w-full h-3 rounded mb-2" style="background:{{.AccentColor}}"></div>
+        <div class="text-xs font-bold" style="color:{{.AccentColor}}">{{.Name}}</div>
+      </button>
+      {{end}}
+    </div>
+  </div>
+
+  <!-- Colors -->
+  <div class="admin-card p-5 mb-5">
+    <h3 class="text-base font-bold mb-4" style="color:var(--admin-text)">رنگ‌های پنل</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <div>
+        <label class="form-label">رنگ اکسنت</label>
+        <input type="color" id="admin_accent_color" name="admin_accent_color" value="{{.admin_accent_color}}"
+          class="w-full h-10 rounded-lg border cursor-pointer" style="border-color:var(--admin-border)"
+          @input="document.documentElement.style.setProperty('--admin-accent',$event.target.value)">
+      </div>
+
+      <div>
+        <label class="form-label">پس‌زمینه</label>
+        <input type="color" id="admin_background_color" name="admin_background_color" value="{{.admin_background_color}}"
+          class="w-full h-10 rounded-lg border cursor-pointer" style="border-color:var(--admin-border)"
+          @input="document.documentElement.style.setProperty('--admin-bg',$event.target.value)">
+      </div>
+
+      <div>
+        <label class="form-label">رنگ نوار کناری</label>
+        <input type="color" id="admin_sidebar_color" name="admin_sidebar_color" value="{{.admin_sidebar_color}}"
+          class="w-full h-10 rounded-lg border cursor-pointer" style="border-color:var(--admin-border)"
+          @input="document.documentElement.style.setProperty('--admin-sidebar',$event.target.value)">
+      </div>
+
+      <div>
+        <label class="form-label">رنگ کارت</label>
+        <input type="color" id="admin_card_color" name="admin_card_color" value="{{.admin_card_color}}"
+          class="w-full h-10 rounded-lg border cursor-pointer" style="border-color:var(--admin-border)"
+          @input="document.documentElement.style.setProperty('--admin-card',$event.target.value)">
+      </div>
+
+      <div>
+        <label class="form-label">رنگ متن اصلی</label>
+        <input type="color" name="admin_text_color" value="{{.admin_text_color}}"
+          class="w-full h-10 rounded-lg border cursor-pointer" style="border-color:var(--admin-border)"
+          @input="document.documentElement.style.setProperty('--admin-text',$event.target.value)">
+      </div>
+
+      <div>
+        <label class="form-label">رنگ متن ثانوی</label>
+        <input type="color" name="admin_muted_text_color" value="{{.admin_muted_text_color}}"
+          class="w-full h-10 rounded-lg border cursor-pointer" style="border-color:var(--admin-border)"
+          @input="document.documentElement.style.setProperty('--admin-muted',$event.target.value)">
+      </div>
+
+      <div>
+        <label class="form-label">رنگ دکمه</label>
+        <input type="color" name="admin_button_color" value="{{.admin_button_color}}"
+          class="w-full h-10 rounded-lg border cursor-pointer" style="border-color:var(--admin-border)"
+          @input="document.documentElement.style.setProperty('--admin-button',$event.target.value)">
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Layout -->
+  <div class="admin-card p-5 mb-5">
+    <h3 class="text-base font-bold mb-4" style="color:var(--admin-text)">طرح‌بندی</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <div>
+        <label class="form-label">حالت نوار کناری</label>
+        <select name="admin_sidebar_mode" class="form-input">
+          <option value="full" {{if eq .admin_sidebar_mode "full"}}selected{{end}}>کامل (آیکون + متن)</option>
+          <option value="compact" {{if eq .admin_sidebar_mode "compact"}}selected{{end}}>فشرده</option>
+          <option value="icons" {{if eq .admin_sidebar_mode "icons"}}selected{{end}}>فقط آیکون</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">عرض نوار کناری</label>
+        <select name="admin_sidebar_width" class="form-input">
+          <option value="narrow" {{if eq .admin_sidebar_width "narrow"}}selected{{end}}>باریک (200px)</option>
+          <option value="normal" {{if eq .admin_sidebar_width "normal"}}selected{{end}}>معمولی (240px)</option>
+          <option value="wide" {{if eq .admin_sidebar_width "wide"}}selected{{end}}>عریض (280px)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">اندازه آیکون</label>
+        <select name="admin_icon_size" class="form-input">
+          <option value="small" {{if eq .admin_icon_size "small"}}selected{{end}}>کوچک (14px)</option>
+          <option value="medium" {{if eq .admin_icon_size "medium"}}selected{{end}}>متوسط (16px)</option>
+          <option value="large" {{if eq .admin_icon_size "large"}}selected{{end}}>بزرگ (20px)</option>
+          <option value="xl" {{if eq .admin_icon_size "xl"}}selected{{end}}>خیلی بزرگ (24px)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">اندازه متن منو</label>
+        <select name="admin_menu_text_size" class="form-input">
+          <option value="small" {{if eq .admin_menu_text_size "small"}}selected{{end}}>کوچک (12px)</option>
+          <option value="medium" {{if eq .admin_menu_text_size "medium"}}selected{{end}}>متوسط (13px)</option>
+          <option value="large" {{if eq .admin_menu_text_size "large"}}selected{{end}}>بزرگ (15px)</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Typography & Cards -->
+  <div class="admin-card p-5 mb-5">
+    <h3 class="text-base font-bold mb-4" style="color:var(--admin-text)">تایپوگرافی و کارت‌ها</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <div>
+        <label class="form-label">اندازه فونت</label>
+        <select name="admin_font_size" class="form-input">
+          <option value="small" {{if eq .admin_font_size "small"}}selected{{end}}>کوچک (13px)</option>
+          <option value="normal" {{if eq .admin_font_size "normal"}}selected{{end}}>معمولی (15px)</option>
+          <option value="large" {{if eq .admin_font_size "large"}}selected{{end}}>بزرگ (17px)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">گوشه کارت</label>
+        <select name="admin_card_radius" class="form-input">
+          <option value="none" {{if eq .admin_card_radius "none"}}selected{{end}}>بدون گردی</option>
+          <option value="md" {{if eq .admin_card_radius "md"}}selected{{end}}>کم (8px)</option>
+          <option value="xl" {{if eq .admin_card_radius "xl"}}selected{{end}}>متوسط (12px)</option>
+          <option value="2xl" {{if eq .admin_card_radius "2xl"}}selected{{end}}>زیاد (18px)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">سایه کارت</label>
+        <select name="admin_card_shadow" class="form-input">
+          <option value="none" {{if eq .admin_card_shadow "none"}}selected{{end}}>بدون سایه</option>
+          <option value="soft" {{if eq .admin_card_shadow "soft"}}selected{{end}}>ملایم</option>
+          <option value="medium" {{if eq .admin_card_shadow "medium"}}selected{{end}}>متوسط</option>
+          <option value="strong" {{if eq .admin_card_shadow "strong"}}selected{{end}}>قوی</option>
+          <option value="neon" {{if eq .admin_card_shadow "neon"}}selected{{end}}>نئون</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">چگالی داشبورد</label>
+        <select name="admin_dashboard_density" class="form-input">
+          <option value="comfortable" {{if eq .admin_dashboard_density "comfortable"}}selected{{end}}>راحت</option>
+          <option value="compact" {{if eq .admin_dashboard_density "compact"}}selected{{end}}>فشرده</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Effects & Branding -->
+  <div class="admin-card p-5 mb-5">
+    <h3 class="text-base font-bold mb-4" style="color:var(--admin-text)">جلوه‌ها و برندینگ</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+      <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl" style="background:var(--admin-hover);border:1px solid var(--admin-border)">
+        <input type="hidden" name="admin_glass_effect_enabled" value="0">
+        <input type="checkbox" name="admin_glass_effect_enabled" value="1" {{if eq .admin_glass_effect_enabled "1"}}checked{{end}} class="w-4 h-4 accent-current" style="accent-color:var(--admin-accent)">
+        <span style="color:var(--admin-text)" class="text-sm font-medium">جلوه شیشه‌ای</span>
+      </label>
+      <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl" style="background:var(--admin-hover);border:1px solid var(--admin-border)">
+        <input type="hidden" name="admin_animations_enabled" value="0">
+        <input type="checkbox" name="admin_animations_enabled" value="1" {{if eq .admin_animations_enabled "1"}}checked{{end}} class="w-4 h-4" style="accent-color:var(--admin-accent)">
+        <span style="color:var(--admin-text)" class="text-sm font-medium">انیمیشن‌ها</span>
+      </label>
+      <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl" style="background:var(--admin-hover);border:1px solid var(--admin-border)">
+        <input type="hidden" name="admin_compact_mode_enabled" value="0">
+        <input type="checkbox" name="admin_compact_mode_enabled" value="1" {{if eq .admin_compact_mode_enabled "1"}}checked{{end}} class="w-4 h-4" style="accent-color:var(--admin-accent)">
+        <span style="color:var(--admin-text)" class="text-sm font-medium">حالت فشرده</span>
+      </label>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="form-label">لوگوی سفارشی پنل (URL)</label>
+        <input type="text" name="admin_custom_logo" value="{{.admin_custom_logo}}" class="form-input" placeholder="/uploads/logo.png" style="direction:ltr">
+      </div>
+      <div>
+        <label class="form-label">پس‌زمینه سفارشی پنل (URL یا رنگ CSS)</label>
+        <input type="text" name="admin_custom_background" value="{{.admin_custom_background}}" class="form-input" placeholder="/uploads/bg.jpg  یا  #1a1a2e" style="direction:ltr">
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="flex gap-3 flex-wrap">
+    <button type="submit" class="btn-save">ذخیره تنظیمات پنل</button>
+    <button type="button"
+      onclick="if(confirm('تمام تنظیمات ظاهر پنل به حالت پیش‌فرض برمی‌گردد؟')){var f=this.closest('form');f.action='/zed-admin/settings/appearance/reset';f.submit()}"
+      class="btn-danger">بازگشت به پیش‌فرض</button>
+  </div>
+</form>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     TAB 2: Public Site Appearance
+═══════════════════════════════════════════════════════ -->
+<div x-show="activeTab==='site'" style="display:none">
+<form method="POST" action="/zed-admin/settings/appearance/save">
+  <input type="hidden" name="tab" value="site">
+  <input type="hidden" id="site_theme_name" name="site_theme_name" value="{{.site_theme_name}}">
+
+  <div class="admin-card p-5 mb-5">
+    <h3 class="text-base font-bold mb-1" style="color:var(--admin-text)">تم‌های سایت عمومی</h3>
+    <p class="text-xs mb-4" style="color:var(--admin-muted)">انتخاب پالت رنگی برای صفحات عمومی سایت</p>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {{range .SiteThemePresets}}
+      <button type="button"
+        @click="
+          document.getElementById('site_theme_name').value='{{.ID}}';
+          document.getElementById('site_accent_color').value='{{.AccentColor}}';
+          document.getElementById('site_background_color').value='{{.BGColor}}';
+          document.getElementById('site_button_color').value='{{.AccentColor}}'
+        "
+        class="rounded-xl p-3 border-2 transition-all hover:scale-105 text-right"
+        style="background:{{.BGColor}};border-color:{{.AccentColor}}55">
+        <div class="w-full h-3 rounded mb-2" style="background:{{.AccentColor}}"></div>
+        <div class="text-xs font-bold" style="color:{{.AccentColor}}">{{.Name}}</div>
+      </button>
+      {{end}}
+    </div>
+  </div>
+
+  <!-- Site Colors -->
+  <div class="admin-card p-5 mb-5">
+    <h3 class="text-base font-bold mb-4" style="color:var(--admin-text)">رنگ‌های سایت</h3>
+    <p class="text-xs mb-4 px-3 py-2 rounded-lg" style="color:var(--admin-muted);background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2)">
+      تغییرات رنگ سایت عمومی روی پنل مدیریت تأثیر ندارد.
+    </p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <div>
+        <label class="form-label">رنگ اکسنت سایت</label>
+        <input type="color" id="site_accent_color" name="site_accent_color" value="{{.site_accent_color}}"
+          class="w-full h-10 rounded-lg border cursor-pointer" style="border-color:var(--admin-border)">
+      </div>
+
+      <div>
+        <label class="form-label">پس‌زمینه سایت</label>
+        <input type="color" id="site_background_color" name="site_background_color" value="{{.site_background_color}}"
+          class="w-full h-10 rounded-lg border cursor-pointer" style="border-color:var(--admin-border)">
+      </div>
+
+      <div>
+        <label class="form-label">رنگ متن سایت</label>
+        <input type="color" name="site_text_color" value="{{.site_text_color}}"
+          class="w-full h-10 rounded-lg border cursor-pointer" style="border-color:var(--admin-border)">
+      </div>
+
+      <div>
+        <label class="form-label">رنگ دکمه سایت</label>
+        <input type="color" id="site_button_color" name="site_button_color" value="{{.site_button_color}}"
+          class="w-full h-10 rounded-lg border cursor-pointer" style="border-color:var(--admin-border)">
+      </div>
+
+      <div>
+        <label class="form-label">رنگ کارت (CSS)</label>
+        <input type="text" name="site_card_color" value="{{.site_card_color}}" class="form-input text-xs"
+          placeholder="rgba(255,255,255,0.05)" style="direction:ltr">
+      </div>
+
+      <div>
+        <label class="form-label">رنگ متن ثانوی</label>
+        <input type="color" name="site_muted_text_color" value="{{.site_muted_text_color}}"
+          class="w-full h-10 rounded-lg border cursor-pointer" style="border-color:var(--admin-border)">
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Layout -->
+  <div class="admin-card p-5 mb-5">
+    <h3 class="text-base font-bold mb-4" style="color:var(--admin-text)">طرح‌بندی سایت</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+
+      <div>
+        <label class="form-label">استایل هیرو</label>
+        <select name="site_hero_style" class="form-input">
+          <option value="gradient" {{if eq .site_hero_style "gradient"}}selected{{end}}>گرادیان</option>
+          <option value="solid" {{if eq .site_hero_style "solid"}}selected{{end}}>رنگ ثابت</option>
+          <option value="mesh" {{if eq .site_hero_style "mesh"}}selected{{end}}>مش رنگی</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">گوشه کارت</label>
+        <select name="site_card_radius" class="form-input">
+          <option value="none" {{if eq .site_card_radius "none"}}selected{{end}}>بدون گردی</option>
+          <option value="md" {{if eq .site_card_radius "md"}}selected{{end}}>کم (8px)</option>
+          <option value="xl" {{if eq .site_card_radius "xl"}}selected{{end}}>متوسط (12px)</option>
+          <option value="2xl" {{if eq .site_card_radius "2xl"}}selected{{end}}>زیاد (18px)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">سایه کارت</label>
+        <select name="site_card_shadow" class="form-input">
+          <option value="none" {{if eq .site_card_shadow "none"}}selected{{end}}>بدون سایه</option>
+          <option value="soft" {{if eq .site_card_shadow "soft"}}selected{{end}}>ملایم</option>
+          <option value="medium" {{if eq .site_card_shadow "medium"}}selected{{end}}>متوسط</option>
+          <option value="strong" {{if eq .site_card_shadow "strong"}}selected{{end}}>قوی</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl" style="background:var(--admin-hover);border:1px solid var(--admin-border)">
+        <input type="hidden" name="site_glass_effect_enabled" value="0">
+        <input type="checkbox" name="site_glass_effect_enabled" value="1" {{if eq .site_glass_effect_enabled "1"}}checked{{end}} class="w-4 h-4" style="accent-color:var(--admin-accent)">
+        <span style="color:var(--admin-text)" class="text-sm font-medium">جلوه شیشه‌ای سایت</span>
+      </label>
+      <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl" style="background:var(--admin-hover);border:1px solid var(--admin-border)">
+        <input type="hidden" name="site_animations_enabled" value="0">
+        <input type="checkbox" name="site_animations_enabled" value="1" {{if eq .site_animations_enabled "1"}}checked{{end}} class="w-4 h-4" style="accent-color:var(--admin-accent)">
+        <span style="color:var(--admin-text)" class="text-sm font-medium">انیمیشن‌های سایت</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Branding -->
+  <div class="admin-card p-5 mb-5">
+    <h3 class="text-base font-bold mb-4" style="color:var(--admin-text)">برندینگ سایت</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="form-label">لوگوی سفارشی (URL)</label>
+        <input type="text" name="site_custom_logo" value="{{.site_custom_logo}}" class="form-input" placeholder="/uploads/logo.png" style="direction:ltr">
+      </div>
+      <div>
+        <label class="form-label">پس‌زمینه سفارشی (URL یا رنگ)</label>
+        <input type="text" name="site_custom_background" value="{{.site_custom_background}}" class="form-input" placeholder="/uploads/bg.jpg" style="direction:ltr">
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="flex gap-3 flex-wrap">
+    <button type="submit" class="btn-save">ذخیره تنظیمات سایت</button>
+    <button type="button"
+      onclick="if(confirm('تمام تنظیمات سایت عمومی به حالت پیش‌فرض برمی‌گردد؟')){var f=this.closest('form');f.action='/zed-admin/settings/appearance/reset';f.submit()}"
+      class="btn-danger">بازگشت به پیش‌فرض</button>
+  </div>
+</form>
+</div>
+
+</div>
+{{end}}

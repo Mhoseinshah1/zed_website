@@ -1,0 +1,62 @@
+{{template "user" .}}
+{{define "user-content"}}
+<div class="max-w-2xl space-y-6">
+  <div class="flex items-center gap-3 mb-2">
+    <a href="/user/services" class="btn-secondary text-xs px-3 py-2">← بازگشت</a>
+  </div>
+
+  {{if .Service}}
+  <div class="u-card p-6">
+    <div class="flex items-center gap-3 mb-6">
+      <h2 class="text-base font-bold text-white">{{.Service.Title}}</h2>
+      {{if eq .Service.Status "active"}}<span class="badge badge-green">فعال</span>
+      {{else if eq .Service.Status "expired"}}<span class="badge badge-red">منقضی</span>
+      {{else if eq .Service.Status "suspended"}}<span class="badge badge-yellow">تعلیق</span>
+      {{else}}<span class="badge badge-gray">{{.Service.Status}}</span>{{end}}
+    </div>
+
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="p-4 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+          <p class="text-xs mb-1" style="color:var(--u-muted)">پلن</p>
+          <p class="font-semibold text-white text-sm">{{.Service.PlanName}}</p>
+        </div>
+        {{if .Service.ExpiresAt.Valid}}
+        <div class="p-4 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+          <p class="text-xs mb-1" style="color:var(--u-muted)">تاریخ انقضا</p>
+          <p class="font-semibold text-white text-sm">{{formatTime .Service.ExpiresAt.Time}}</p>
+        </div>
+        {{end}}
+        {{if .Service.TrafficTotalBytes}}
+        <div class="p-4 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+          <p class="text-xs mb-1" style="color:var(--u-muted)">ترافیک کل</p>
+          <p class="font-semibold text-white text-sm">{{.Service.TrafficTotalBytes}} بایت</p>
+        </div>
+        {{end}}
+        {{if .Service.TrafficUsedBytes}}
+        <div class="p-4 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+          <p class="text-xs mb-1" style="color:var(--u-muted)">مصرف شده</p>
+          <p class="font-semibold text-white text-sm">{{.Service.TrafficUsedBytes}} بایت</p>
+        </div>
+        {{end}}
+      </div>
+
+      {{if .Service.Notes}}
+      <div class="p-4 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)">
+        <p class="text-xs mb-2 font-semibold" style="color:var(--u-muted)">یادداشت</p>
+        <p class="text-sm text-white">{{.Service.Notes}}</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+
+  <div class="u-card p-5">
+    <p class="text-sm" style="color:var(--u-muted)">نیاز به کمک دارید؟</p>
+    <div class="flex gap-3 mt-3">
+      <a href="/user/tickets/new" class="btn-primary text-sm">ارسال تیکت پشتیبانی</a>
+      <a href="/user/tutorials" class="btn-secondary text-sm">آموزش نصب</a>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}

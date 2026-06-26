@@ -480,54 +480,13 @@ start_service() {
   fi
 }
 
-setup_telegram_optional() {
-  step "Optional: Telegram Admin Reporter Bot"
+info_telegram_setup() {
+  step "Telegram Admin Reporter"
   echo ""
-  echo -e "${CYAN}Configure Telegram admin reporter bot now? [y/N]:${NC}"
-  read -rp "Choice: " TG_CHOICE
-  if [[ "${TG_CHOICE,,}" != "y" ]]; then
-    info "Telegram bot skipped."
-    echo "  Configure later at: /zed-admin/integrations/telegram"
-    echo "  Or via:             sudo zedproxy-manager"
-    return
-  fi
-
+  echo -e "  Telegram admin reporter can be configured later from:"
+  echo -e "  Admin panel: ${CYAN}https://${DOMAIN}/zed-admin/integrations/telegram${NC}"
   echo ""
-  read -rsp "Enter Telegram bot token (from @BotFather): " TG_TOKEN
-  echo ""
-  if [[ -z "$TG_TOKEN" ]]; then
-    warn "No token entered — skipping Telegram setup"
-    return
-  fi
-
-  read -rp "Enter Telegram group Chat ID (e.g. -1001234567890): " TG_CHAT
-  if [[ -z "$TG_CHAT" ]]; then
-    warn "No Chat ID entered — skipping Telegram setup"
-    return
-  fi
-
-  "$INSTALL_DIR/zedproxy" --db="$INSTALL_DIR/data/zedproxy.db" --telegram-set-token="$TG_TOKEN" && \
-    info "Bot token saved" || warn "Failed to save bot token"
-  "$INSTALL_DIR/zedproxy" --db="$INSTALL_DIR/data/zedproxy.db" --telegram-set-chat-id="$TG_CHAT" && \
-    info "Chat ID saved" || warn "Failed to save chat ID"
-  "$INSTALL_DIR/zedproxy" --db="$INSTALL_DIR/data/zedproxy.db" --telegram-enable && \
-    info "Telegram bot enabled" || warn "Failed to enable bot"
-
-  echo ""
-  echo -e "${CYAN}Create forum topics in your Telegram group now? [y/N]:${NC}"
-  read -rp "Choice: " TOPICS_CHOICE
-  if [[ "${TOPICS_CHOICE,,}" == "y" ]]; then
-    "$INSTALL_DIR/zedproxy" --db="$INSTALL_DIR/data/zedproxy.db" --telegram-create-topics && \
-      info "Forum topics created" || warn "Topic creation had errors — try later from admin panel"
-  fi
-
-  "$INSTALL_DIR/zedproxy" --db="$INSTALL_DIR/data/zedproxy.db" \
-    --telegram-notify-title="ZedProxy Installed" \
-    --telegram-notify-msg="Installation completed on domain: $DOMAIN" \
-    --telegram-notify-cat="system_status" 2>/dev/null || true
-
-  TG_CONFIGURED="yes"
-  info "Telegram admin reporter configured"
+  info "Telegram configuration is available in the admin panel."
 }
 
 validate_installation() {
@@ -569,7 +528,7 @@ print_result() {
   echo -e "${WHITE}Admin username:${NC} ${WHITE}${ADMIN_USERNAME}${NC}"
   echo -e "${WHITE}Admin email:${NC}   ${WHITE}${ADMIN_EMAIL}${NC}"
   echo -e "${WHITE}Admin password:${NC} ${RED}${ADMIN_PASSWORD}${NC}"
-  echo -e "${WHITE}Telegram reporter:${NC} ${TG_CONFIGURED}"
+  echo -e "${WHITE}Telegram reporter:${NC} Configure at ${CYAN}${ADMIN_URL}/integrations/telegram${NC}"
   echo ""
   echo -e "${YELLOW}WARNING: Save these credentials in a secure place!${NC}"
   echo -e "${YELLOW}This is the only time the password is shown.${NC}"
@@ -610,6 +569,6 @@ setup_nginx
 setup_firewall
 start_service
 setup_ssl
-setup_telegram_optional
+info_telegram_setup
 validate_installation
 print_result

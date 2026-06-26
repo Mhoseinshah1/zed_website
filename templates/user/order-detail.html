@@ -1,0 +1,45 @@
+{{template "user" .}}
+{{define "user-content"}}
+<div class="max-w-2xl space-y-6">
+  <div class="flex items-center gap-3">
+    <a href="/user/orders" class="btn-secondary text-xs px-3 py-2">← بازگشت</a>
+  </div>
+
+  {{if .Order}}
+  <div class="u-card p-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-base font-bold text-white mb-1">سفارش {{.Order.OrderNumber}}</h2>
+        <p class="text-xs" style="color:var(--u-muted)">{{formatTime .Order.CreatedAt}}</p>
+      </div>
+      {{if eq .Order.PaymentStatus "paid"}}<span class="badge badge-green">پرداخت شده</span>
+      {{else if eq .Order.PaymentStatus "pending"}}<span class="badge badge-yellow">در انتظار پرداخت</span>
+      {{else if eq .Order.PaymentStatus "failed"}}<span class="badge badge-red">ناموفق</span>
+      {{else if eq .Order.PaymentStatus "refunded"}}<span class="badge badge-purple">بازگشت وجه</span>
+      {{else}}<span class="badge badge-gray">{{.Order.PaymentStatus}}</span>{{end}}
+    </div>
+
+    <div class="space-y-3">
+      <div class="flex justify-between py-3 text-sm" style="border-bottom:1px solid var(--u-border)">
+        <span style="color:var(--u-muted)">پلن</span>
+        <span class="font-semibold text-white">{{.Order.PlanName}}</span>
+      </div>
+      <div class="flex justify-between py-3 text-sm" style="border-bottom:1px solid var(--u-border)">
+        <span style="color:var(--u-muted)">مبلغ</span>
+        <span class="font-bold text-white">{{.Order.Amount}} {{.Order.Currency}}</span>
+      </div>
+      <div class="flex justify-between py-3 text-sm" style="border-bottom:1px solid var(--u-border)">
+        <span style="color:var(--u-muted)">وضعیت سفارش</span>
+        <span class="text-white">{{.Order.OrderStatus}}</span>
+      </div>
+      {{if .Order.Notes}}
+      <div class="py-3 text-sm">
+        <p style="color:var(--u-muted)" class="mb-2">یادداشت</p>
+        <p class="text-white">{{.Order.Notes}}</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}

@@ -170,7 +170,9 @@ show_menu() {
   echo "  11) Run Website Update"
   echo "  12) Repair Missing update.sh"
   echo "  13) Rollback to Previous Release"
-  echo "  14) Create Backup"
+  echo "  14) Create ZIP DB Backup"
+  echo "  14t) Create ZIP Backup + Send to Telegram"
+  echo "  14f) Create Full ZIP Backup (db+uploads)"
   echo "  15) List Backups"
   echo "  16) Restore Backup"
   echo ""
@@ -197,18 +199,19 @@ show_menu() {
   echo ""
   echo -e "${WHITE}  Telegram Admin Reporter${NC}"
   echo "  34) Telegram Bot Status"
-  echo "  35) Configure Bot Token"
-  echo "  36) Configure Group Chat ID"
-  echo "  37) Test Bot Connection"
-  echo "  38) Send Test Message"
-  echo "  39) Create Group Topics"
-  echo "  40) Enable Telegram Alerts"
-  echo "  41) Disable Telegram Alerts"
-  echo "  42) Send Daily Report Now"
+  echo "  35) Test Bot Connection"
+  echo "  36) Send Test Message"
+  echo "  37) Create Group Topics"
+  echo "  38) Enable Telegram Alerts"
+  echo "  39) Disable Telegram Alerts"
+  echo "  40) Send Daily Report Now"
+  echo ""
+  echo -e "${CYAN}  Configure Telegram token and chat ID from the admin panel:${NC}"
+  echo -e "  Admin panel -> /zed-admin/integrations/telegram"
   echo ""
   echo -e "${WHITE}  Danger Zone${NC}"
-  echo "  43) Uninstall ZedProxy"
-  echo "  44) Exit"
+  echo "  41) Uninstall ZedProxy"
+  echo "  42) Exit"
   echo ""
 }
 
@@ -376,16 +379,35 @@ action_rollback() {
 }
 
 action_backup() {
-  local ts
-  ts="$(date +%Y%m%d-%H%M%S)"
-  local dest="${INSTALL_DIR}/data/backups/manual-${ts}.db"
-  mkdir -p "${INSTALL_DIR}/data/backups"
-  if [[ ! -f "$DB_FILE" ]]; then
-    err "Database not found: $DB_FILE"
-    return
-  fi
-  cp "$DB_FILE" "$dest" && ok "Backup created: $dest" || err "Backup failed"
-  ls -lh "$dest"
+  ok "Creating ZIP database backup..."
+  "${INSTALL_DIR}/zedproxy" \
+    --db="$DB_FILE" \
+    --backups="${INSTALL_DIR}/data/backups" \
+    --create-db-backup 2>&1 || {
+      warn "ZIP backup failed, falling back to raw copy..."
+      local ts
+      ts="$(date +%Y%m%d-%H%M%S)"
+      local dest="${INSTALL_DIR}/data/backups/manual-${ts}.db"
+      mkdir -p "${INSTALL_DIR}/data/backups"
+      cp "$DB_FILE" "$dest" && ok "Raw backup created: $dest" || err "Backup failed"
+    }
+}
+
+action_backup_telegram() {
+  ok "Creating ZIP backup and sending to Telegram..."
+  "${INSTALL_DIR}/zedproxy" \
+    --db="$DB_FILE" \
+    --backups="${INSTALL_DIR}/data/backups" \
+    --send-db-backup-telegram 2>&1 && ok "Backup sent to Telegram" || warn "Telegram send failed (local backup kept)"
+}
+
+action_backup_full() {
+  ok "Creating full ZIP backup (db + uploads)..."
+  "${INSTALL_DIR}/zedproxy" \
+    --db="$DB_FILE" \
+    --backups="${INSTALL_DIR}/data/backups" \
+    --uploads="${INSTALL_DIR}/static/uploads" \
+    --create-full-backup 2>&1 && ok "Full backup created" || err "Full backup failed"
 }
 
 action_list_backups() {
@@ -610,27 +632,6 @@ action_tg_status() {
   run_cli --telegram-status 2>&1 || err "Failed to get Telegram status"
 }
 
-action_tg_set_token() {
-  echo ""
-  read -rsp "Enter Telegram bot token (from @BotFather): " TG_TOKEN
-  echo ""
-  if [[ -z "$TG_TOKEN" ]]; then
-    err "No token entered."
-    return
-  fi
-  run_cli --telegram-set-token="$TG_TOKEN" && ok "Token saved (not displayed for security)" || err "Failed to save token"
-}
-
-action_tg_set_chat() {
-  echo ""
-  read -rp "Enter Telegram group Chat ID (e.g. -1001234567890): " TG_CHAT
-  if [[ -z "$TG_CHAT" ]]; then
-    err "No Chat ID entered."
-    return
-  fi
-  run_cli --telegram-set-chat-id="$TG_CHAT" && ok "Chat ID saved: $TG_CHAT" || err "Failed to save Chat ID"
-}
-
 action_tg_test() {
   run_cli --telegram-test 2>&1 || err "Connection test failed. Check token and Chat ID."
 }
@@ -699,7 +700,7 @@ main() {
 
   while true; do
     show_menu
-    read -rp "Select option [1-44]: " CHOICE
+    read -rp "Select option [1-42]: " CHOICE
     echo ""
     case "$CHOICE" in
       1)  action_system_status ;;
@@ -716,6 +717,8 @@ main() {
       12) action_repair_update_sh ;;
       13) action_rollback ;;
       14) action_backup ;;
+      14t) action_backup_telegram ;;
+      14f) action_backup_full ;;
       15) action_list_backups ;;
       16) action_restore_backup ;;
       17) action_self_test ;;
@@ -736,16 +739,14 @@ main() {
       32) action_disk_usage ;;
       33) action_clean_tmp ;;
       34) action_tg_status ;;
-      35) action_tg_set_token ;;
-      36) action_tg_set_chat ;;
-      37) action_tg_test ;;
-      38) action_tg_send_test ;;
-      39) action_tg_create_topics ;;
-      40) action_tg_enable ;;
-      41) action_tg_disable ;;
-      42) action_tg_daily_report ;;
-      43) action_uninstall ;;
-      44) echo "Goodbye."; exit 0 ;;
+      35) action_tg_test ;;
+      36) action_tg_send_test ;;
+      37) action_tg_create_topics ;;
+      38) action_tg_enable ;;
+      39) action_tg_disable ;;
+      40) action_tg_daily_report ;;
+      41) action_uninstall ;;
+      42) echo "Goodbye."; exit 0 ;;
       "q"|"Q"|"exit") echo "Goodbye."; exit 0 ;;
       *) warn "Invalid option: $CHOICE" ;;
     esac

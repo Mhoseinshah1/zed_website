@@ -1,0 +1,47 @@
+{{template "user" .}}
+{{define "user-content"}}
+<div class="max-w-4xl">
+  {{if .Orders}}
+  <div class="u-card overflow-hidden">
+    <table class="w-full text-sm">
+      <thead>
+        <tr style="border-bottom:1px solid var(--u-border)">
+          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">شماره سفارش</th>
+          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">پلن</th>
+          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">مبلغ</th>
+          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">وضعیت پرداخت</th>
+          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">تاریخ</th>
+          <th class="px-5 py-3"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Orders}}
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.04)" class="hover:bg-white/2">
+          <td class="px-5 py-4 font-mono text-xs text-white">{{.OrderNumber}}</td>
+          <td class="px-5 py-4 text-white font-medium">{{.PlanName}}</td>
+          <td class="px-5 py-4 text-white">{{.Amount}} {{.Currency}}</td>
+          <td class="px-5 py-4">
+            {{if eq .PaymentStatus "paid"}}<span class="badge badge-green">پرداخت شده</span>
+            {{else if eq .PaymentStatus "pending"}}<span class="badge badge-yellow">در انتظار</span>
+            {{else if eq .PaymentStatus "failed"}}<span class="badge badge-red">ناموفق</span>
+            {{else if eq .PaymentStatus "refunded"}}<span class="badge badge-purple">بازگشت وجه</span>
+            {{else}}<span class="badge badge-gray">{{.PaymentStatus}}</span>{{end}}
+          </td>
+          <td class="px-5 py-4 text-xs" style="color:var(--u-muted)">{{formatTime .CreatedAt}}</td>
+          <td class="px-5 py-4">
+            <a href="/user/orders/{{.OrderNumber}}" class="btn-secondary text-xs px-3 py-1.5">جزئیات</a>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{else}}
+  <div class="u-card p-12 text-center">
+    <svg class="w-14 h-14 mx-auto mb-4" fill="none" stroke="currentColor" style="color:var(--u-muted)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+    <p class="text-white font-semibold mb-2">سفارشی وجود ندارد</p>
+    <p class="text-sm" style="color:var(--u-muted)">هنوز هیچ سفارشی ثبت نشده است</p>
+  </div>
+  {{end}}
+</div>
+{{end}}
