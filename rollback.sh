@@ -6,6 +6,9 @@ set -euo pipefail
 #  Usage: sudo bash /opt/zedproxy/rollback.sh
 # =====================================================
 
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+
 INSTALL_DIR="/opt/zedproxy"
 SERVICE_NAME="zedproxy"
 
@@ -22,59 +25,64 @@ error()  { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 step()   { echo -e "\n${WHITE}━━━ $1 ━━━${NC}"; }
 
 if [[ $EUID -ne 0 ]]; then
-  error "این اسکریپت باید با دسترسی root اجرا شود. از sudo استفاده کنید."
+  error "This script must be run as root. Please use sudo."
 fi
 
 echo -e "${CYAN}"
 echo "╔══════════════════════════════════════════╗"
 echo "║       ZedProxy Rollback Tool             ║"
-echo "║   بازگشت به نسخه قبلی ZedProxy          ║"
+echo "║   Restore previous ZedProxy binary       ║"
 echo "╚══════════════════════════════════════════╝"
 echo -e "${NC}"
 
-step "جستجوی باینری پشتیبان"
+step "Searching for backup binaries"
+
+# List available backup binaries
+echo -e "${WHITE}Available backups:${NC}"
+ls -lht "${INSTALL_DIR}"/zedproxy.backup-* 2>/dev/null | head -10 | sed 's/^/  /' || true
 
 # Find the most recent backup binary
 LATEST=$(ls -t "${INSTALL_DIR}"/zedproxy.backup-* 2>/dev/null | head -1)
 if [[ -z "$LATEST" ]]; then
-  error "هیچ باینری پشتیبانی یافت نشد در ${INSTALL_DIR}/zedproxy.backup-*"
+  error "No backup binary found at ${INSTALL_DIR}/zedproxy.backup-*"
 fi
 
-echo -e "  باینری برگشت: ${CYAN}${LATEST}${NC}"
-echo -e "  باینری فعلی:  ${CYAN}${INSTALL_DIR}/zedproxy${NC}"
 echo ""
-read -rp "آیا می‌خواهید Rollback انجام شود؟ (y/n): " CONFIRM
+echo -e "  Restoring backup: ${CYAN}${LATEST}${NC}"
+echo -e "  Current binary:   ${CYAN}${INSTALL_DIR}/zedproxy${NC}"
+echo ""
+read -rp "Proceed with rollback? (y/n): " CONFIRM
 if [[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]]; then
-  warn "Rollback لغو شد."
+  warn "Rollback cancelled."
   exit 0
 fi
 
-step "توقف سرویس"
+step "Stopping service"
 systemctl stop "$SERVICE_NAME" 2>/dev/null || true
 sleep 1
 
-step "جایگزینی باینری"
+step "Replacing binary"
 cp "${LATEST}" "${INSTALL_DIR}/zedproxy"
 chmod +x "${INSTALL_DIR}/zedproxy"
 chown www-data:www-data "${INSTALL_DIR}/zedproxy" 2>/dev/null || true
-info "باینری جایگزین شد"
+info "Binary replaced"
 
-step "راه‌اندازی سرویس"
+step "Starting service"
 systemctl start "$SERVICE_NAME"
 sleep 3
 
 if systemctl is-active --quiet "$SERVICE_NAME"; then
-  info "سرویس $SERVICE_NAME فعال است"
+  info "Service $SERVICE_NAME is active"
 else
-  error "راه‌اندازی سرویس ناموفق — لاگ‌ها را بررسی کنید: journalctl -u $SERVICE_NAME -n 50"
+  error "Service failed to start — check logs: journalctl -u $SERVICE_NAME -n 50"
 fi
 
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║        ✅ Rollback با موفقیت انجام شد!           ║${NC}"
+echo -e "${GREEN}║       Rollback completed successfully!            ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════╝${NC}"
 echo ""
-echo -e "${WHITE}دستورات مفید:${NC}"
-echo -e "  sudo systemctl status ${SERVICE_NAME}    # وضعیت سرویس"
-echo -e "  sudo journalctl -u ${SERVICE_NAME} -f   # مشاهده لاگ زنده"
+echo -e "${WHITE}Useful commands:${NC}"
+echo -e "  sudo systemctl status ${SERVICE_NAME}    # Service status"
+echo -e "  sudo journalctl -u ${SERVICE_NAME} -f   # Live logs"
 echo ""

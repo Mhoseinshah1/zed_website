@@ -20,6 +20,8 @@
 - 📁 آپلود و مدیریت فایل
 - 🔑 امنیت کامل (bcrypt، session، rate limit)
 
+> **Note:** Installer terminal messages are English for compatibility with Ubuntu SSH terminals. The website and admin panel remain fully Persian RTL.
+
 ## نصب سریع
 
 ```bash
