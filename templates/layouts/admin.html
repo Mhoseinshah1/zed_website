@@ -9,36 +9,225 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Vazirmatn','sans-serif']}}}}</script>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  {{if .AdminCSS}}<style>{{safeHTML .AdminCSS}}</style>{{end}}
+
   <style>
+    /* Fallback CSS variables — overridden by AdminCSS block when appearance is saved */
+    :root {
+      --admin-accent: #06b6d4;
+      --admin-bg: #0d0d16;
+      --admin-sidebar: #0f0f1a;
+      --admin-card: #1a1a2e;
+      --admin-text: #f1f5f9;
+      --admin-muted: #94a3b8;
+      --admin-border: rgba(255,255,255,0.1);
+      --admin-button: #06b6d4;
+      --admin-hover: rgba(255,255,255,0.07);
+      --admin-radius: 12px;
+      --admin-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      --admin-font-size: 15px;
+      --admin-icon-size: 16px;
+      --admin-menu-text: 13px;
+      --admin-sidebar-width: 240px;
+    }
+
     * { font-family: 'Vazirmatn', sans-serif; }
-    body { background: #0f0f17; color: #e2e8f0; }
-    .sidebar-item { @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-white/10 transition-all; }
-    .sidebar-item.active { @apply text-white bg-indigo-600/30 border border-indigo-500/30; }
-    .admin-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 1rem; }
-    .form-input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 0.5rem; padding: 0.6rem 0.9rem; width: 100%; transition: border-color 0.2s; outline: none; }
-    .form-input:focus { border-color: #6366f1; }
-    .form-input::placeholder { color: #6b7280; }
-    .form-label { display: block; font-size: 0.875rem; font-weight: 600; color: #d1d5db; margin-bottom: 0.375rem; }
-    .btn-save { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; font-weight: 700; padding: 0.6rem 1.5rem; border-radius: 0.5rem; transition: all 0.2s; border: none; cursor: pointer; }
-    .btn-save:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(99,102,241,0.4); }
-    .btn-danger { background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-danger:hover { background: rgba(239,68,68,0.3); }
-    .btn-edit { background: rgba(99,102,241,0.2); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-edit:hover { background: rgba(99,102,241,0.3); }
-    .data-table { width: 100%; border-collapse: collapse; }
-    .data-table th { padding: 0.75rem 1rem; text-align: right; font-size: 0.8rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.08); }
-    .data-table td { padding: 0.875rem 1rem; font-size: 0.875rem; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
-    .data-table tr:last-child td { border-bottom: none; }
-    .data-table tr:hover td { background: rgba(255,255,255,0.02); }
-    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; }
-    .badge-green { background: rgba(34,197,94,0.15); color: #4ade80; }
-    .badge-red { background: rgba(239,68,68,0.15); color: #f87171; }
-    .badge-blue { background: rgba(99,102,241,0.15); color: #a5b4fc; }
-    select.form-input option { background: #1e1e2e; color: white; }
+
+    body.admin-body {
+      background: var(--admin-bg);
+      color: var(--admin-text);
+      font-size: var(--admin-font-size);
+    }
+
+    /* ──────────────────────────────
+       Sidebar
+    ────────────────────────────── */
+    .admin-sidebar {
+      background: var(--admin-sidebar);
+      width: var(--admin-sidebar-width);
+      min-width: var(--admin-sidebar-width);
+      border-left: 1px solid var(--admin-border);
+    }
+
+    /* Framed sidebar item */
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      padding: 0.55rem 0.875rem;
+      border-radius: 0.75rem;
+      font-size: var(--admin-menu-text, 13px);
+      font-weight: 500;
+      color: var(--admin-muted, #94a3b8);
+      border: 1px solid transparent;
+      background: transparent;
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.17s, background 0.17s, border-color 0.17s, transform 0.17s, box-shadow 0.17s;
+      position: relative;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sidebar-item:hover {
+      color: var(--admin-text, #f1f5f9);
+      background: var(--admin-hover, rgba(255,255,255,0.07));
+      border-color: var(--admin-border, rgba(255,255,255,0.1));
+      transform: scale(1.025);
+    }
+    .sidebar-item.active {
+      color: var(--admin-accent, #06b6d4);
+      background: color-mix(in srgb, var(--admin-accent, #06b6d4) 13%, transparent);
+      border-color: color-mix(in srgb, var(--admin-accent, #06b6d4) 35%, transparent);
+      box-shadow: 0 0 14px -5px var(--admin-accent, #06b6d4);
+      font-weight: 600;
+    }
+    .sidebar-item svg {
+      width: var(--admin-icon-size, 16px);
+      height: var(--admin-icon-size, 16px);
+      flex-shrink: 0;
+    }
+    .sidebar-item.logout-item { color: #f87171; }
+    .sidebar-item.logout-item:hover { color: #fca5a5; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); }
+
+    .sidebar-section-label {
+      padding: 0.6rem 0.875rem 0.2rem;
+      font-size: 0.625rem;
+      color: var(--admin-muted, #94a3b8);
+      opacity: 0.45;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* ──────────────────────────────
+       Top header
+    ────────────────────────────── */
+    .admin-header {
+      background: var(--admin-sidebar);
+      border-bottom: 1px solid var(--admin-border);
+    }
+
+    /* ──────────────────────────────
+       Admin cards
+    ────────────────────────────── */
+    .admin-card {
+      background: var(--admin-card, #1a1a2e);
+      border: 1px solid var(--admin-border, rgba(255,255,255,0.1));
+      border-radius: var(--admin-radius, 12px);
+      box-shadow: var(--admin-shadow, 0 2px 8px rgba(0,0,0,0.3));
+    }
+
+    /* ──────────────────────────────
+       Form elements
+    ────────────────────────────── */
+    .form-input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--admin-border, rgba(255,255,255,0.1));
+      color: var(--admin-text, #f1f5f9);
+      border-radius: calc(var(--admin-radius, 12px) / 1.5);
+      padding: 0.6rem 0.9rem;
+      width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: var(--admin-accent, #06b6d4);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-accent, #06b6d4) 15%, transparent);
+    }
+    .form-input::placeholder { color: var(--admin-muted, #94a3b8); opacity: 0.6; }
+    select.form-input option { background: var(--admin-sidebar, #0f0f1a); color: var(--admin-text, #f1f5f9); }
     textarea.form-input { resize: vertical; min-height: 120px; }
+
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--admin-text, #f1f5f9);
+      margin-bottom: 0.375rem;
+    }
+
+    /* ──────────────────────────────
+       Buttons
+    ────────────────────────────── */
+    .btn-save {
+      background: var(--admin-button, #06b6d4);
+      color: #fff;
+      font-weight: 700;
+      padding: 0.6rem 1.5rem;
+      border-radius: calc(var(--admin-radius, 12px) / 1.5);
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+      font-size: var(--admin-font-size, 15px);
+    }
+    .btn-save:hover {
+      filter: brightness(1.12);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px -4px var(--admin-button, #06b6d4);
+    }
+    .btn-danger {
+      background: rgba(239,68,68,0.15);
+      color: #f87171;
+      border: 1px solid rgba(239,68,68,0.3);
+      padding: 0.5rem 1rem;
+      border-radius: calc(var(--admin-radius, 12px) / 1.5);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-danger:hover { background: rgba(239,68,68,0.25); }
+    .btn-edit {
+      background: color-mix(in srgb, var(--admin-accent, #06b6d4) 13%, transparent);
+      color: var(--admin-accent, #06b6d4);
+      border: 1px solid color-mix(in srgb, var(--admin-accent, #06b6d4) 30%, transparent);
+      padding: 0.5rem 1rem;
+      border-radius: calc(var(--admin-radius, 12px) / 1.5);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-edit:hover { background: color-mix(in srgb, var(--admin-accent, #06b6d4) 22%, transparent); }
+
+    /* ──────────────────────────────
+       Tables
+    ────────────────────────────── */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      padding: 0.75rem 1rem;
+      text-align: right;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--admin-muted, #94a3b8);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--admin-border, rgba(255,255,255,0.08));
+    }
+    .data-table td {
+      padding: 0.875rem 1rem;
+      font-size: var(--admin-font-size, 15px);
+      border-bottom: 1px solid var(--admin-border, rgba(255,255,255,0.05));
+      vertical-align: middle;
+      color: var(--admin-text, #f1f5f9);
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--admin-hover, rgba(255,255,255,0.02)); }
+
+    /* ──────────────────────────────
+       Badges
+    ────────────────────────────── */
+    .badge { display: inline-block; padding: 0.2rem 0.65rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; }
+    .badge-green { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .badge-red   { background: rgba(239,68,68,0.15);  color: #f87171; }
+    .badge-blue  { background: color-mix(in srgb, var(--admin-accent, #06b6d4) 15%, transparent); color: var(--admin-accent, #06b6d4); }
+    .badge-yellow { background: rgba(234,179,8,0.15); color: #fbbf24; }
+    .badge-gray  { background: rgba(148,163,184,0.15); color: #94a3b8; }
   </style>
 </head>
-<body class="min-h-screen" x-data="{sidebarOpen: false}">
+<body class="admin-body min-h-screen" x-data="{sidebarOpen: false}">
 
 <!-- Mobile sidebar backdrop -->
 <div x-show="sidebarOpen" @click="sidebarOpen=false" class="fixed inset-0 bg-black/60 z-30 lg:hidden"></div>
@@ -46,180 +235,184 @@
 <div class="flex min-h-screen">
   <!-- Sidebar -->
   <aside :class="sidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'"
-         class="fixed lg:static inset-y-0 right-0 z-40 w-64 flex-shrink-0 transition-transform duration-300
-                border-l border-white/10 overflow-y-auto"
-         style="background:#0d0d16">
-    <div class="p-5">
-      <a href="/" class="flex items-center gap-2 mb-8">
-        <span class="text-xl font-black" style="background:linear-gradient(135deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">ZedProxy</span>
-        <span class="text-xs text-gray-500 bg-white/5 px-2 py-0.5 rounded">Admin</span>
+         class="admin-sidebar fixed lg:static inset-y-0 right-0 z-40 flex-shrink-0 transition-transform duration-300 overflow-y-auto">
+    <div class="p-4">
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2 mb-6 px-2">
+        {{if .admin_custom_logo}}
+        <img src="{{.admin_custom_logo}}" alt="Logo" class="h-8 w-auto">
+        {{else}}
+        <span class="text-xl font-black" style="background:linear-gradient(135deg,var(--admin-accent),color-mix(in srgb,var(--admin-accent) 60%,#a855f7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">ZedProxy</span>
+        {{end}}
+        <span class="text-xs px-2 py-0.5 rounded-md" style="color:var(--admin-muted);background:var(--admin-hover);border:1px solid var(--admin-border)">Admin</span>
       </a>
 
-      <nav class="space-y-1">
+      <nav class="space-y-0.5">
+        <!-- Dashboard -->
         <a href="/zed-admin" class="sidebar-item {{if eq .Section "dashboard"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
           داشبورد
         </a>
 
-        <div class="pt-2 pb-1 px-4 text-xs text-gray-600 font-bold uppercase tracking-wider">مدیریت محتوا</div>
+        <div class="sidebar-section-label">مدیریت محتوا</div>
 
         <a href="/zed-admin/settings" class="sidebar-item {{if eq .Section "settings"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           تنظیمات سایت
         </a>
 
         <a href="/zed-admin/plans" class="sidebar-item {{if eq .Section "plans"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           پلن‌ها
         </a>
 
         <a href="/zed-admin/features" class="sidebar-item {{if eq .Section "features"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
           ویژگی‌ها
         </a>
 
         <a href="/zed-admin/faqs" class="sidebar-item {{if eq .Section "faqs"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           سوالات متداول
         </a>
 
         <a href="/zed-admin/locations" class="sidebar-item {{if eq .Section "locations"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           لوکیشن‌ها
         </a>
 
         <a href="/zed-admin/posts" class="sidebar-item {{if eq .Section "posts"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
           مقالات
         </a>
 
         <a href="/zed-admin/tutorials" class="sidebar-item {{if eq .Section "tutorials"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
           آموزش‌ها
         </a>
 
         <a href="/zed-admin/status" class="sidebar-item {{if eq .Section "status"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
           اطلاعیه‌ها
         </a>
 
         <a href="/zed-admin/pages" class="sidebar-item {{if eq .Section "pages"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
           صفحات قانونی
         </a>
 
         <a href="/zed-admin/media" class="sidebar-item {{if eq .Section "media"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           رسانه
         </a>
 
-        <div class="pt-2 pb-1 px-4 text-xs text-gray-600 font-bold uppercase tracking-wider">بازاریابی</div>
+        <div class="sidebar-section-label">بازاریابی</div>
 
         <a href="/zed-admin/announcements" class="sidebar-item {{if eq .Section "announcements"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
           اطلاعیه‌های بنر
         </a>
 
         <a href="/zed-admin/discount-codes" class="sidebar-item {{if eq .Section "discount-codes"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
           کدهای تخفیف
         </a>
 
         <a href="/zed-admin/campaigns" class="sidebar-item {{if eq .Section "campaigns"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           کمپین‌ها
         </a>
 
         <a href="/zed-admin/landing-pages" class="sidebar-item {{if eq .Section "landing-pages"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>
           صفحات SEO
         </a>
 
         <a href="/zed-admin/popups" class="sidebar-item {{if eq .Section "popups"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
           پاپ‌آپ
         </a>
 
         <a href="/zed-admin/analytics" class="sidebar-item {{if eq .Section "analytics"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
           آمار و تحلیل
         </a>
 
-        <div class="pt-2 pb-1 px-4 text-xs text-gray-600 font-bold uppercase tracking-wider">ظاهر سایت</div>
+        <div class="sidebar-section-label">ظاهر سایت</div>
 
         <a href="/zed-admin/homepage-sections" class="sidebar-item {{if eq .Section "homepage-sections"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
           بخش‌های صفحه اصلی
         </a>
 
         <a href="/zed-admin/trust-cards" class="sidebar-item {{if eq .Section "trust-cards"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
           کارت‌های اعتماد
         </a>
 
         <a href="/zed-admin/plan-comparison" class="sidebar-item {{if eq .Section "plan-comparison"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
           مقایسه پلن‌ها
         </a>
 
-        <div class="pt-2 pb-1 px-4 text-xs text-gray-600 font-bold uppercase tracking-wider">سیستم</div>
+        <div class="sidebar-section-label">سیستم</div>
 
         <a href="/zed-admin/status-items" class="sidebar-item {{if eq .Section "status-items"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           وضعیت سرویس‌ها
         </a>
 
         <a href="/zed-admin/maintenance" class="sidebar-item {{if eq .Section "maintenance"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
           حالت تعمیر
         </a>
 
         <a href="/zed-admin/backups" class="sidebar-item {{if eq .Section "backups"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/></svg>
           پشتیبان‌گیری
         </a>
 
         <a href="/zed-admin/users" class="sidebar-item {{if eq .Section "users"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
           کاربران ادمین
         </a>
 
-        <div class="pt-3 pb-1 px-4 text-xs text-gray-600 font-bold uppercase tracking-wider">یکپارچه‌سازی</div>
+        <div class="sidebar-section-label">یکپارچه‌سازی</div>
 
         <a href="/zed-admin/integrations/telegram" class="sidebar-item {{if eq .Section "telegram"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
           تلگرام
         </a>
 
         <a href="/zed-admin/settings/appearance" class="sidebar-item {{if eq .Section "appearance"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
           ظاهر پنل
         </a>
 
         <a href="/zed-admin/system/health" class="sidebar-item {{if eq .Section "system-health"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           سلامت سیستم
         </a>
 
         <a href="/zed-admin/system/logs" class="sidebar-item {{if eq .Section "system-logs"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
           لاگ‌های سیستم
         </a>
 
-        <div class="pt-3 pb-1 px-4 text-xs text-gray-600 font-bold uppercase tracking-wider">حساب کاربری</div>
+        <div class="sidebar-section-label">حساب کاربری</div>
 
         <a href="/zed-admin/password" class="sidebar-item {{if eq .Section "password"}}active{{end}}">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
           تغییر رمز عبور
         </a>
 
         <a href="/" target="_blank" class="sidebar-item">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
           مشاهده سایت
         </a>
 
-        <a href="/zed-admin/logout" class="sidebar-item text-red-400 hover:text-red-300 hover:bg-red-500/10">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        <a href="/zed-admin/logout" class="sidebar-item logout-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
           خروج
         </a>
       </nav>
@@ -229,16 +422,32 @@
   <!-- Main Content -->
   <div class="flex-1 min-w-0 flex flex-col">
     <!-- Top Bar -->
-    <header class="flex items-center justify-between h-14 px-6 border-b border-white/10 flex-shrink-0" style="background:#0d0d16">
-      <button @click="sidebarOpen=true" class="lg:hidden p-2 text-gray-400 hover:text-white">
+    <header class="admin-header flex items-center justify-between h-14 px-6 flex-shrink-0">
+      <button @click="sidebarOpen=true" class="lg:hidden p-2 transition-colors" style="color:var(--admin-muted)">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
-      <h1 class="text-base font-bold text-white">{{if .Title}}{{.Title}}{{else}}پنل مدیریت{{end}}</h1>
-      <div class="flex items-center gap-3 text-sm text-gray-400">
+      <h1 class="text-base font-bold" style="color:var(--admin-text)">{{if .Title}}{{.Title}}{{else}}پنل مدیریت{{end}}</h1>
+      <div class="flex items-center gap-3 text-sm" style="color:var(--admin-muted)">
         <span class="hidden sm:inline">{{if .AdminUsername}}{{.AdminUsername}}{{end}}</span>
-        <a href="/zed-admin/logout" class="text-red-400 hover:text-red-300">خروج</a>
+        <a href="/zed-admin/logout" style="color:#f87171" class="hover:opacity-80 transition-opacity">خروج</a>
       </div>
     </header>
+
+    <!-- Flash messages -->
+    {{if .FlashOK}}
+    <div class="mx-6 mt-4 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2"
+         style="background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.25)">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      {{.FlashOK}}
+    </div>
+    {{end}}
+    {{if .FlashErr}}
+    <div class="mx-6 mt-4 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2"
+         style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.25)">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      {{.FlashErr}}
+    </div>
+    {{end}}
 
     <!-- Page Content -->
     <main class="flex-1 p-6 overflow-auto">

@@ -54,9 +54,22 @@
   <!-- Alpine.js -->
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+  {{if .SiteCSS}}<style>{{safeHTML .SiteCSS}}</style>{{end}}
   <style>
+    :root {
+      --site-accent: #6366f1;
+      --site-bg: #0a0a0f;
+      --site-card: rgba(255,255,255,0.05);
+      --site-text: #e2e8f0;
+      --site-muted: #94a3b8;
+      --site-border: rgba(255,255,255,0.1);
+      --site-button: #6366f1;
+      --site-hover: rgba(255,255,255,0.05);
+      --site-radius: 12px;
+      --site-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
     * { font-family: 'Vazirmatn', sans-serif; }
-    body { background: #0a0a0f; color: #e2e8f0; }
+    body { background: var(--site-bg, #0a0a0f); color: var(--site-text, #e2e8f0); }
     .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
     .glass-dark { background: rgba(0,0,0,0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
     .neon-text { text-shadow: 0 0 20px rgba(99,102,241,0.8), 0 0 40px rgba(99,102,241,0.4); }

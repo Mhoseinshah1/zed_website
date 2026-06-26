@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -117,10 +118,13 @@ func AdminTelegramPage(c *gin.Context) {
 
 	t, err := getAdminTemplate("telegram")
 	if err != nil {
-		c.String(http.StatusInternalServerError, "template error: %v", err)
+		renderAdminError(c, fmt.Sprintf("خطای قالب تلگرام: %v", err))
 		return
 	}
-	t.ExecuteTemplate(c.Writer, "admin", data)
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	if err := t.ExecuteTemplate(c.Writer, "admin", data); err != nil {
+		log.Printf("telegram template execute error: %v", err)
+	}
 }
 
 // AdminTelegramSave handles the settings form.

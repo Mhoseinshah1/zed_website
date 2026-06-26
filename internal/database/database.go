@@ -420,6 +420,14 @@ func Migrate() {
 	appearanceDefaults := []struct{ key, val string }{
 		{"admin_theme_name", "zed-dark-neon"},
 		{"admin_accent_color", "#06b6d4"},
+		{"admin_background_color", "#0d0d16"},
+		{"admin_sidebar_color", "#0f0f1a"},
+		{"admin_card_color", "#1a1a2e"},
+		{"admin_text_color", "#f1f5f9"},
+		{"admin_muted_text_color", "#94a3b8"},
+		{"admin_border_color", "rgba(255,255,255,0.1)"},
+		{"admin_button_color", "#06b6d4"},
+		{"admin_hover_color", "rgba(255,255,255,0.07)"},
 		{"admin_sidebar_mode", "full"},
 		{"admin_sidebar_width", "normal"},
 		{"admin_icon_size", "medium"},
@@ -436,6 +444,29 @@ func Migrate() {
 		{"admin_custom_background", ""},
 	}
 	for _, s := range appearanceDefaults {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
+	}
+
+	// Seed public site appearance settings defaults
+	siteAppearanceDefaults := []struct{ key, val string }{
+		{"site_theme_name", "default"},
+		{"site_accent_color", "#6366f1"},
+		{"site_background_color", "#0a0a0f"},
+		{"site_card_color", "rgba(255,255,255,0.05)"},
+		{"site_text_color", "#e2e8f0"},
+		{"site_muted_text_color", "#94a3b8"},
+		{"site_border_color", "rgba(255,255,255,0.1)"},
+		{"site_button_color", "#6366f1"},
+		{"site_hover_color", "rgba(255,255,255,0.05)"},
+		{"site_hero_style", "gradient"},
+		{"site_card_radius", "xl"},
+		{"site_card_shadow", "medium"},
+		{"site_glass_effect_enabled", "1"},
+		{"site_animations_enabled", "1"},
+		{"site_custom_logo", ""},
+		{"site_custom_background", ""},
+	}
+	for _, s := range siteAppearanceDefaults {
 		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
 	}
 
