@@ -17,9 +17,7 @@ func AdminCustomerBotPage(c *gin.Context) {
 	settings := models.GetAllSettings()
 	data := adminData(c, "customer-bot")
 	data["Title"] = "تنظیمات ربات مشتری"
-	for _, k := range customerBotKeys {
-		data[k] = settings[k]
-	}
+	data["Settings"] = settings
 	renderAdmin(c, "customer-bot", data)
 }
 
