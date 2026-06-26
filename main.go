@@ -379,6 +379,54 @@ func main() {
 	// Track clicks API
 	r.POST("/api/track", handlers.TrackClick)
 
+	// ── Customer Auth routes ─────────────────────────
+	auth := r.Group("/auth")
+	{
+		auth.GET("/register", handlers.AuthRegisterPage)
+		auth.POST("/register", middleware.RateLimit(10, 15*time.Minute), handlers.AuthRegisterPost)
+		auth.GET("/login", handlers.AuthLoginPage)
+		auth.POST("/login", middleware.RateLimit(10, 15*time.Minute), handlers.AuthLoginPost)
+		auth.GET("/logout", handlers.AuthLogout)
+		auth.GET("/forgot-password", handlers.AuthForgotPasswordPage)
+		auth.POST("/forgot-password", middleware.RateLimit(5, 15*time.Minute), handlers.AuthForgotPasswordPost)
+		auth.GET("/reset-password", handlers.AuthResetPasswordPage)
+		auth.POST("/reset-password", handlers.AuthResetPasswordPost)
+	}
+
+	// ── Customer user panel routes ────────────────────
+	user := r.Group("/user")
+	user.Use(middleware.UserRequired())
+	{
+		user.GET("/dashboard", handlers.UserDashboard)
+		user.GET("/profile", handlers.UserProfilePage)
+		user.POST("/profile", handlers.UserProfilePost)
+		user.GET("/services", handlers.UserServicesPage)
+		user.GET("/services/:id", handlers.UserServiceDetailPage)
+		user.GET("/orders", handlers.UserOrdersPage)
+		user.GET("/orders/:order_number", handlers.UserOrderDetailPage)
+		user.GET("/wallet", handlers.UserWalletPage)
+		user.GET("/tickets", handlers.UserTicketsPage)
+		user.GET("/tickets/new", handlers.UserTicketNewPage)
+		user.POST("/tickets", handlers.UserTicketCreate)
+		user.GET("/tickets/:ticket_number", handlers.UserTicketDetailPage)
+		user.POST("/tickets/:ticket_number/reply", handlers.UserTicketReply)
+		user.GET("/notifications", handlers.UserNotificationsPage)
+		user.POST("/notifications/:id/read", handlers.UserMarkNotificationRead)
+		user.GET("/tutorials", handlers.UserTutorialsPage)
+		user.GET("/security", handlers.UserSecurityPage)
+		user.POST("/security/change-password", handlers.UserChangePassword)
+		user.POST("/security/logout-all", handlers.UserLogoutAll)
+		user.GET("/connect-telegram", handlers.UserConnectTelegramPage)
+		user.POST("/connect-telegram/create-token", handlers.UserConnectTelegramCreateToken)
+		user.POST("/connect-telegram/disconnect", handlers.UserDisconnectTelegram)
+	}
+
+	// ── Internal API ──────────────────────────────────
+	apiInternal := r.Group("/api/internal")
+	{
+		apiInternal.POST("/telegram/connect-user", handlers.APITelegramConnectUser)
+	}
+
 	// 404 handler
 	r.NoRoute(handlers.NotFoundPage)
 
@@ -534,6 +582,24 @@ func main() {
 			protected.POST("/users/save", handlers.AdminUserSave)
 			protected.POST("/users/:id/delete", handlers.AdminUserDelete)
 
+			// Customer User Management
+			protected.GET("/customers", handlers.AdminCustomersPage)
+			protected.GET("/customers/:public_id", handlers.AdminCustomerDetailPage)
+			protected.POST("/customers/:public_id/status", handlers.AdminCustomerSetStatus)
+			protected.POST("/customers/:public_id/wallet-adjust", handlers.AdminCustomerWalletAdjust)
+			protected.POST("/customers/:public_id/note", handlers.AdminCustomerNote)
+			protected.POST("/customers/:public_id/service", handlers.AdminCustomerAddService)
+			protected.POST("/customers/:public_id/notification", handlers.AdminCustomerAddNotification)
+
+			// Support Tickets (admin)
+			support := protected.Group("/support")
+			{
+				support.GET("/tickets", handlers.AdminSupportTicketsPage)
+				support.GET("/tickets/:ticket_number", handlers.AdminSupportTicketDetailPage)
+				support.POST("/tickets/:ticket_number/reply", handlers.AdminSupportTicketReply)
+				support.POST("/tickets/:ticket_number/status", handlers.AdminSupportTicketSetStatus)
+			}
+
 			// DB Backups
 			protected.GET("/backups", handlers.AdminBackupsPage)
 			protected.POST("/backups/create", handlers.AdminBackupCreate)
@@ -629,6 +695,23 @@ func runSelfTest(dbPath, templateDir, staticDir, uploadDir string) {
 
 	_, errMng := os.Stat("/opt/zedproxy/manage.sh")
 	check("manage.sh", "/opt/zedproxy/manage.sh", errMng == nil)
+
+	// User system checks
+	var userCount int
+	database.DB.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount)
+	fmt.Printf("[✓] user_system: ok (%d registered users)\n", userCount)
+
+	var ticketCount int
+	database.DB.QueryRow("SELECT COUNT(*) FROM support_tickets").Scan(&ticketCount)
+	fmt.Printf("[✓] ticket_system: ok (%d tickets)\n", ticketCount)
+
+	// Check template directories exist
+	authTmplDir := filepath.Join(templateDir, "auth")
+	userTmplDir := filepath.Join(templateDir, "user")
+	_, errAuth := os.Stat(authTmplDir)
+	check("templates/auth", authTmplDir, errAuth == nil)
+	_, errUser := os.Stat(userTmplDir)
+	check("templates/user", userTmplDir, errUser == nil)
 
 	fmt.Printf("[✓] Build: version=%s date=%s commit=%s\n", Version, BuildDate, GitCommit)
 

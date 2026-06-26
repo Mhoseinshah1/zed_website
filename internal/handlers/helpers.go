@@ -164,6 +164,62 @@ func getAdminTemplate(name string) (*template.Template, error) {
 	return t, nil
 }
 
+// getAuthTemplate loads an auth page (base.html + auth/{name}.html).
+func getAuthTemplate(name string) (*template.Template, error) {
+	cacheKey := "auth_" + name
+	if !devMode {
+		tmplMu.RLock()
+		if t, ok := tmplCache[cacheKey]; ok {
+			tmplMu.RUnlock()
+			return t, nil
+		}
+		tmplMu.RUnlock()
+	}
+
+	base := filepath.Join(tmplDir, "layouts", "base.html")
+	page := filepath.Join(tmplDir, "auth", name+".html")
+
+	t, err := template.New("base").Funcs(funcMap).ParseFiles(base, page)
+	if err != nil {
+		return nil, err
+	}
+
+	if !devMode {
+		tmplMu.Lock()
+		tmplCache[cacheKey] = t
+		tmplMu.Unlock()
+	}
+	return t, nil
+}
+
+// getUserTemplate loads a user panel page (user.html layout + user/{name}.html).
+func getUserTemplate(name string) (*template.Template, error) {
+	cacheKey := "user_" + name
+	if !devMode {
+		tmplMu.RLock()
+		if t, ok := tmplCache[cacheKey]; ok {
+			tmplMu.RUnlock()
+			return t, nil
+		}
+		tmplMu.RUnlock()
+	}
+
+	userLayout := filepath.Join(tmplDir, "layouts", "user.html")
+	page := filepath.Join(tmplDir, "user", name+".html")
+
+	t, err := template.New("user").Funcs(funcMap).ParseFiles(userLayout, page)
+	if err != nil {
+		return nil, err
+	}
+
+	if !devMode {
+		tmplMu.Lock()
+		tmplCache[cacheKey] = t
+		tmplMu.Unlock()
+	}
+	return t, nil
+}
+
 // getStandaloneTemplate loads a standalone public template (no base layout).
 func getStandaloneTemplate(name string) (*template.Template, error) {
 	cacheKey := "standalone_" + name

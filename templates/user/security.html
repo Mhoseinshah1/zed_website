@@ -1,0 +1,55 @@
+{{template "user" .}}
+{{define "user-content"}}
+<div class="max-w-2xl space-y-6">
+  <!-- Change password -->
+  <div class="u-card p-6">
+    <h2 class="text-sm font-bold mb-5 text-white">تغییر رمز عبور</h2>
+    <form method="POST" action="/user/security/change-password" class="space-y-4">
+      <div>
+        <label class="u-label">رمز عبور فعلی</label>
+        <input type="password" name="current_password" required class="u-input" placeholder="••••••••">
+      </div>
+      <div>
+        <label class="u-label">رمز عبور جدید</label>
+        <input type="password" name="new_password" required class="u-input" placeholder="حداقل ۸ کاراکتر">
+      </div>
+      <div>
+        <label class="u-label">تکرار رمز عبور جدید</label>
+        <input type="password" name="confirm_password" required class="u-input" placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn-primary text-sm">تغییر رمز عبور</button>
+    </form>
+  </div>
+
+  <!-- Sessions -->
+  <div class="u-card p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-bold text-white">خروج از همه دستگاه‌ها</h2>
+    </div>
+    <p class="text-sm mb-4" style="color:var(--u-muted)">با این عملیات از تمام دستگاه‌های دیگری که وارد سیستم شده‌اید خارج می‌شوید.</p>
+    <form method="POST" action="/user/security/logout-all" onsubmit="return confirm('آیا مطمئنید؟')">
+      <button type="submit" class="btn-danger text-sm">خروج از همه دستگاه‌ها</button>
+    </form>
+  </div>
+
+  <!-- Activity logs -->
+  {{if .Logs}}
+  <div class="u-card overflow-hidden">
+    <div class="px-5 py-4" style="border-bottom:1px solid var(--u-border)">
+      <h2 class="text-sm font-bold text-white">فعالیت‌های اخیر</h2>
+    </div>
+    <div class="divide-y" style="divide-color:rgba(255,255,255,0.05)">
+      {{range .Logs}}
+      <div class="px-5 py-3 flex items-center justify-between text-sm">
+        <div>
+          <p class="text-white font-medium text-xs">{{.Description}}</p>
+          <p class="text-xs mt-0.5" style="color:var(--u-muted)">{{.Action}}</p>
+        </div>
+        <span class="text-xs flex-shrink-0 mr-4" style="color:var(--u-muted)">{{formatTime .CreatedAt}}</span>
+      </div>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}

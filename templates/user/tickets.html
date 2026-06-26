@@ -1,0 +1,41 @@
+{{template "user" .}}
+{{define "user-content"}}
+<div class="max-w-4xl space-y-4">
+  <div class="flex items-center justify-between">
+    <p class="text-sm" style="color:var(--u-muted)">برای ثبت مشکل یا درخواست، تیکت جدید باز کنید</p>
+    <a href="/user/tickets/new" class="btn-primary text-sm">+ تیکت جدید</a>
+  </div>
+
+  {{if .Tickets}}
+  <div class="space-y-3">
+    {{range .Tickets}}
+    <a href="/user/tickets/{{.TicketNumber}}" class="u-card p-5 flex items-center gap-4 hover:border-white/20 transition-all block">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-3 mb-1.5">
+          <span class="font-semibold text-white text-sm truncate">{{.Subject}}</span>
+          {{if eq .Status "open"}}<span class="badge badge-blue flex-shrink-0">باز</span>
+          {{else if eq .Status "waiting_admin"}}<span class="badge badge-yellow flex-shrink-0">در انتظار پشتیبانی</span>
+          {{else if eq .Status "waiting_user"}}<span class="badge badge-green flex-shrink-0">پاسخ داده شد</span>
+          {{else if eq .Status "closed"}}<span class="badge badge-gray flex-shrink-0">بسته شده</span>
+          {{else}}<span class="badge badge-gray flex-shrink-0">{{.Status}}</span>{{end}}
+        </div>
+        <div class="flex items-center gap-4 text-xs" style="color:var(--u-muted)">
+          <span>#{{.TicketNumber}}</span>
+          <span>{{.Category}}</span>
+          <span>{{formatTime .CreatedAt}}</span>
+        </div>
+      </div>
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" style="color:var(--u-muted)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </a>
+    {{end}}
+  </div>
+  {{else}}
+  <div class="u-card p-12 text-center">
+    <svg class="w-14 h-14 mx-auto mb-4" fill="none" stroke="currentColor" style="color:var(--u-muted)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+    <p class="text-white font-semibold mb-2">تیکتی وجود ندارد</p>
+    <p class="text-sm mb-6" style="color:var(--u-muted)">برای دریافت پشتیبانی، تیکت جدید ارسال کنید</p>
+    <a href="/user/tickets/new" class="btn-primary">ارسال تیکت</a>
+  </div>
+  {{end}}
+</div>
+{{end}}

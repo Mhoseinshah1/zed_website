@@ -1,0 +1,81 @@
+{{template "admin" .}}
+{{define "admin-content"}}
+<div class="space-y-5">
+  <!-- Filters -->
+  <form method="GET" action="/zed-admin/support/tickets" class="admin-card p-4 flex flex-wrap items-end gap-3">
+    <div class="min-w-32">
+      <label class="form-label text-xs">وضعیت</label>
+      <select name="status" class="form-input">
+        <option value="">همه</option>
+        <option value="open" {{if eq .FilterStatus "open"}}selected{{end}}>باز</option>
+        <option value="waiting_admin" {{if eq .FilterStatus "waiting_admin"}}selected{{end}}>در انتظار پشتیبانی</option>
+        <option value="waiting_user" {{if eq .FilterStatus "waiting_user"}}selected{{end}}>در انتظار کاربر</option>
+        <option value="closed" {{if eq .FilterStatus "closed"}}selected{{end}}>بسته</option>
+      </select>
+    </div>
+    <div class="min-w-40">
+      <label class="form-label text-xs">دسته‌بندی</label>
+      <select name="category" class="form-input">
+        <option value="">همه</option>
+        <option value="مشکل اتصال">مشکل اتصال</option>
+        <option value="مشکل پرداخت">مشکل پرداخت</option>
+        <option value="تمدید سرویس">تمدید سرویس</option>
+        <option value="آموزش نصب">آموزش نصب</option>
+        <option value="درخواست تغییر سرویس">درخواست تغییر سرویس</option>
+        <option value="سایر موارد">سایر موارد</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-save">فیلتر</button>
+    <a href="/zed-admin/support/tickets" class="btn-edit">پاک کردن</a>
+  </form>
+
+  <!-- Table -->
+  <div class="admin-card overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4" style="border-bottom:1px solid var(--admin-border)">
+      <h2 class="font-bold" style="color:var(--admin-text)">تیکت‌های پشتیبانی ({{.Total}})</h2>
+    </div>
+    {{if .Tickets}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>شماره</th>
+          <th>موضوع</th>
+          <th>کاربر</th>
+          <th>دسته</th>
+          <th>وضعیت</th>
+          <th>تاریخ</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Tickets}}
+        <tr>
+          <td class="font-mono text-xs" style="color:var(--admin-muted)">#{{.TicketNumber}}</td>
+          <td class="font-medium text-sm max-w-xs truncate" style="color:var(--admin-text)">{{.Subject}}</td>
+          <td class="text-xs" style="color:var(--admin-muted)">
+            {{if .User}}{{.User.DisplayEmail}}{{else}}کاربر #{{.UserID}}{{end}}
+          </td>
+          <td class="text-xs" style="color:var(--admin-muted)">{{.Category}}</td>
+          <td>
+            {{if eq .Status "open"}}<span class="badge badge-blue">باز</span>
+            {{else if eq .Status "waiting_admin"}}<span class="badge badge-yellow">انتظار پشتیبانی</span>
+            {{else if eq .Status "waiting_user"}}<span class="badge badge-green">پاسخ داده شد</span>
+            {{else if eq .Status "closed"}}<span class="badge badge-gray">بسته</span>
+            {{else}}<span class="badge badge-gray">{{.Status}}</span>{{end}}
+          </td>
+          <td class="text-xs" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</td>
+          <td>
+            <a href="/zed-admin/support/tickets/{{.TicketNumber}}" class="btn-edit text-xs px-3 py-1.5">مشاهده</a>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="p-12 text-center" style="color:var(--admin-muted)">
+      <p class="text-sm">تیکتی یافت نشد</p>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

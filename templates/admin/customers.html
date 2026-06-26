@@ -1,0 +1,97 @@
+{{template "admin" .}}
+{{define "admin-content"}}
+<div class="space-y-5">
+  <!-- Filters -->
+  <form method="GET" action="/zed-admin/customers" class="admin-card p-4 flex flex-wrap items-end gap-3">
+    <div class="flex-1 min-w-40">
+      <label class="form-label text-xs">جستجو</label>
+      <input type="text" name="q" class="form-input" placeholder="ایمیل، موبایل، نام..."
+             value="{{.Search}}">
+    </div>
+    <div class="min-w-32">
+      <label class="form-label text-xs">وضعیت</label>
+      <select name="status" class="form-input">
+        <option value="">همه</option>
+        <option value="active" {{if eq .Status "active"}}selected{{end}}>فعال</option>
+        <option value="blocked" {{if eq .Status "blocked"}}selected{{end}}>مسدود</option>
+        <option value="unverified" {{if eq .Status "unverified"}}selected{{end}}>تایید‌نشده</option>
+      </select>
+    </div>
+    <div class="min-w-32">
+      <label class="form-label text-xs">تلگرام</label>
+      <select name="has_tg" class="form-input">
+        <option value="">همه</option>
+        <option value="1" {{if eq .HasTG "1"}}selected{{end}}>دارند</option>
+        <option value="0" {{if eq .HasTG "0"}}selected{{end}}>ندارند</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-save">جستجو</button>
+    <a href="/zed-admin/customers" class="btn-edit">پاک کردن</a>
+  </form>
+
+  <!-- Table -->
+  <div class="admin-card overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4" style="border-bottom:1px solid var(--admin-border)">
+      <h2 class="font-bold" style="color:var(--admin-text)">کاربران مشتری ({{.Total}})</h2>
+    </div>
+    {{if .Users}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>ایمیل / موبایل</th>
+          <th>نام</th>
+          <th>وضعیت</th>
+          <th>تلگرام</th>
+          <th>ثبت‌نام</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Users}}
+        <tr>
+          <td class="font-mono text-xs" style="color:var(--admin-muted)">{{.PublicID}}</td>
+          <td>
+            <p class="font-medium text-sm" style="color:var(--admin-text)">{{.DisplayEmail}}</p>
+            {{if .DisplayPhone}}<p class="text-xs mt-0.5" style="color:var(--admin-muted)">{{.DisplayPhone}}</p>{{end}}
+          </td>
+          <td class="text-sm" style="color:var(--admin-text)">
+            {{if .Profile}}{{coalesce .Profile.DisplayName .Profile.FirstName "-"}}{{else}}-{{end}}
+          </td>
+          <td>
+            {{if eq .Status "active"}}<span class="badge badge-green">فعال</span>
+            {{else if eq .Status "blocked"}}<span class="badge badge-red">مسدود</span>
+            {{else}}<span class="badge badge-gray">{{.Status}}</span>{{end}}
+          </td>
+          <td>
+            {{if .TelegramID}}<span class="badge badge-blue">متصل</span>{{else}}<span style="color:var(--admin-muted)" class="text-xs">-</span>{{end}}
+          </td>
+          <td class="text-xs" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</td>
+          <td>
+            <a href="/zed-admin/customers/{{.PublicID}}" class="btn-edit text-xs px-3 py-1.5">مشاهده</a>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="p-12 text-center" style="color:var(--admin-muted)">
+      <p class="text-sm">کاربری یافت نشد</p>
+    </div>
+    {{end}}
+  </div>
+
+  <!-- Pagination -->
+  {{if gt .Pages 1}}
+  <div class="flex items-center gap-2 justify-center">
+    {{range seq .Pages}}
+    <a href="?page={{add . 1}}"
+       class="px-3 py-1.5 rounded-lg text-sm transition-all"
+       style="{{if eq (add . 1) $.Page}}background:var(--admin-accent);color:#fff{{else}}background:var(--admin-card);color:var(--admin-muted);border:1px solid var(--admin-border){{end}}">
+      {{add . 1}}
+    </a>
+    {{end}}
+  </div>
+  {{end}}
+</div>
+{{end}}

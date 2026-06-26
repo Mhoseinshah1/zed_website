@@ -1,0 +1,260 @@
+{{define "user"}}<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{if .Title}}{{.Title}} - {{end}}پنل کاربری</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Vazirmatn','sans-serif']}}}}</script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    :root {
+      --u-accent: #6366f1;
+      --u-bg: #0d0d16;
+      --u-sidebar: #0f0f1a;
+      --u-card: #1a1a2e;
+      --u-text: #f1f5f9;
+      --u-muted: #94a3b8;
+      --u-border: rgba(255,255,255,0.1);
+      --u-hover: rgba(255,255,255,0.06);
+      --u-radius: 12px;
+    }
+    * { font-family: 'Vazirmatn', sans-serif; box-sizing: border-box; }
+    body { background: var(--u-bg); color: var(--u-text); min-height: 100vh; }
+
+    .u-sidebar {
+      background: var(--u-sidebar);
+      width: 220px;
+      min-width: 220px;
+      border-left: 1px solid var(--u-border);
+    }
+    .u-nav-item {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5rem 0.875rem; border-radius: 0.75rem;
+      font-size: 13px; font-weight: 500; color: var(--u-muted);
+      border: 1px solid transparent; text-decoration: none;
+      transition: all 0.17s; white-space: nowrap;
+    }
+    .u-nav-item:hover { color: var(--u-text); background: var(--u-hover); border-color: var(--u-border); }
+    .u-nav-item.active {
+      color: var(--u-accent);
+      background: color-mix(in srgb, var(--u-accent) 13%, transparent);
+      border-color: color-mix(in srgb, var(--u-accent) 35%, transparent);
+      font-weight: 600;
+    }
+    .u-nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .u-nav-item.logout-item { color: #f87171; }
+    .u-nav-item.logout-item:hover { color: #fca5a5; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); }
+
+    .u-section-label {
+      padding: 0.6rem 0.875rem 0.2rem;
+      font-size: 0.6rem; color: var(--u-muted);
+      opacity: 0.45; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .u-header { background: var(--u-sidebar); border-bottom: 1px solid var(--u-border); }
+    .u-card {
+      background: var(--u-card);
+      border: 1px solid var(--u-border);
+      border-radius: var(--u-radius);
+    }
+    .u-input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--u-border);
+      color: var(--u-text); border-radius: 8px;
+      padding: 0.6rem 0.9rem; width: 100%;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .u-input:focus {
+      border-color: var(--u-accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--u-accent) 15%, transparent);
+    }
+    .u-input::placeholder { color: var(--u-muted); opacity: 0.6; }
+    select.u-input option { background: var(--u-sidebar); color: var(--u-text); }
+    textarea.u-input { resize: vertical; min-height: 100px; }
+    .u-label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--u-text); margin-bottom: 0.35rem; }
+
+    .btn-primary {
+      background: var(--u-accent); color: #fff; font-weight: 700;
+      padding: 0.6rem 1.4rem; border-radius: 8px;
+      border: none; cursor: pointer; font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover { filter: brightness(1.12); transform: translateY(-1px); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.07); color: var(--u-text);
+      border: 1px solid var(--u-border); font-weight: 600;
+      padding: 0.55rem 1.2rem; border-radius: 8px;
+      cursor: pointer; font-size: 14px; transition: all 0.2s;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.11); }
+    .btn-danger {
+      background: rgba(239,68,68,0.15); color: #f87171;
+      border: 1px solid rgba(239,68,68,0.3); font-weight: 600;
+      padding: 0.5rem 1rem; border-radius: 8px;
+      cursor: pointer; font-size: 13px; transition: all 0.2s;
+    }
+    .btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+    .badge { display: inline-block; padding: 0.18rem 0.6rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; }
+    .badge-green { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .badge-red   { background: rgba(239,68,68,0.15); color: #f87171; }
+    .badge-blue  { background: color-mix(in srgb, var(--u-accent) 15%, transparent); color: var(--u-accent); }
+    .badge-yellow{ background: rgba(234,179,8,0.15); color: #fbbf24; }
+    .badge-gray  { background: rgba(148,163,184,0.15); color: #94a3b8; }
+    .badge-purple{ background: rgba(168,85,247,0.15); color: #c084fc; }
+
+    .flash-ok  { background: rgba(34,197,94,0.12); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+    .flash-err { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+    .flash-box { padding: 0.75rem 1rem; border-radius: 10px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+  </style>
+</head>
+<body x-data="{sidebarOpen:false}">
+
+<!-- Mobile backdrop -->
+<div x-show="sidebarOpen" @click="sidebarOpen=false" class="fixed inset-0 bg-black/60 z-30 lg:hidden"></div>
+
+<div class="flex min-h-screen">
+  <!-- Sidebar -->
+  <aside :class="sidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'"
+         class="u-sidebar fixed lg:static inset-y-0 right-0 z-40 flex-shrink-0 transition-transform duration-300 overflow-y-auto">
+    <div class="p-4">
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2 mb-6 px-2">
+        <span class="text-lg font-black" style="background:linear-gradient(135deg,var(--u-accent),#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">ZedProxy</span>
+        <span class="text-xs px-2 py-0.5 rounded-md" style="color:var(--u-muted);background:var(--u-hover);border:1px solid var(--u-border)">کاربر</span>
+      </a>
+
+      <!-- User info chip -->
+      {{if .CurrentUser}}
+      <div class="mb-4 px-3 py-2.5 rounded-xl" style="background:var(--u-hover);border:1px solid var(--u-border)">
+        <p class="text-xs font-semibold" style="color:var(--u-text)">{{if .CurrentUser.Profile}}{{coalesce .CurrentUser.Profile.DisplayName .CurrentUser.Profile.FirstName .CurrentUser.DisplayEmail}}{{else}}{{.CurrentUser.DisplayEmail}}{{end}}</p>
+        <p class="text-xs mt-0.5" style="color:var(--u-muted)">
+          {{if .WalletBalance}}موجودی: {{.WalletBalance}} تومان{{else}}بدون موجودی کیف پول{{end}}
+        </p>
+      </div>
+      {{end}}
+
+      <nav class="space-y-0.5">
+        <a href="/user/dashboard" class="u-nav-item {{if eq .PageName "dashboard"}}active{{end}}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          داشبورد
+        </a>
+
+        <div class="u-section-label">سرویس‌ها</div>
+
+        <a href="/user/services" class="u-nav-item {{if eq .PageName "services"}}active{{end}}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          سرویس‌های من
+        </a>
+
+        <a href="/user/orders" class="u-nav-item {{if eq .PageName "orders"}}active{{end}}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          سفارش‌ها
+        </a>
+
+        <a href="/user/wallet" class="u-nav-item {{if eq .PageName "wallet"}}active{{end}}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+          کیف پول
+        </a>
+
+        <div class="u-section-label">پشتیبانی</div>
+
+        <a href="/user/tickets" class="u-nav-item {{if eq .PageName "tickets"}}active{{end}}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+          تیکت‌های پشتیبانی
+          {{if .OpenTickets}}<span class="mr-auto badge badge-yellow text-xs">{{.OpenTickets}}</span>{{end}}
+        </a>
+
+        <a href="/user/notifications" class="u-nav-item {{if eq .PageName "notifications"}}active{{end}}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          اعلان‌ها
+          {{if .UnreadCount}}<span class="mr-auto badge badge-red text-xs">{{.UnreadCount}}</span>{{end}}
+        </a>
+
+        <a href="/user/tutorials" class="u-nav-item {{if eq .PageName "tutorials"}}active{{end}}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          آموزش نصب
+        </a>
+
+        <div class="u-section-label">حساب کاربری</div>
+
+        <a href="/user/profile" class="u-nav-item {{if eq .PageName "profile"}}active{{end}}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          پروفایل
+        </a>
+
+        <a href="/user/security" class="u-nav-item {{if eq .PageName "security"}}active{{end}}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          امنیت حساب
+        </a>
+
+        <a href="/user/connect-telegram" class="u-nav-item {{if eq .PageName "connect-telegram"}}active{{end}}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+          اتصال تلگرام
+        </a>
+
+        <a href="/" class="u-nav-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          بازگشت به سایت
+        </a>
+
+        <a href="/auth/logout" class="u-nav-item logout-item">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          خروج
+        </a>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="flex-1 min-w-0 flex flex-col">
+    <!-- Top Bar -->
+    <header class="u-header flex items-center justify-between h-14 px-6 flex-shrink-0">
+      <button @click="sidebarOpen=true" class="lg:hidden p-2" style="color:var(--u-muted)">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <h1 class="text-sm font-bold" style="color:var(--u-text)">{{if .Title}}{{.Title}}{{else}}پنل کاربری{{end}}</h1>
+      <div class="flex items-center gap-4" style="color:var(--u-muted); font-size: 13px;">
+        {{if .UnreadCount}}
+        <a href="/user/notifications" style="color:#fbbf24" class="flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          {{.UnreadCount}}
+        </a>
+        {{end}}
+        <a href="/auth/logout" style="color:#f87171" class="hover:opacity-80 transition-opacity">خروج</a>
+      </div>
+    </header>
+
+    <!-- Flash messages -->
+    {{if .FlashOK}}
+    <div class="mx-6 mt-4 flash-box flash-ok">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      {{.FlashOK}}
+    </div>
+    {{end}}
+    {{if .FlashErr}}
+    <div class="mx-6 mt-4 flash-box flash-err">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      {{.FlashErr}}
+    </div>
+    {{end}}
+    {{if .Error}}
+    <div class="mx-6 mt-4 flash-box flash-err">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      {{.Error}}
+    </div>
+    {{end}}
+
+    <!-- Page content -->
+    <main class="flex-1 p-6 overflow-auto">
+      {{template "user-content" .}}
+    </main>
+  </div>
+</div>
+</body>
+</html>
+{{end}}

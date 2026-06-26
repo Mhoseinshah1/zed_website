@@ -162,11 +162,20 @@ function trackClick(page, source) {
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.94z"/></svg>
           کانال
         </a>
+        {{if .LoggedIn}}
+        <a href="/user/dashboard" class="text-sm text-gray-300 hover:text-white transition-colors flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          پنل من
+        </a>
+        <a href="/auth/logout" class="text-sm text-gray-400 hover:text-red-400 transition-colors">خروج</a>
+        {{else}}
+        <a href="/auth/login" class="text-sm text-gray-300 hover:text-white transition-colors">ورود</a>
         <a href="{{index .Settings "telegram_bot"}}" target="_blank" rel="noopener"
            onclick="trackClick('navbar','cta_button')"
            class="btn-primary px-5 py-2 rounded-lg text-white text-sm font-bold">
           خرید اشتراک
         </a>
+        {{end}}
       </div>
 
       <!-- Mobile menu button -->

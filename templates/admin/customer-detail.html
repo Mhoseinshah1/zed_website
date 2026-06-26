@@ -1,0 +1,262 @@
+{{template "admin" .}}
+{{define "admin-content"}}
+{{if .User}}
+<div class="space-y-5" x-data="{tab:'info'}">
+  <!-- Header -->
+  <div class="admin-card p-5 flex items-start gap-4">
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-3 mb-2">
+        <h2 class="font-bold text-base" style="color:var(--admin-text)">{{if .User.Profile}}{{coalesce .User.Profile.DisplayName .User.Profile.FirstName .User.DisplayEmail}}{{else}}{{.User.DisplayEmail}}{{end}}</h2>
+        {{if eq .User.Status "active"}}<span class="badge badge-green">فعال</span>
+        {{else if eq .User.Status "blocked"}}<span class="badge badge-red">مسدود</span>
+        {{else}}<span class="badge badge-gray">{{.User.Status}}</span>{{end}}
+        {{if .User.TelegramConnected}}<span class="badge badge-blue">تلگرام</span>{{end}}
+      </div>
+      <p class="text-sm mb-1" style="color:var(--admin-muted)">{{.User.PublicID}}</p>
+      <div class="flex flex-wrap gap-4 text-sm" style="color:var(--admin-muted)">
+        {{if .User.DisplayEmail}}<span>ایمیل: {{.User.DisplayEmail}}</span>{{end}}
+        {{if .User.DisplayPhone}}<span>موبایل: {{.User.DisplayPhone}}</span>{{end}}
+        {{if .User.TelegramUsername.Valid}}<span>@{{.User.TelegramUsername.String}}</span>{{end}}
+        <span>عضویت: {{formatTime .User.CreatedAt}}</span>
+      </div>
+    </div>
+    <div class="flex flex-col gap-2 flex-shrink-0">
+      <form method="POST" action="/zed-admin/customers/{{.User.PublicID}}/status">
+        {{if eq .User.Status "blocked"}}
+        <input type="hidden" name="status" value="active">
+        <button class="btn-edit text-xs w-full">فعال‌سازی</button>
+        {{else}}
+        <input type="hidden" name="status" value="blocked">
+        <button class="btn-danger text-xs w-full">مسدود کردن</button>
+        {{end}}
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex gap-1 overflow-x-auto" style="border-bottom:1px solid var(--admin-border); padding-bottom:0">
+    {{range $t := (dict "info" "اطلاعات" "services" "سرویس‌ها" "orders" "سفارش‌ها" "wallet" "کیف پول" "tickets" "تیکت‌ها" "notes" "یادداشت‌ها" "logs" "لاگ‌ها")}}
+    {{end}}
+    <button @click="tab='info'" :class="tab==='info'?'border-b-2':'opacity-60'" class="px-4 py-2 text-xs font-semibold transition-all whitespace-nowrap"
+            style="color:var(--admin-text)">اطلاعات</button>
+    <button @click="tab='services'" :class="tab==='services'?'border-b-2':'opacity-60'" class="px-4 py-2 text-xs font-semibold transition-all whitespace-nowrap"
+            style="color:var(--admin-text)">سرویس‌ها</button>
+    <button @click="tab='orders'" :class="tab==='orders'?'border-b-2':'opacity-60'" class="px-4 py-2 text-xs font-semibold transition-all whitespace-nowrap"
+            style="color:var(--admin-text)">سفارش‌ها</button>
+    <button @click="tab='wallet'" :class="tab==='wallet'?'border-b-2':'opacity-60'" class="px-4 py-2 text-xs font-semibold transition-all whitespace-nowrap"
+            style="color:var(--admin-text)">کیف پول</button>
+    <button @click="tab='tickets'" :class="tab==='tickets'?'border-b-2':'opacity-60'" class="px-4 py-2 text-xs font-semibold transition-all whitespace-nowrap"
+            style="color:var(--admin-text)">تیکت‌ها</button>
+    <button @click="tab='notes'" :class="tab==='notes'?'border-b-2':'opacity-60'" class="px-4 py-2 text-xs font-semibold transition-all whitespace-nowrap"
+            style="color:var(--admin-text)">یادداشت‌ها</button>
+    <button @click="tab='logs'" :class="tab==='logs'?'border-b-2':'opacity-60'" class="px-4 py-2 text-xs font-semibold transition-all whitespace-nowrap"
+            style="color:var(--admin-text)">لاگ‌ها</button>
+  </div>
+
+  <!-- Info Tab -->
+  <div x-show="tab==='info'" class="space-y-4">
+    <div class="admin-card p-5">
+      <h3 class="font-semibold text-sm mb-4" style="color:var(--admin-text)">اطلاعات پروفایل</h3>
+      {{if .User.Profile}}
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div><span style="color:var(--admin-muted)">نام:</span> <span style="color:var(--admin-text)">{{.User.Profile.FirstName}}</span></div>
+        <div><span style="color:var(--admin-muted)">نام خانوادگی:</span> <span style="color:var(--admin-text)">{{.User.Profile.LastName}}</span></div>
+        <div><span style="color:var(--admin-muted)">نام نمایشی:</span> <span style="color:var(--admin-text)">{{.User.Profile.DisplayName}}</span></div>
+        <div><span style="color:var(--admin-muted)">منطقه زمانی:</span> <span style="color:var(--admin-text)">{{.User.Profile.Timezone}}</span></div>
+        <div><span style="color:var(--admin-muted)">کشور:</span> <span style="color:var(--admin-text)">{{.User.Profile.Country}}</span></div>
+        <div><span style="color:var(--admin-muted)">دستگاه:</span> <span style="color:var(--admin-text)">{{.User.Profile.PrimaryDevice}}</span></div>
+        <div><span style="color:var(--admin-muted)">نوع استفاده:</span> <span style="color:var(--admin-text)">{{.User.Profile.UsageType}}</span></div>
+      </div>
+      {{else}}<p class="text-sm" style="color:var(--admin-muted)">پروفایل تکمیل نشده</p>{{end}}
+    </div>
+    <!-- Add service -->
+    <div class="admin-card p-5">
+      <h3 class="font-semibold text-sm mb-4" style="color:var(--admin-text)">افزودن سرویس</h3>
+      <form method="POST" action="/zed-admin/customers/{{.User.PublicID}}/service" class="flex flex-wrap gap-3">
+        <input type="text" name="title" class="form-input max-w-xs" placeholder="نام سرویس" required>
+        <input type="text" name="plan_name" class="form-input max-w-xs" placeholder="نام پلن" required>
+        <input type="date" name="expires_at" class="form-input max-w-xs">
+        <button type="submit" class="btn-save">افزودن</button>
+      </form>
+    </div>
+    <!-- Send notification -->
+    <div class="admin-card p-5">
+      <h3 class="font-semibold text-sm mb-4" style="color:var(--admin-text)">ارسال اعلان</h3>
+      <form method="POST" action="/zed-admin/customers/{{.User.PublicID}}/notification" class="space-y-3">
+        <input type="text" name="title" class="form-input" placeholder="عنوان اعلان" required>
+        <textarea name="message" class="form-input" rows="2" placeholder="متن اعلان" required></textarea>
+        <button type="submit" class="btn-save text-sm">ارسال اعلان</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Services Tab -->
+  <div x-show="tab==='services'">
+    <div class="admin-card overflow-hidden">
+      {{if .Services}}
+      <table class="data-table">
+        <thead><tr>
+          <th>عنوان</th><th>پلن</th><th>وضعیت</th><th>انقضا</th>
+        </tr></thead>
+        <tbody>
+          {{range .Services}}
+          <tr>
+            <td style="color:var(--admin-text)">{{.Title}}</td>
+            <td style="color:var(--admin-text)">{{.PlanName}}</td>
+            <td>{{if eq .Status "active"}}<span class="badge badge-green">فعال</span>
+            {{else if eq .Status "expired"}}<span class="badge badge-red">منقضی</span>
+            {{else}}<span class="badge badge-gray">{{.Status}}</span>{{end}}</td>
+            <td class="text-xs" style="color:var(--admin-muted)">{{if .ExpiresAt.Valid}}{{formatTime .ExpiresAt.Time}}{{else}}-{{end}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+      {{else}}<p class="p-5 text-sm" style="color:var(--admin-muted)">سرویسی وجود ندارد</p>{{end}}
+    </div>
+  </div>
+
+  <!-- Orders Tab -->
+  <div x-show="tab==='orders'">
+    <div class="admin-card overflow-hidden">
+      {{if .Orders}}
+      <table class="data-table">
+        <thead><tr>
+          <th>شماره سفارش</th><th>پلن</th><th>مبلغ</th><th>وضعیت</th><th>تاریخ</th>
+        </tr></thead>
+        <tbody>
+          {{range .Orders}}
+          <tr>
+            <td class="font-mono text-xs" style="color:var(--admin-text)">{{.OrderNumber}}</td>
+            <td style="color:var(--admin-text)">{{.PlanName}}</td>
+            <td style="color:var(--admin-text)">{{.Amount}} {{.Currency}}</td>
+            <td>{{if eq .PaymentStatus "paid"}}<span class="badge badge-green">پرداخت شده</span>
+            {{else if eq .PaymentStatus "pending"}}<span class="badge badge-yellow">در انتظار</span>
+            {{else}}<span class="badge badge-gray">{{.PaymentStatus}}</span>{{end}}</td>
+            <td class="text-xs" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+      {{else}}<p class="p-5 text-sm" style="color:var(--admin-muted)">سفارشی وجود ندارد</p>{{end}}
+    </div>
+  </div>
+
+  <!-- Wallet Tab -->
+  <div x-show="tab==='wallet'" class="space-y-4">
+    <div class="admin-card p-5">
+      <p class="text-sm mb-1" style="color:var(--admin-muted)">موجودی کنونی</p>
+      <p class="text-2xl font-bold" style="color:var(--admin-text)">{{.Balance}} <span class="text-sm font-normal">تومان</span></p>
+    </div>
+    <div class="admin-card p-5">
+      <h3 class="font-semibold text-sm mb-4" style="color:var(--admin-text)">تنظیم موجودی</h3>
+      <form method="POST" action="/zed-admin/customers/{{.User.PublicID}}/wallet-adjust" class="flex flex-wrap gap-3 items-end">
+        <div>
+          <label class="form-label text-xs">نوع</label>
+          <select name="type" class="form-input">
+            <option value="credit">واریز</option>
+            <option value="debit">کسر</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label text-xs">مبلغ (تومان)</label>
+          <input type="number" name="amount" class="form-input" min="1" required placeholder="مبلغ">
+        </div>
+        <div class="flex-1">
+          <label class="form-label text-xs">توضیح</label>
+          <input type="text" name="description" class="form-input" placeholder="دلیل تغییر موجودی">
+        </div>
+        <button type="submit" class="btn-save">اعمال</button>
+      </form>
+    </div>
+    {{if .Transactions}}
+    <div class="admin-card overflow-hidden">
+      <table class="data-table">
+        <thead><tr><th>نوع</th><th>مبلغ</th><th>موجودی پس از</th><th>توضیح</th><th>تاریخ</th></tr></thead>
+        <tbody>
+          {{range .Transactions}}
+          <tr>
+            <td>{{if eq .Type "credit"}}<span class="badge badge-green">واریز</span>
+            {{else if eq .Type "debit"}}<span class="badge badge-red">کسر</span>
+            {{else}}<span class="badge badge-gray">{{.Type}}</span>{{end}}</td>
+            <td style="color:var(--admin-text)">{{.Amount}}</td>
+            <td style="color:var(--admin-text)">{{.BalanceAfter}}</td>
+            <td class="text-xs" style="color:var(--admin-muted)">{{.Description}}</td>
+            <td class="text-xs" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{end}}
+  </div>
+
+  <!-- Tickets Tab -->
+  <div x-show="tab==='tickets'">
+    <div class="admin-card overflow-hidden">
+      {{if .Tickets}}
+      <table class="data-table">
+        <thead><tr><th>شماره</th><th>موضوع</th><th>دسته</th><th>وضعیت</th><th>تاریخ</th><th></th></tr></thead>
+        <tbody>
+          {{range .Tickets}}
+          <tr>
+            <td class="font-mono text-xs" style="color:var(--admin-muted)">{{.TicketNumber}}</td>
+            <td style="color:var(--admin-text)">{{.Subject}}</td>
+            <td class="text-xs" style="color:var(--admin-muted)">{{.Category}}</td>
+            <td>{{if eq .Status "open"}}<span class="badge badge-blue">باز</span>
+            {{else if eq .Status "waiting_admin"}}<span class="badge badge-yellow">در انتظار پشتیبانی</span>
+            {{else if eq .Status "waiting_user"}}<span class="badge badge-green">پاسخ داده شد</span>
+            {{else if eq .Status "closed"}}<span class="badge badge-gray">بسته</span>
+            {{else}}<span class="badge badge-gray">{{.Status}}</span>{{end}}</td>
+            <td class="text-xs" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</td>
+            <td><a href="/zed-admin/support/tickets/{{.TicketNumber}}" class="btn-edit text-xs px-2 py-1">مشاهده</a></td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+      {{else}}<p class="p-5 text-sm" style="color:var(--admin-muted)">تیکتی وجود ندارد</p>{{end}}
+    </div>
+  </div>
+
+  <!-- Notes Tab -->
+  <div x-show="tab==='notes'" class="space-y-4">
+    <div class="admin-card p-5">
+      <h3 class="font-semibold text-sm mb-4" style="color:var(--admin-text)">یادداشت جدید</h3>
+      <form method="POST" action="/zed-admin/customers/{{.User.PublicID}}/note" class="flex gap-3">
+        <textarea name="note" class="form-input flex-1" rows="2" placeholder="یادداشت داخلی..." required></textarea>
+        <button type="submit" class="btn-save self-end">افزودن</button>
+      </form>
+    </div>
+    {{if .Notes}}
+    <div class="space-y-3">
+      {{range .Notes}}
+      <div class="admin-card p-4">
+        <p class="text-sm mb-2" style="color:var(--admin-text)">{{.Note}}</p>
+        <p class="text-xs" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</p>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+  </div>
+
+  <!-- Logs Tab -->
+  <div x-show="tab==='logs'">
+    <div class="admin-card overflow-hidden">
+      {{if .Logs}}
+      <table class="data-table">
+        <thead><tr><th>عملیات</th><th>توضیح</th><th>تاریخ</th></tr></thead>
+        <tbody>
+          {{range .Logs}}
+          <tr>
+            <td class="font-mono text-xs" style="color:var(--admin-accent)">{{.Action}}</td>
+            <td class="text-xs" style="color:var(--admin-text)">{{.Description}}</td>
+            <td class="text-xs" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+      {{else}}<p class="p-5 text-sm" style="color:var(--admin-muted)">لاگی وجود ندارد</p>{{end}}
+    </div>
+  </div>
+</div>
+{{end}}
+{{end}}
