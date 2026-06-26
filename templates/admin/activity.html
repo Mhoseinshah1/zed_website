@@ -1,0 +1,35 @@
+{{define "admin-content"}}
+<div class="space-y-4">
+  <h2 class="text-lg font-bold" style="color:var(--admin-text)">لاگ فعالیت‌ها</h2>
+  <div class="admin-card overflow-hidden">
+    {{if .Logs}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ادمین</th>
+          <th>عملیات</th>
+          <th>جزئیات</th>
+          <th>IP</th>
+          <th>زمان</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Logs}}
+        <tr>
+          <td class="font-bold">{{.AdminUsername}}</td>
+          <td><span class="badge badge-blue">{{.Action}}</span></td>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{.Details}}</td>
+          <td class="font-mono text-sm" style="color:var(--admin-muted)">{{.IP}}</td>
+          <td class="text-sm" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="p-16 text-center" style="color:var(--admin-muted)">
+      <p class="text-lg font-semibold">هنوز فعالیتی ثبت نشده است.</p>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

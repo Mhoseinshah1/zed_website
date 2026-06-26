@@ -693,5 +693,59 @@ func Migrate() {
 	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_email_verification_user ON email_verification_codes(user_id)`)
 	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_email_verification_email ON email_verification_codes(email)`)
 
+	// New tables for admin features
+	newTables := []string{
+		`CREATE TABLE IF NOT EXISTS testimonials (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			customer_alias TEXT NOT NULL,
+			text TEXT NOT NULL,
+			rating INTEGER NOT NULL DEFAULT 5,
+			service_type TEXT DEFAULT '',
+			is_active INTEGER DEFAULT 1,
+			sort_order INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS admin_activity_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			admin_username TEXT NOT NULL DEFAULT '',
+			action TEXT NOT NULL,
+			details TEXT DEFAULT '',
+			ip TEXT DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS update_jobs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			job_type TEXT NOT NULL DEFAULT 'update',
+			status TEXT NOT NULL DEFAULT 'running',
+			triggered_by TEXT NOT NULL DEFAULT '',
+			log_path TEXT DEFAULT '',
+			started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			finished_at DATETIME
+		)`,
+	}
+	for _, q := range newTables {
+		safeExec(q)
+	}
+
+	// Seed new settings
+	newSettings := []struct{ key, val string }{
+		{"updates_locked", "0"},
+		{"updates_locked_reason", ""},
+		{"seo_default_title", ""},
+		{"seo_default_description", ""},
+		{"seo_default_keywords", ""},
+		{"seo_og_image", ""},
+		{"seo_robots_txt", "User-agent: *\nAllow: /"},
+		{"seo_enable_sitemap", "1"},
+		{"customer_telegram_bot_enabled", "0"},
+		{"customer_telegram_bot_username", ""},
+		{"customer_telegram_bot_token", ""},
+		{"customer_bot_internal_api_key", ""},
+	}
+	for _, s := range newSettings {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
+	}
+
 	log.Println("Database migrations completed")
 }

@@ -1,0 +1,38 @@
+{{define "admin-content"}}
+<div class="space-y-4">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-bold" style="color:var(--admin-text)">اعلان‌های کاربران</h2>
+    <a href="/zed-admin/user-notifications/new" class="btn-save">+ ارسال اعلان جدید</a>
+  </div>
+  <div class="admin-card overflow-hidden">
+    {{if .Notifications}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>کاربر</th>
+          <th>عنوان</th>
+          <th>نوع</th>
+          <th>خوانده شده</th>
+          <th>تاریخ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Notifications}}
+        <tr>
+          <td>{{if .UserEmail}}{{.UserEmail}}{{else}}{{.UserPhone}}{{end}}</td>
+          <td>{{.Title}}</td>
+          <td><span class="badge badge-blue">{{.Type}}</span></td>
+          <td>{{if .ReadAt}}<span class="badge badge-green">بله</span>{{else}}<span class="badge badge-gray">خیر</span>{{end}}</td>
+          <td class="text-sm" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="p-16 text-center" style="color:var(--admin-muted)">
+      <p class="text-lg font-semibold">هنوز اعلانی ارسال نشده است.</p>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

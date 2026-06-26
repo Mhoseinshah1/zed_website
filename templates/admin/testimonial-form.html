@@ -1,0 +1,43 @@
+{{define "admin-content"}}
+<div class="max-w-2xl space-y-4">
+  <h2 class="text-lg font-bold" style="color:var(--admin-text)">{{if .Testimonial}}ویرایش نظر{{else}}نظر جدید{{end}}</h2>
+  <div class="admin-card p-6">
+    <form method="POST" action="/zed-admin/testimonials/save" class="space-y-5">
+      <input type="hidden" name="id" value="{{if .Testimonial}}{{.Testimonial.ID}}{{end}}">
+      <div>
+        <label class="form-label">نام مستعار مشتری</label>
+        <input name="customer_alias" class="form-input" required value="{{if .Testimonial}}{{.Testimonial.CustomerAlias}}{{end}}">
+      </div>
+      <div>
+        <label class="form-label">متن نظر</label>
+        <textarea name="text" class="form-input" rows="4" required>{{if .Testimonial}}{{.Testimonial.Text}}{{end}}</textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">امتیاز (1-5)</label>
+          <input name="rating" type="number" min="1" max="5" class="form-input" value="{{if .Testimonial}}{{.Testimonial.Rating}}{{else}}5{{end}}">
+        </div>
+        <div>
+          <label class="form-label">ترتیب</label>
+          <input name="sort_order" type="number" class="form-input" value="{{if .Testimonial}}{{.Testimonial.SortOrder}}{{else}}0{{end}}">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">نوع سرویس</label>
+        <input name="service_type" class="form-input" value="{{if .Testimonial}}{{.Testimonial.ServiceType}}{{end}}" placeholder="VPN، پراکسی، ...">
+      </div>
+      <div>
+        <label class="form-label">وضعیت</label>
+        <select name="is_active" class="form-input">
+          <option value="1">فعال</option>
+          <option value="0">غیرفعال</option>
+        </select>
+      </div>
+      <div class="flex gap-3">
+        <button type="submit" class="btn-save">ذخیره</button>
+        <a href="/zed-admin/testimonials" class="btn-edit">انصراف</a>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

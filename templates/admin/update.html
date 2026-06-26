@@ -1,0 +1,94 @@
+{{define "admin-content"}}
+<div class="space-y-6 max-w-3xl">
+  <h2 class="text-lg font-bold" style="color:var(--admin-text)">آپدیت و نسخه</h2>
+
+  <div class="admin-card p-6">
+    <h3 class="font-bold mb-4" style="color:var(--admin-text)">اطلاعات نسخه</h3>
+    <div class="grid grid-cols-3 gap-4">
+      <div class="text-center p-4 rounded-xl" style="background:var(--admin-hover)">
+        <div class="text-2xl font-black mb-1" style="color:var(--admin-accent)">{{.Version}}</div>
+        <div class="text-xs" style="color:var(--admin-muted)">نسخه فعلی</div>
+      </div>
+      <div class="text-center p-4 rounded-xl" style="background:var(--admin-hover)">
+        <div class="text-lg font-bold mb-1" style="color:var(--admin-text)">{{if .BuildDate}}{{.BuildDate}}{{else}}نامشخص{{end}}</div>
+        <div class="text-xs" style="color:var(--admin-muted)">تاریخ بیلد</div>
+      </div>
+      <div class="text-center p-4 rounded-xl" style="background:var(--admin-hover)">
+        <div class="text-sm font-mono mb-1" style="color:var(--admin-text)">{{if .GitCommit}}{{.GitCommit}}{{else}}نامشخص{{end}}</div>
+        <div class="text-xs" style="color:var(--admin-muted)">کامیت</div>
+      </div>
+    </div>
+  </div>
+
+  {{if .UpdatesLocked}}
+  <div class="p-4 rounded-xl" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#f87171">
+    <strong>آپدیت قفل است:</strong> {{.UpdatesLockedReason}}
+    <form method="POST" action="/zed-admin/system/update/unlock" class="mt-3">
+      <button type="submit" class="btn-danger">برداشتن قفل</button>
+    </form>
+  </div>
+  {{else}}
+  <div class="admin-card p-6 space-y-4">
+    <h3 class="font-bold" style="color:var(--admin-text)">اجرای آپدیت</h3>
+    <p class="text-sm" style="color:var(--admin-muted)">برای اجرای آپدیت، کلمه <strong style="color:var(--admin-accent)">UPDATE</strong> را وارد کنید.</p>
+    <form method="POST" action="/zed-admin/system/update/run" class="flex gap-3">
+      <input name="confirm" class="form-input" placeholder="UPDATE" style="max-width:200px">
+      <button type="submit" class="btn-save">اجرای آپدیت</button>
+    </form>
+  </div>
+
+  <div class="admin-card p-6 space-y-4">
+    <h3 class="font-bold" style="color:var(--admin-text)">برگشت به نسخه قبلی</h3>
+    <p class="text-sm" style="color:var(--admin-muted)">برای rollback، کلمه <strong style="color:#f87171">ROLLBACK</strong> را وارد کنید.</p>
+    <form method="POST" action="/zed-admin/system/update/rollback" class="flex gap-3">
+      <input name="confirm" class="form-input" placeholder="ROLLBACK" style="max-width:200px">
+      <button type="submit" class="btn-danger">اجرای Rollback</button>
+    </form>
+  </div>
+
+  <div class="admin-card p-6 space-y-3">
+    <h3 class="font-bold" style="color:var(--admin-text)">قفل کردن آپدیت</h3>
+    <form method="POST" action="/zed-admin/system/update/lock" class="flex gap-3">
+      <input name="reason" class="form-input" placeholder="دلیل قفل کردن...">
+      <button type="submit" class="btn-danger">قفل آپدیت</button>
+    </form>
+  </div>
+  {{end}}
+
+  <div class="admin-card overflow-hidden">
+    <div class="p-4 border-b" style="border-color:var(--admin-border)">
+      <h3 class="font-bold" style="color:var(--admin-text)">تاریخچه عملیات</h3>
+    </div>
+    {{if .Jobs}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>نوع</th>
+          <th>وضعیت</th>
+          <th>اجرا شده توسط</th>
+          <th>زمان شروع</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Jobs}}
+        <tr>
+          <td>{{.ID}}</td>
+          <td><span class="badge badge-blue">{{.JobType}}</span></td>
+          <td>
+            {{if eq .Status "done"}}<span class="badge badge-green">موفق</span>
+            {{else if eq .Status "failed"}}<span class="badge badge-red">ناموفق</span>
+            {{else}}<span class="badge badge-yellow">در حال اجرا</span>{{end}}
+          </td>
+          <td>{{.TriggeredBy}}</td>
+          <td class="text-sm" style="color:var(--admin-muted)">{{formatTime .StartedAt}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="p-8 text-center" style="color:var(--admin-muted)">هنوز عملیاتی اجرا نشده است.</div>
+    {{end}}
+  </div>
+</div>
+{{end}}

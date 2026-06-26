@@ -635,7 +635,53 @@ func main() {
 				integrations.POST("/telegram/create-topics", handlers.AdminTelegramCreateTopics)
 				integrations.POST("/telegram/daily-report", handlers.AdminTelegramSendDailyReport)
 				integrations.POST("/telegram/send-db-backup", handlers.AdminTelegramSendDBBackup)
+
+				// Customer Bot
+				integrations.GET("/customer-bot", handlers.AdminCustomerBotPage)
+				integrations.POST("/customer-bot/save", handlers.AdminCustomerBotSave)
+
+				// API Integrations
+				integrations.GET("/api", handlers.AdminAPIPage)
+				integrations.POST("/api/regenerate-key", handlers.AdminAPIRegenerateKey)
 			}
+
+			// Orders
+			protected.GET("/orders", handlers.AdminOrdersPage)
+
+			// Wallets
+			protected.GET("/wallets", handlers.AdminWalletsPage)
+
+			// User Notifications
+			protected.GET("/user-notifications", handlers.AdminUserNotificationsPage)
+			protected.GET("/user-notifications/new", handlers.AdminUserNotificationNewPage)
+			protected.POST("/user-notifications", handlers.AdminUserNotificationSend)
+
+			// Testimonials
+			protected.GET("/testimonials", handlers.AdminTestimonialsPage)
+			protected.GET("/testimonials/new", handlers.AdminTestimonialNew)
+			protected.GET("/testimonials/:id/edit", handlers.AdminTestimonialEdit)
+			protected.POST("/testimonials/save", handlers.AdminTestimonialSave)
+			protected.POST("/testimonials/:id/delete", handlers.AdminTestimonialDelete)
+			protected.POST("/testimonials/:id/toggle", handlers.AdminTestimonialToggle)
+
+			// SEO
+			protected.GET("/seo", handlers.AdminSEOPage)
+			protected.POST("/seo/save", handlers.AdminSEOSave)
+
+			// Site Appearance
+			protected.GET("/settings/site", handlers.AdminSiteAppearancePage)
+			protected.POST("/settings/site/save", handlers.AdminSiteAppearanceSave)
+
+			// Activity Logs
+			protected.GET("/activity", handlers.AdminActivityPage)
+
+			// System Update
+			protected.GET("/system/update", handlers.AdminUpdatePage)
+			protected.POST("/system/update/run", handlers.AdminUpdateRun)
+			protected.POST("/system/update/rollback", handlers.AdminUpdateRollback)
+			protected.POST("/system/update/lock", handlers.AdminUpdateLock)
+			protected.POST("/system/update/unlock", handlers.AdminUpdateUnlock)
+			protected.POST("/system/update/check", handlers.AdminUpdateCheck)
 		}
 	}
 
