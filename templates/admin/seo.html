@@ -1,0 +1,37 @@
+{{define "admin-content"}}
+<div class="max-w-3xl space-y-4">
+  <h2 class="text-lg font-bold" style="color:var(--admin-text)">تنظیمات سئو</h2>
+  <div class="admin-card p-6">
+    <form method="POST" action="/zed-admin/seo/save" class="space-y-5">
+      <div>
+        <label class="form-label">عنوان پیش‌فرض سایت</label>
+        <input name="seo_default_title" class="form-input" value="{{index .Settings "seo_default_title"}}">
+      </div>
+      <div>
+        <label class="form-label">توضیحات متا پیش‌فرض</label>
+        <textarea name="seo_default_description" class="form-input" rows="3">{{index .Settings "seo_default_description"}}</textarea>
+      </div>
+      <div>
+        <label class="form-label">کلمات کلیدی پیش‌فرض</label>
+        <input name="seo_default_keywords" class="form-input" value="{{index .Settings "seo_default_keywords"}}" placeholder="کلمه۱, کلمه۲, کلمه۳">
+      </div>
+      <div>
+        <label class="form-label">تصویر OG پیش‌فرض</label>
+        <input name="seo_og_image" class="form-input" value="{{index .Settings "seo_og_image"}}" placeholder="https://...">
+      </div>
+      <div>
+        <label class="form-label">robots.txt</label>
+        <textarea name="seo_robots_txt" class="form-input font-mono text-sm" rows="6">{{index .Settings "seo_robots_txt"}}</textarea>
+      </div>
+      <div>
+        <label class="form-label">فعال‌سازی Sitemap</label>
+        <select name="seo_enable_sitemap" class="form-input" style="max-width:140px">
+          <option value="1" {{if eq (index .Settings "seo_enable_sitemap") "1"}}selected{{end}}>فعال</option>
+          <option value="0" {{if eq (index .Settings "seo_enable_sitemap") "0"}}selected{{end}}>غیرفعال</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-save">ذخیره تنظیمات سئو</button>
+    </form>
+  </div>
+</div>
+{{end}}

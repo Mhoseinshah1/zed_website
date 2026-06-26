@@ -1,0 +1,76 @@
+{{define "admin-content"}}
+<div class="space-y-4">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-bold" style="color:var(--admin-text)">سفارش‌ها</h2>
+    <span class="badge badge-blue">{{.Total}} سفارش</span>
+  </div>
+
+  <div class="admin-card p-4">
+    <form method="GET" class="flex flex-wrap gap-3">
+      <input name="search" value="{{.Search}}" placeholder="جستجو شماره سفارش، ایمیل..." class="form-input" style="max-width:280px">
+      <select name="payment_status" class="form-input" style="max-width:160px">
+        <option value="">وضعیت پرداخت</option>
+        <option value="pending" {{if eq .PaymentStatus "pending"}}selected{{end}}>در انتظار</option>
+        <option value="paid" {{if eq .PaymentStatus "paid"}}selected{{end}}>پرداخت شده</option>
+        <option value="failed" {{if eq .PaymentStatus "failed"}}selected{{end}}>ناموفق</option>
+        <option value="refunded" {{if eq .PaymentStatus "refunded"}}selected{{end}}>استرداد</option>
+      </select>
+      <select name="order_status" class="form-input" style="max-width:160px">
+        <option value="">وضعیت سفارش</option>
+        <option value="pending" {{if eq .OrderStatus "pending"}}selected{{end}}>در انتظار</option>
+        <option value="processing" {{if eq .OrderStatus "processing"}}selected{{end}}>در حال پردازش</option>
+        <option value="completed" {{if eq .OrderStatus "completed"}}selected{{end}}>تکمیل شده</option>
+        <option value="cancelled" {{if eq .OrderStatus "cancelled"}}selected{{end}}>لغو شده</option>
+      </select>
+      <button type="submit" class="btn-save">فیلتر</button>
+      <a href="/zed-admin/orders" class="btn-edit">پاک‌سازی</a>
+    </form>
+  </div>
+
+  <div class="admin-card overflow-hidden">
+    {{if .Orders}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>شماره سفارش</th>
+          <th>کاربر</th>
+          <th>پلن</th>
+          <th>مبلغ</th>
+          <th>وضعیت پرداخت</th>
+          <th>وضعیت سفارش</th>
+          <th>تاریخ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Orders}}
+        <tr>
+          <td class="font-mono text-sm">{{.OrderNumber}}</td>
+          <td>{{if .UserEmail}}{{.UserEmail}}{{else}}{{.UserPhone}}{{end}}</td>
+          <td>{{.PlanName}}</td>
+          <td class="font-bold">{{.Amount}} {{.Currency}}</td>
+          <td>
+            {{if eq .PaymentStatus "paid"}}<span class="badge badge-green">پرداخت شده</span>
+            {{else if eq .PaymentStatus "failed"}}<span class="badge badge-red">ناموفق</span>
+            {{else if eq .PaymentStatus "refunded"}}<span class="badge badge-yellow">استرداد</span>
+            {{else}}<span class="badge badge-gray">در انتظار</span>{{end}}
+          </td>
+          <td>
+            {{if eq .OrderStatus "completed"}}<span class="badge badge-green">تکمیل</span>
+            {{else if eq .OrderStatus "cancelled"}}<span class="badge badge-red">لغو</span>
+            {{else if eq .OrderStatus "processing"}}<span class="badge badge-blue">پردازش</span>
+            {{else}}<span class="badge badge-gray">در انتظار</span>{{end}}
+          </td>
+          <td class="text-sm" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="p-16 text-center" style="color:var(--admin-muted)">
+      <svg class="w-12 h-12 mx-auto mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      <p class="text-lg font-semibold">هنوز سفارشی ثبت نشده است.</p>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

@@ -1,0 +1,43 @@
+{{define "admin-content"}}
+<div class="space-y-4">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-bold" style="color:var(--admin-text)">کیف پول کاربران</h2>
+  </div>
+  <div class="admin-card overflow-hidden">
+    {{if .Users}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>کاربر</th>
+          <th>موجودی کیف پول</th>
+          <th>آخرین تراکنش</th>
+          <th>عملیات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Users}}
+        <tr>
+          <td>{{if .Email}}{{.Email}}{{else}}{{.Phone}}{{end}}</td>
+          <td class="font-bold">{{.WalletBalance}} تومان</td>
+          <td>
+            {{if .HasLastTx}}
+            <span class="text-sm" style="color:var(--admin-muted)">{{.LastTxType}}: {{.LastTxAmount}} ({{formatTime .LastTxCreatedAt}})</span>
+            {{else}}
+            <span style="color:var(--admin-muted)">-</span>
+            {{end}}
+          </td>
+          <td>
+            <a href="/zed-admin/customers/{{.PublicID}}" class="btn-edit text-sm">مشاهده پروفایل</a>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="p-16 text-center" style="color:var(--admin-muted)">
+      <p class="text-lg font-semibold">کاربری یافت نشد.</p>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

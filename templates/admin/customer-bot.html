@@ -1,0 +1,29 @@
+{{define "admin-content"}}
+<div class="max-w-2xl space-y-4">
+  <h2 class="text-lg font-bold" style="color:var(--admin-text)">تنظیمات ربات مشتری</h2>
+  <div class="admin-card p-6">
+    <form method="POST" action="/zed-admin/integrations/customer-bot/save" class="space-y-5">
+      <div>
+        <label class="form-label">فعال‌سازی ربات</label>
+        <select name="customer_telegram_bot_enabled" class="form-input" style="max-width:140px">
+          <option value="1" {{if eq (index .Settings "customer_telegram_bot_enabled") "1"}}selected{{end}}>فعال</option>
+          <option value="0" {{if eq (index .Settings "customer_telegram_bot_enabled") "0"}}selected{{end}}>غیرفعال</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">نام کاربری ربات</label>
+        <input name="customer_telegram_bot_username" class="form-input" value="{{index .Settings "customer_telegram_bot_username"}}" placeholder="@botusername">
+      </div>
+      <div>
+        <label class="form-label">توکن ربات</label>
+        <input name="customer_telegram_bot_token" class="form-input" value="{{index .Settings "customer_telegram_bot_token"}}" placeholder="123456:ABC...">
+      </div>
+      <div>
+        <label class="form-label">کلید API داخلی ربات</label>
+        <input name="customer_bot_internal_api_key" class="form-input" value="{{index .Settings "customer_bot_internal_api_key"}}">
+      </div>
+      <button type="submit" class="btn-save">ذخیره تنظیمات ربات</button>
+    </form>
+  </div>
+</div>
+{{end}}

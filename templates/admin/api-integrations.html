@@ -1,0 +1,19 @@
+{{define "admin-content"}}
+<div class="max-w-2xl space-y-4">
+  <h2 class="text-lg font-bold" style="color:var(--admin-text)">اتصالات و API</h2>
+  <div class="admin-card p-6 space-y-5">
+    <div>
+      <label class="form-label">کلید API داخلی</label>
+      <div class="flex gap-3 items-center mt-1">
+        <input class="form-input font-mono" value="{{if .APIKeySet}}{{.APIKeyMasked}}{{else}}(تنظیم نشده){{end}}" readonly>
+        <form method="POST" action="/zed-admin/integrations/api/regenerate-key">
+          <button type="submit" class="btn-save" onclick="return confirm('کلید API فعلی باطل خواهد شد. ادامه؟')">
+            بازسازی کلید
+          </button>
+        </form>
+      </div>
+      <p class="mt-2 text-sm" style="color:var(--admin-muted)">این کلید برای احراز هویت ربات‌های خارجی و سرویس‌های اتصالی استفاده می‌شود.</p>
+    </div>
+  </div>
+</div>
+{{end}}

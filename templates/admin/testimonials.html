@@ -1,0 +1,48 @@
+{{define "admin-content"}}
+<div class="space-y-4">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-bold" style="color:var(--admin-text)">نظرات مشتریان</h2>
+    <a href="/zed-admin/testimonials/new" class="btn-save">+ نظر جدید</a>
+  </div>
+  <div class="admin-card overflow-hidden">
+    {{if .Testimonials}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>نام مستعار</th>
+          <th>متن</th>
+          <th>امتیاز</th>
+          <th>وضعیت</th>
+          <th>عملیات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Testimonials}}
+        <tr>
+          <td class="font-bold">{{.CustomerAlias}}</td>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{.Text}}</td>
+          <td>{{.Rating}}/5</td>
+          <td>{{if .IsActive}}<span class="badge badge-green">فعال</span>{{else}}<span class="badge badge-gray">غیرفعال</span>{{end}}</td>
+          <td>
+            <div class="flex gap-2">
+              <a href="/zed-admin/testimonials/{{.ID}}/edit" class="btn-edit">ویرایش</a>
+              <form method="POST" action="/zed-admin/testimonials/{{.ID}}/toggle" style="display:inline">
+                <button type="submit" class="btn-edit">تغییر وضعیت</button>
+              </form>
+              <form method="POST" action="/zed-admin/testimonials/{{.ID}}/delete" style="display:inline" onsubmit="return confirm('حذف شود؟')">
+                <button type="submit" class="btn-danger">حذف</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="p-16 text-center" style="color:var(--admin-muted)">
+      <p class="text-lg font-semibold">هنوز نظری ثبت نشده است.</p>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

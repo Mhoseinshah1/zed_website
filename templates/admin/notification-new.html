@@ -1,0 +1,46 @@
+{{define "admin-content"}}
+<div class="max-w-2xl space-y-4">
+  <h2 class="text-lg font-bold" style="color:var(--admin-text)">ارسال اعلان جدید</h2>
+  <div class="admin-card p-6">
+    <form method="POST" action="/zed-admin/user-notifications" class="space-y-5">
+      <div>
+        <label class="form-label">مخاطب</label>
+        <select name="target_type" class="form-input" onchange="document.getElementById('user-selector').style.display=this.value==='user'?'block':'none'">
+          <option value="all">ارسال به همه کاربران</option>
+          <option value="user">ارسال به یک کاربر</option>
+        </select>
+      </div>
+      <div id="user-selector" style="display:none">
+        <label class="form-label">انتخاب کاربر</label>
+        <select name="user_id" class="form-input">
+          <option value="">-- انتخاب کنید --</option>
+          {{range .Users}}
+          <option value="{{.ID}}">{{if .Email}}{{.Email}}{{else}}{{.Phone}}{{end}}</option>
+          {{end}}
+        </select>
+      </div>
+      <div>
+        <label class="form-label">عنوان</label>
+        <input name="title" class="form-input" required>
+      </div>
+      <div>
+        <label class="form-label">متن اعلان</label>
+        <textarea name="message" class="form-input" rows="4" required></textarea>
+      </div>
+      <div>
+        <label class="form-label">نوع</label>
+        <select name="type" class="form-input">
+          <option value="info">اطلاعیه</option>
+          <option value="success">موفقیت</option>
+          <option value="warning">هشدار</option>
+          <option value="error">خطا</option>
+        </select>
+      </div>
+      <div class="flex gap-3">
+        <button type="submit" class="btn-save">ارسال اعلان</button>
+        <a href="/zed-admin/user-notifications" class="btn-edit">انصراف</a>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

@@ -1,0 +1,87 @@
+{{define "admin-content"}}
+<div class="max-w-3xl space-y-4">
+  <h2 class="text-lg font-bold" style="color:var(--admin-text)">ظاهر سایت عمومی</h2>
+  <div class="admin-card p-6">
+    <form method="POST" action="/zed-admin/settings/site/save" class="space-y-5">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">رنگ اکسنت</label>
+          <input type="color" name="site_accent_color" value="{{index .Settings "site_accent_color"}}" class="form-input h-10 cursor-pointer">
+        </div>
+        <div>
+          <label class="form-label">رنگ پس‌زمینه</label>
+          <input type="color" name="site_background_color" value="{{index .Settings "site_background_color"}}" class="form-input h-10 cursor-pointer">
+        </div>
+        <div>
+          <label class="form-label">رنگ دکمه</label>
+          <input type="color" name="site_button_color" value="{{index .Settings "site_button_color"}}" class="form-input h-10 cursor-pointer">
+        </div>
+        <div>
+          <label class="form-label">رنگ متن</label>
+          <input type="color" name="site_text_color" value="{{index .Settings "site_text_color"}}" class="form-input h-10 cursor-pointer">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">رنگ کارت</label>
+        <input name="site_card_color" class="form-input" value="{{index .Settings "site_card_color"}}">
+      </div>
+      <div>
+        <label class="form-label">رنگ متن ثانوی</label>
+        <input name="site_muted_text_color" class="form-input" value="{{index .Settings "site_muted_text_color"}}">
+      </div>
+      <div>
+        <label class="form-label">رنگ حاشیه</label>
+        <input name="site_border_color" class="form-input" value="{{index .Settings "site_border_color"}}">
+      </div>
+      <div>
+        <label class="form-label">رنگ hover</label>
+        <input name="site_hover_color" class="form-input" value="{{index .Settings "site_hover_color"}}">
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">استایل هیرو</label>
+          <select name="site_hero_style" class="form-input">
+            <option value="gradient" {{if eq (index .Settings "site_hero_style") "gradient"}}selected{{end}}>گرادیان</option>
+            <option value="solid" {{if eq (index .Settings "site_hero_style") "solid"}}selected{{end}}>یکرنگ</option>
+            <option value="image" {{if eq (index .Settings "site_hero_style") "image"}}selected{{end}}>تصویر</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">گوشه کارت‌ها</label>
+          <select name="site_card_radius" class="form-input">
+            <option value="none" {{if eq (index .Settings "site_card_radius") "none"}}selected{{end}}>بدون گرد</option>
+            <option value="md" {{if eq (index .Settings "site_card_radius") "md"}}selected{{end}}>کم</option>
+            <option value="xl" {{if eq (index .Settings "site_card_radius") "xl"}}selected{{end}}>متوسط</option>
+            <option value="2xl" {{if eq (index .Settings "site_card_radius") "2xl"}}selected{{end}}>زیاد</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">افکت شیشه‌ای</label>
+          <select name="site_glass_effect_enabled" class="form-input">
+            <option value="1" {{if eq (index .Settings "site_glass_effect_enabled") "1"}}selected{{end}}>فعال</option>
+            <option value="0" {{if eq (index .Settings "site_glass_effect_enabled") "0"}}selected{{end}}>غیرفعال</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">انیمیشن‌ها</label>
+          <select name="site_animations_enabled" class="form-input">
+            <option value="1" {{if eq (index .Settings "site_animations_enabled") "1"}}selected{{end}}>فعال</option>
+            <option value="0" {{if eq (index .Settings "site_animations_enabled") "0"}}selected{{end}}>غیرفعال</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">لوگوی سفارشی (آدرس)</label>
+        <input name="site_custom_logo" class="form-input" value="{{index .Settings "site_custom_logo"}}" placeholder="/static/uploads/logo.png">
+      </div>
+      <div>
+        <label class="form-label">پس‌زمینه سفارشی</label>
+        <input name="site_custom_background" class="form-input" value="{{index .Settings "site_custom_background"}}" placeholder="URL یا گرادیان CSS">
+      </div>
+      <button type="submit" class="btn-save">ذخیره ظاهر سایت</button>
+    </form>
+  </div>
+</div>
+{{end}}
