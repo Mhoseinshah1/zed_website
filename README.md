@@ -40,6 +40,45 @@ sudo bash /opt/zedproxy/update.sh
 - باینری، قالب‌ها و فایل‌های استاتیک را بروزرسانی می‌کند
 - دیتابیس، آپلودها و `.env` را دست نمی‌زند
 - سرویس را ری‌استارت و سلامت آن را بررسی می‌کند
+- لاگ بروزرسانی در `/opt/zedproxy/logs/update-YYYYMMDD-HHMMSS.log` ذخیره می‌شود
+
+## بازیابی update.sh
+
+اگر `update.sh` در دسترس نبود:
+
+```bash
+sudo curl -fsSL https://raw.githubusercontent.com/mhoseinshah1/zed_website/main/update.sh \
+  -o /opt/zedproxy/update.sh
+sudo chmod +x /opt/zedproxy/update.sh
+sudo bash /opt/zedproxy/update.sh
+```
+
+## مدیریت حالت تعمیر از CLI
+
+```bash
+# فعال کردن حالت تعمیر
+sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --maintenance-on
+
+# غیرفعال کردن حالت تعمیر
+sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --maintenance-off
+
+# بررسی وضعیت حالت تعمیر
+sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --maintenance-status
+```
+
+## تست سیستم
+
+```bash
+sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db \
+  --templates=/opt/zedproxy/templates --static=/opt/zedproxy/static \
+  --uploads=/opt/zedproxy/static/uploads --self-test
+```
+
+## Rollback به نسخه قبلی
+
+```bash
+sudo bash /opt/zedproxy/rollback.sh
+```
 
 ## نصب دستی
 
@@ -61,7 +100,12 @@ cd zed_website
 go mod download
 
 # 3. بیلد
-CGO_ENABLED=1 go build -o zedproxy .
+VERSION=2.1.0
+COMMIT=$(git rev-parse --short HEAD)
+DATE=$(date +%Y-%m-%d)
+CGO_ENABLED=1 go build \
+  -ldflags="-s -w -X main.Version=$VERSION -X main.BuildDate=$DATE -X main.GitCommit=$COMMIT" \
+  -o zedproxy .
 
 # 4. مقداردهی اولیه دیتابیس
 ./zedproxy --seed --admin-user=admin --admin-email=admin@yourdomain.com --admin-pass=YOUR_PASS --secret=YOUR_SECRET

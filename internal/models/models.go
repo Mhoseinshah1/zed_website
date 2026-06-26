@@ -1568,3 +1568,38 @@ func DeleteBackupRecord(id int) error {
 	_, err := database.DB.Exec("DELETE FROM db_backups WHERE id=?", id)
 	return err
 }
+
+// SystemLog
+
+type SystemLog struct {
+	ID            int
+	AdminUsername string
+	Action        string
+	Details       string
+	IPHash        string
+	CreatedAt     time.Time
+}
+
+func AddSystemLog(adminUsername, action, details, ipHash string) {
+	database.DB.Exec("INSERT INTO system_logs (admin_username, action, details, ip_hash, created_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP)",
+		adminUsername, action, details, ipHash)
+}
+
+func GetSystemLogs(limit int) ([]SystemLog, error) {
+	q := "SELECT id, admin_username, action, details, ip_hash, created_at FROM system_logs ORDER BY id DESC"
+	if limit > 0 {
+		q += fmt.Sprintf(" LIMIT %d", limit)
+	}
+	rows, err := database.DB.Query(q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var logs []SystemLog
+	for rows.Next() {
+		var l SystemLog
+		rows.Scan(&l.ID, &l.AdminUsername, &l.Action, &l.Details, &l.IPHash, &l.CreatedAt)
+		logs = append(logs, l)
+	}
+	return logs, nil
+}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,7 +16,15 @@ import (
 	"zedproxy/internal/database"
 	"zedproxy/internal/handlers"
 	"zedproxy/internal/middleware"
+	"zedproxy/internal/models"
 	"zedproxy/internal/seed"
+)
+
+// Set via ldflags: -X main.Version=... -X main.BuildDate=... -X main.GitCommit=...
+var (
+	Version   = "dev"
+	BuildDate = "unknown"
+	GitCommit = "unknown"
 )
 
 func main() {
@@ -31,12 +40,41 @@ func main() {
 		seedFlag      = flag.Bool("seed", false, "seed the database with default content")
 		adminUser     = flag.String("admin-user", "admin", "admin username for seeding")
 		adminEmail    = flag.String("admin-email", "admin@zedproxy.com", "admin email for seeding")
-		adminPass     = flag.String("admin-pass", "", "admin password for seeding")
+		adminPass         = flag.String("admin-pass", "", "admin password for seeding")
+		maintenanceOn     = flag.Bool("maintenance-on", false, "enable maintenance mode and exit")
+		maintenanceOff    = flag.Bool("maintenance-off", false, "disable maintenance mode and exit")
+		maintenanceStatus = flag.Bool("maintenance-status", false, "show maintenance mode status and exit")
+		selfTest          = flag.Bool("self-test", false, "run self-test and exit")
 	)
 	flag.Parse()
 
 	// Init DB
 	database.Init(*dbPath)
+
+	// CLI maintenance controls (exit after action)
+	if *maintenanceOn {
+		models.SetSetting("maintenance_enabled", "1")
+		fmt.Println("[✓] حالت تعمیر فعال شد")
+		return
+	}
+	if *maintenanceOff {
+		models.SetSetting("maintenance_enabled", "0")
+		fmt.Println("[✓] حالت تعمیر غیرفعال شد")
+		return
+	}
+	if *maintenanceStatus {
+		v := models.GetSetting("maintenance_enabled")
+		if v == "1" {
+			fmt.Println("[!] حالت تعمیر: فعال")
+		} else {
+			fmt.Println("[✓] حالت تعمیر: غیرفعال")
+		}
+		return
+	}
+	if *selfTest {
+		runSelfTest(*dbPath, *templateDir, *staticDir, *uploadDirFlag)
+		return
+	}
 
 	// Seed if requested
 	if *seedFlag {
@@ -50,6 +88,7 @@ func main() {
 	}
 
 	handlers.Init(*templateDir, *dev)
+	handlers.AppVersion = Version
 	handlers.SetUploadDir(*uploadDirFlag)
 	handlers.SetBackupDir(*backupDirFlag)
 	handlers.SetDBPath(*dbPath)
@@ -95,37 +134,54 @@ func main() {
 		}
 	})
 
-	// Health check (always available)
+	// Health check (always available, bypasses maintenance)
 	r.GET("/health", handlers.HealthCheck)
+	r.HEAD("/health", handlers.HealthCheck)
 
-	// SEO
+	// SEO (bypass maintenance)
 	r.GET("/sitemap.xml", handlers.SitemapXML)
 	r.GET("/robots.txt", handlers.RobotsTXT)
 
-	// Maintenance middleware (applied to public routes)
+	// Maintenance middleware (applied to public routes below)
 	r.Use(handlers.MaintenanceMiddleware())
 
 	// Public routes
 	r.GET("/", handlers.HomePage)
+	r.HEAD("/", handlers.HomePage)
 	r.GET("/plans", handlers.PlansPage)
+	r.HEAD("/plans", handlers.PlansPage)
 	r.GET("/tutorials", handlers.TutorialsPage)
+	r.HEAD("/tutorials", handlers.TutorialsPage)
 	r.GET("/tutorials/:slug", handlers.TutorialDetailPage)
+	r.HEAD("/tutorials/:slug", handlers.TutorialDetailPage)
 	r.GET("/blog", handlers.BlogPage)
+	r.HEAD("/blog", handlers.BlogPage)
 	r.GET("/blog/:slug", handlers.BlogPostPage)
+	r.HEAD("/blog/:slug", handlers.BlogPostPage)
 	r.GET("/faq", handlers.FAQPage)
+	r.HEAD("/faq", handlers.FAQPage)
 	r.GET("/contact", handlers.ContactPage)
+	r.HEAD("/contact", handlers.ContactPage)
 	r.GET("/status", handlers.StatusPage)
+	r.HEAD("/status", handlers.StatusPage)
 	r.GET("/terms", handlers.TermsPage)
+	r.HEAD("/terms", handlers.TermsPage)
 	r.GET("/privacy", handlers.PrivacyPage)
+	r.HEAD("/privacy", handlers.PrivacyPage)
 
 	// Campaign pages
 	r.GET("/campaign/:slug", handlers.CampaignPage)
+	r.HEAD("/campaign/:slug", handlers.CampaignPage)
 
 	// Landing pages (SEO)
 	r.GET("/l/:slug", handlers.LandingPage)
+	r.HEAD("/l/:slug", handlers.LandingPage)
 
 	// Track clicks API
 	r.POST("/api/track", handlers.TrackClick)
+
+	// 404 handler
+	r.NoRoute(handlers.NotFoundPage)
 
 	// Admin routes
 	admin := r.Group("/zed-admin")
@@ -288,6 +344,10 @@ func main() {
 			// Maintenance
 			protected.GET("/maintenance", handlers.AdminMaintenancePage)
 			protected.POST("/maintenance/save", handlers.AdminMaintenanceSave)
+
+			// System
+			protected.GET("/system/logs", handlers.AdminSystemLogsPage)
+			protected.GET("/system/health", handlers.AdminSystemHealthPage)
 		}
 	}
 
@@ -309,5 +369,57 @@ func requestLogger() gin.HandlerFunc {
 		start := time.Now()
 		c.Next()
 		log.Printf("[%d] %s %s (%v)", c.Writer.Status(), c.Request.Method, c.Request.URL.Path, time.Since(start))
+	}
+}
+
+func runSelfTest(dbPath, templateDir, staticDir, uploadDir string) {
+	ok := true
+	check := func(label, val string, pass bool) {
+		if pass {
+			fmt.Printf("[✓] %s: %s\n", label, val)
+		} else {
+			fmt.Printf("[✗] %s: %s\n", label, val)
+			ok = false
+		}
+	}
+	fmt.Printf("=== ZedProxy Self-Test (version %s) ===\n", Version)
+
+	_, errDB := os.Stat(dbPath)
+	check("DB", dbPath, errDB == nil)
+
+	for _, d := range []struct{ label, path string }{
+		{"Templates", templateDir},
+		{"Static", staticDir},
+		{"Uploads", uploadDir},
+	} {
+		_, err := os.Stat(d.path)
+		check(d.label, d.path, err == nil)
+	}
+
+	v := models.GetSetting("maintenance_enabled")
+	if v == "1" {
+		fmt.Println("[!] maintenance_enabled: فعال")
+	} else {
+		fmt.Printf("[✓] maintenance_enabled: غیرفعال (%q)\n", v)
+	}
+
+	var count int
+	database.DB.QueryRow("SELECT COUNT(*) FROM admins").Scan(&count)
+	check("Admin users", fmt.Sprintf("%d", count), count > 0)
+
+	_, errUpd := os.Stat("/opt/zedproxy/update.sh")
+	if errUpd == nil {
+		fmt.Println("[✓] update.sh: /opt/zedproxy/update.sh")
+	} else {
+		fmt.Println("[!] update.sh: /opt/zedproxy/update.sh یافت نشد")
+	}
+
+	fmt.Printf("[✓] Build: version=%s date=%s commit=%s\n", Version, BuildDate, GitCommit)
+
+	if ok {
+		fmt.Println("=== Self-test PASSED ===")
+	} else {
+		fmt.Println("=== Self-test FAILED ===")
+		os.Exit(1)
 	}
 }

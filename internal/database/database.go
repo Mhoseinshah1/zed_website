@@ -286,6 +286,15 @@ func Migrate() {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			filename TEXT NOT NULL,
 			size INTEGER DEFAULT 0,
+			backup_type TEXT DEFAULT 'database',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS system_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			admin_username TEXT DEFAULT '',
+			action TEXT NOT NULL,
+			details TEXT DEFAULT '',
+			ip_hash TEXT DEFAULT '',
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 	}
@@ -297,6 +306,7 @@ func Migrate() {
 	// Safe ALTER TABLE migrations for existing tables
 	alterQueries := []string{
 		`ALTER TABLE admins ADD COLUMN role TEXT NOT NULL DEFAULT 'owner'`,
+		`ALTER TABLE db_backups ADD COLUMN backup_type TEXT DEFAULT 'database'`,
 		`ALTER TABLE faqs ADD COLUMN show_on_homepage INTEGER DEFAULT 0`,
 		`ALTER TABLE faqs ADD COLUMN show_on_faq INTEGER DEFAULT 1`,
 		`ALTER TABLE tutorials ADD COLUMN video_url TEXT DEFAULT ''`,
@@ -339,6 +349,9 @@ func Migrate() {
 				s.key, s.title, s.sortOrder, active)
 		}
 	}
+
+	// Seed maintenance_enabled default (idempotent)
+	DB.Exec("INSERT INTO settings (key, value) VALUES ('maintenance_enabled', '0') ON CONFLICT(key) DO NOTHING")
 
 	log.Println("Database migrations completed")
 }

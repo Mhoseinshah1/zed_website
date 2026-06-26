@@ -295,23 +295,52 @@ func TrackClick(c *gin.Context) {
 
 func MaintenanceMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if models.GetSetting("maintenance_mode") == "1" {
-			// Allow admin access
-			if strings.HasPrefix(c.Request.URL.Path, "/zed-admin") {
+		if models.GetSetting("maintenance_enabled") == "1" {
+			path := c.Request.URL.Path
+			if strings.HasPrefix(path, "/zed-admin") ||
+				strings.HasPrefix(path, "/static") ||
+				strings.HasPrefix(path, "/uploads") ||
+				strings.HasPrefix(path, "/.well-known") ||
+				path == "/health" ||
+				path == "/robots.txt" ||
+				path == "/sitemap.xml" {
 				c.Next()
 				return
 			}
 			data := basePageData("maintenance")
 			settings := data["Settings"].(map[string]string)
+			msg := settings["maintenance_msg"]
+			if msg == "" {
+				msg = "سایت در حال بروزرسانی است. به زودی برمی‌گردیم."
+			}
 			data["Title"] = "سایت در حال بروزرسانی"
-			data["MaintenanceMsg"] = settings["maintenance_msg"]
+			data["MaintenanceMsg"] = msg
 			c.Status(http.StatusServiceUnavailable)
-			renderPage(c, "maintenance", data)
+			renderMaintenance(c, data)
 			c.Abort()
 			return
 		}
 		c.Next()
 	}
+}
+
+func renderMaintenance(c *gin.Context, data map[string]interface{}) {
+	t, err := getStandaloneTemplate("maintenance")
+	if err != nil {
+		c.String(http.StatusServiceUnavailable, "سایت در حال بروزرسانی است.")
+		return
+	}
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	if err := t.ExecuteTemplate(c.Writer, "maintenance", data); err != nil {
+		c.String(http.StatusServiceUnavailable, "سایت در حال بروزرسانی است.")
+	}
+}
+
+func NotFoundPage(c *gin.Context) {
+	data := basePageData("404")
+	data["Title"] = "صفحه یافت نشد"
+	c.Status(http.StatusNotFound)
+	renderPage(c, "404", data)
 }
 
 // Health check
@@ -322,10 +351,11 @@ func HealthCheck(c *gin.Context) {
 		dbOK = false
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"status":    "ok",
-		"db":        map[string]bool{"ok": dbOK},
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-		"version":   "2.0.0",
+		"status":               "ok",
+		"db":                   map[string]bool{"ok": dbOK},
+		"timestamp":            time.Now().UTC().Format(time.RFC3339),
+		"version":              AppVersion,
+		"maintenance_enabled":  models.GetSetting("maintenance_enabled") == "1",
 	})
 }
 

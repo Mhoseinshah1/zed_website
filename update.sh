@@ -16,6 +16,7 @@ APP_PORT="8080"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 BUILD_DIR="/tmp/zedproxy-update-${TIMESTAMP}"
 BACKUP_DIR="${INSTALL_DIR}/backups"
+LOG_FILE="${INSTALL_DIR}/logs/update-${TIMESTAMP}.log"
 DB_FILE="${INSTALL_DIR}/data/zedproxy.db"
 ENV_FILE="${INSTALL_DIR}/.env"
 UPLOADS_DIR="${INSTALL_DIR}/static/uploads"
@@ -60,6 +61,12 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+
+setup_logging() {
+  mkdir -p "${INSTALL_DIR}/logs"
+  exec > >(tee -a "$LOG_FILE") 2>&1
+  echo "=== ZedProxy Update Log: $TIMESTAMP ==="
+}
 
 banner() {
   echo -e "${CYAN}"
@@ -331,6 +338,7 @@ print_result() {
 }
 
 # ── Main ─────────────────────────────────────────────
+setup_logging
 banner
 check_root
 check_installed

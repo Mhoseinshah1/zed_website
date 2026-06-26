@@ -153,14 +153,30 @@ install_update_script() {
     cp "$BUILD_DIR/update.sh" "$INSTALL_DIR/update.sh"
     chmod +x "$INSTALL_DIR/update.sh"
     chown root:root "$INSTALL_DIR/update.sh"
-    info "update.sh نصب شد: $INSTALL_DIR/update.sh"
   else
-    warn "update.sh در کد پروژه یافت نشد — رد شد"
+    warn "update.sh در کد پروژه یافت نشد — تلاش برای دانلود مستقیم..."
+    curl -fsSL "https://raw.githubusercontent.com/mhoseinshah1/zed_website/main/update.sh" \
+      -o "$INSTALL_DIR/update.sh" 2>/dev/null || true
+    chmod +x "$INSTALL_DIR/update.sh" 2>/dev/null || true
+    chown root:root "$INSTALL_DIR/update.sh" 2>/dev/null || true
+  fi
+  if [[ ! -f "$INSTALL_DIR/update.sh" ]]; then
+    warn "update.sh نصب نشد. برای بروزرسانی دستی اجرا کنید:"
+    warn "  curl -fsSL https://raw.githubusercontent.com/mhoseinshah1/zed_website/main/update.sh -o /opt/zedproxy/update.sh"
+    warn "  chmod +x /opt/zedproxy/update.sh"
+  else
+    info "update.sh نصب شد: $INSTALL_DIR/update.sh"
   fi
 }
 
 seed_database() {
   step "مقداردهی اولیه پایگاه داده"
+  # Skip seeding if DB already exists (reinstall protection)
+  if [[ -f "$INSTALL_DIR/data/zedproxy.db" ]]; then
+    warn "دیتابیس موجود است — seed رد شد (داده‌های قبلی حفظ می‌شوند)"
+    # Still run migrations by starting and immediately stopping
+    return
+  fi
   export PATH="/usr/local/go/bin:$PATH"
   cd "$INSTALL_DIR"
 
@@ -184,6 +200,11 @@ seed_database() {
 
 create_env() {
   step "ایجاد فایل تنظیمات محیطی"
+  # Skip if .env already exists (reinstall protection)
+  if [[ -f "$INSTALL_DIR/.env" ]]; then
+    warn "فایل .env موجود است — رونویسی نمی‌شود (SESSION_SECRET حفظ می‌شود)"
+    return
+  fi
   cat > "$INSTALL_DIR/.env" <<EOF
 SESSION_SECRET=${SESSION_SECRET}
 GIN_MODE=release
@@ -231,11 +252,18 @@ EOF
 
 setup_nginx() {
   step "تنظیم Nginx"
+  mkdir -p /var/www/letsencrypt/.well-known/acme-challenge
   cat > "/etc/nginx/sites-available/zedproxy" <<EOF
 server {
     listen 80;
     listen [::]:80;
     server_name ${DOMAIN};
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type "text/plain";
+        try_files \$uri =404;
+    }
 
     location / {
         proxy_pass http://127.0.0.1:${APP_PORT};
@@ -348,6 +376,10 @@ print_result() {
   echo -e "  sudo systemctl restart zedproxy        # ریستارت سرویس"
   echo -e "  sudo journalctl -u zedproxy -f         # مشاهده لاگ"
   echo -e "  sudo bash /opt/zedproxy/update.sh      # بروزرسانی سایت"
+  echo ""
+  echo -e "${WHITE}بازیابی update.sh (اگر یافت نشد):${NC}"
+  echo -e "  sudo curl -fsSL https://raw.githubusercontent.com/mhoseinshah1/zed_website/main/update.sh \\"
+  echo -e "    -o /opt/zedproxy/update.sh && sudo chmod +x /opt/zedproxy/update.sh"
   echo ""
 }
 

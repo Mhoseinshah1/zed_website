@@ -171,6 +171,62 @@ sqlite3 /opt/zedproxy/data/zedproxy.db "PRAGMA integrity_check;"
 
 ---
 
+## تست HEAD requests
+
+```bash
+curl -I http://127.0.0.1:8080/        # باید 200 برگرداند
+curl -I http://127.0.0.1:8080/plans   # باید 200 برگرداند
+curl -I http://127.0.0.1:8080/health  # باید 200 برگرداند
+```
+
+---
+
+## تست حالت تعمیر (CLI)
+
+```bash
+# فعال کردن
+sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --maintenance-on
+
+# بررسی
+sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --maintenance-status
+
+# غیرفعال کردن
+sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --maintenance-off
+```
+
+---
+
+## تست Self-Test
+
+```bash
+sudo /opt/zedproxy/zedproxy \
+  --db=/opt/zedproxy/data/zedproxy.db \
+  --templates=/opt/zedproxy/templates \
+  --static=/opt/zedproxy/static \
+  --uploads=/opt/zedproxy/static/uploads \
+  --self-test
+```
+
+---
+
+## بازیابی update.sh
+
+```bash
+sudo curl -fsSL https://raw.githubusercontent.com/mhoseinshah1/zed_website/main/update.sh \
+  -o /opt/zedproxy/update.sh
+sudo chmod +x /opt/zedproxy/update.sh
+```
+
+---
+
+## Rollback
+
+```bash
+sudo bash /opt/zedproxy/rollback.sh
+```
+
+---
+
 ## دستورات عیب‌یابی
 
 ```bash
@@ -182,6 +238,9 @@ sudo journalctl -u zedproxy -n 100 --no-pager
 
 # لاگ زنده
 sudo journalctl -u zedproxy -f
+
+# لاگ‌های بروزرسانی
+ls -lh /opt/zedproxy/logs/
 
 # تست دستی اجرای باینری
 sudo -u www-data /opt/zedproxy/zedproxy \
@@ -198,4 +257,8 @@ sudo ufw status
 # بررسی Nginx
 sudo nginx -t
 sudo systemctl status nginx
+
+# سلامت سیستم (پنل ادمین)
+# آدرس: /zed-admin/system/health
+# لاگ‌های سیستم: /zed-admin/system/logs
 ```

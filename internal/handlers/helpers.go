@@ -9,10 +9,11 @@ import (
 )
 
 var (
-	tmplCache = map[string]*template.Template{}
-	tmplMu    sync.RWMutex
-	tmplDir   string
-	devMode   bool
+	tmplCache  = map[string]*template.Template{}
+	tmplMu     sync.RWMutex
+	tmplDir    string
+	devMode    bool
+	AppVersion = "dev"
 )
 
 func Init(templateDir string, dev bool) {
@@ -72,6 +73,33 @@ func getAdminTemplate(name string) (*template.Template, error) {
 	page := filepath.Join(tmplDir, "admin", name+".html")
 
 	t, err := template.New("admin").Funcs(funcMap).ParseFiles(adminLayout, page)
+	if err != nil {
+		return nil, err
+	}
+
+	if !devMode {
+		tmplMu.Lock()
+		tmplCache[cacheKey] = t
+		tmplMu.Unlock()
+	}
+	return t, nil
+}
+
+// getStandaloneTemplate loads a standalone public template (no base layout).
+// The entry template block name must match the {{define "name"}} in the file.
+func getStandaloneTemplate(name string) (*template.Template, error) {
+	cacheKey := "standalone_" + name
+	if !devMode {
+		tmplMu.RLock()
+		if t, ok := tmplCache[cacheKey]; ok {
+			tmplMu.RUnlock()
+			return t, nil
+		}
+		tmplMu.RUnlock()
+	}
+
+	page := filepath.Join(tmplDir, "public", name+".html")
+	t, err := template.New(name).Funcs(funcMap).ParseFiles(page)
 	if err != nil {
 		return nil, err
 	}

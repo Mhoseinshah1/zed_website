@@ -1,0 +1,28 @@
+{{define "admin-content"}}
+<div class="max-w-2xl space-y-6">
+  <h1 class="text-xl font-bold text-white">سلامت سیستم</h1>
+  <div class="admin-card p-6 space-y-4">
+    <div class="flex justify-between items-center border-b border-white/10 pb-4">
+      <span class="text-gray-400">نسخه برنامه</span>
+      <span class="text-cyan-400 font-mono text-sm">{{.AppVersion}}</span>
+    </div>
+    <div class="flex justify-between items-center border-b border-white/10 pb-4">
+      <span class="text-gray-400">حالت تعمیر</span>
+      {{if .MaintenanceEnabled}}
+      <span class="text-red-400 font-bold">⚠️ فعال</span>
+      {{else}}
+      <span class="text-green-400">✓ غیرفعال</span>
+      {{end}}
+    </div>
+    <div class="flex justify-between items-center">
+      <span class="text-gray-400">دیتابیس</span>
+      <span class="text-green-400">✓ متصل</span>
+    </div>
+  </div>
+  <div class="flex flex-wrap gap-3">
+    <a href="/zed-admin/maintenance" class="btn-secondary text-sm">تنظیمات تعمیر</a>
+    <a href="/zed-admin/system/logs" class="btn-secondary text-sm">مشاهده لاگ‌ها</a>
+    <a href="/health" target="_blank" class="btn-secondary text-sm">Health API</a>
+  </div>
+</div>
+{{end}}

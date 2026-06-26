@@ -769,13 +769,39 @@ func AdminBackupDelete(c *gin.Context) {
 func AdminMaintenancePage(c *gin.Context) {
 	data := adminData(c, "maintenance")
 	data["Title"] = "حالت تعمیر و نگهداری"
+	data["MaintenanceMode"] = models.GetSetting("maintenance_enabled")
+	data["MaintenanceMsg"] = models.GetSetting("maintenance_msg")
 	renderAdmin(c, "maintenance", data)
 }
 
 func AdminMaintenanceSave(c *gin.Context) {
-	models.SetSetting("maintenance_mode", c.PostForm("maintenance_mode"))
+	mode := "0"
+	if c.PostForm("maintenance_mode") == "1" {
+		mode = "1"
+	}
+	models.SetSetting("maintenance_enabled", mode)
 	models.SetSetting("maintenance_msg", c.PostForm("maintenance_msg"))
 	c.Redirect(http.StatusFound, "/zed-admin/maintenance")
+}
+
+// -- System: Logs --
+
+func AdminSystemLogsPage(c *gin.Context) {
+	data := adminData(c, "system-logs")
+	data["Title"] = "لاگ‌های سیستم"
+	logs, _ := models.GetSystemLogs(200)
+	data["Logs"] = logs
+	renderAdmin(c, "system-logs", data)
+}
+
+// -- System: Health --
+
+func AdminSystemHealthPage(c *gin.Context) {
+	data := adminData(c, "system-health")
+	data["Title"] = "سلامت سیستم"
+	data["MaintenanceEnabled"] = models.GetSetting("maintenance_enabled") == "1"
+	data["AppVersion"] = AppVersion
+	renderAdmin(c, "system-health", data)
 }
 
 // -- Media Alt Text Update --
