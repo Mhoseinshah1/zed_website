@@ -19,9 +19,7 @@ func AdminSiteAppearancePage(c *gin.Context) {
 	settings := models.GetAllSettings()
 	data := adminData(c, "site-appearance")
 	data["Title"] = "ظاهر سایت عمومی"
-	for _, k := range siteAppearanceKeys {
-		data[k] = settings[k]
-	}
+	data["Settings"] = settings
 	renderAdmin(c, "site-appearance", data)
 }
 

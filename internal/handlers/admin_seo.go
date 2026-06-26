@@ -15,9 +15,7 @@ func AdminSEOPage(c *gin.Context) {
 	settings := models.GetAllSettings()
 	data := adminData(c, "seo")
 	data["Title"] = "تنظیمات سئو"
-	for _, k := range seoKeys {
-		data[k] = settings[k]
-	}
+	data["Settings"] = settings
 	renderAdmin(c, "seo", data)
 }
 
