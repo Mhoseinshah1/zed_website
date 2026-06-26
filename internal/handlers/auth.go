@@ -73,7 +73,7 @@ func AuthRegisterPost(c *gin.Context) {
 	email := strings.ToLower(strings.TrimSpace(c.PostForm("email")))
 	phone := strings.TrimSpace(c.PostForm("phone"))
 	password := c.PostForm("password")
-	passwordConfirm := c.PostForm("password_confirm")
+	passwordConfirm := strings.TrimSpace(c.PostForm("confirm_password"))
 
 	data := map[string]interface{}{
 		"Title":       "ثبت‌نام",

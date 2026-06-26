@@ -619,6 +619,11 @@ func main() {
 			protected.POST("/settings/appearance/save", handlers.AdminAppearanceSave)
 			protected.POST("/settings/appearance/reset", handlers.AdminAppearanceReset)
 
+			// Email settings
+			protected.GET("/settings/email", handlers.AdminEmailSettingsPage)
+			protected.POST("/settings/email", handlers.AdminEmailSettingsSave)
+			protected.POST("/settings/email/test", handlers.AdminEmailSettingsTest)
+
 			// Telegram Integration
 			integrations := protected.Group("/integrations")
 			{

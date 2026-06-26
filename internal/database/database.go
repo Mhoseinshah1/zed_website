@@ -657,5 +657,41 @@ func Migrate() {
 	// Seed customer bot username
 	DB.Exec("INSERT INTO settings (key, value) VALUES ('customer_telegram_bot_username', '') ON CONFLICT(key) DO NOTHING")
 
+	// Email / SMTP settings
+	smtpDefaults := [][2]string{
+		{"smtp_enabled", "0"},
+		{"smtp_host", ""},
+		{"smtp_port", "587"},
+		{"smtp_username", ""},
+		{"smtp_password", ""},
+		{"smtp_from_email", ""},
+		{"smtp_from_name", "ZedProxy"},
+		{"smtp_use_tls", "1"},
+		{"email_verification_code_ttl_minutes", "5"},
+		{"email_verification_resend_cooldown_seconds", "60"},
+		{"email_verification_max_attempts", "5"},
+	}
+	for _, kv := range smtpDefaults {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING", kv[0], kv[1])
+	}
+
+	// Email verification codes table
+	DB.Exec(`CREATE TABLE IF NOT EXISTS email_verification_codes (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		email TEXT NOT NULL,
+		code_hash TEXT NOT NULL,
+		purpose TEXT NOT NULL DEFAULT 'register',
+		attempts INTEGER NOT NULL DEFAULT 0,
+		max_attempts INTEGER NOT NULL DEFAULT 5,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		expires_at DATETIME NOT NULL,
+		used_at DATETIME,
+		sent_at DATETIME,
+		ip_hash TEXT
+	)`)
+	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_email_verification_user ON email_verification_codes(user_id)`)
+	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_email_verification_email ON email_verification_codes(email)`)
+
 	log.Println("Database migrations completed")
 }
