@@ -150,21 +150,70 @@ create_backups() {
   step "Creating backups"
   mkdir -p "$BACKUP_DIR"
 
-  # Backup database
+  local zip_backup="${BACKUP_DIR}/zedproxy-pre-update-${TIMESTAMP}.zip"
+  local tmp_zip_dir="/tmp/zedproxy-backup-${TIMESTAMP}"
+  mkdir -p "$tmp_zip_dir"
+
+  # Copy database (never include secrets in ZIP)
   if [[ -f "$DB_FILE" ]]; then
-    local db_backup="${BACKUP_DIR}/zedproxy-pre-update-${TIMESTAMP}.db"
-    cp "$DB_FILE" "$db_backup"
-    info "Database backup: $db_backup"
-    detail "Size: $(du -sh "$db_backup" | cut -f1)"
+    cp "$DB_FILE" "$tmp_zip_dir/zedproxy.db"
   else
-    warn "Database file not found: $DB_FILE — skipped"
+    warn "Database file not found: $DB_FILE — skipped from backup"
   fi
 
-  # Backup .env
+  # Copy binary
+  if [[ -f "$OLD_BINARY" ]]; then
+    cp "$OLD_BINARY" "$tmp_zip_dir/zedproxy"
+  fi
+
+  # Copy templates
+  if [[ -d "${INSTALL_DIR}/templates" ]]; then
+    cp -r "${INSTALL_DIR}/templates" "$tmp_zip_dir/templates"
+  fi
+
+  # Copy static (exclude uploads — user content)
+  if [[ -d "${INSTALL_DIR}/static" ]]; then
+    rsync -a --exclude 'uploads/' "${INSTALL_DIR}/static/" "$tmp_zip_dir/static/"
+  fi
+
+  # Create ZIP (no .env, no tokens, no secrets)
+  if command -v zip &>/dev/null; then
+    (cd "$tmp_zip_dir" && zip -r "$zip_backup" . -x "*.env" 2>/dev/null) || true
+  elif command -v python3 &>/dev/null; then
+    python3 -c "
+import zipfile, os, sys
+src = sys.argv[1]; dst = sys.argv[2]
+with zipfile.ZipFile(dst, 'w', zipfile.ZIP_DEFLATED) as z:
+    for root, dirs, files in os.walk(src):
+        for f in files:
+            fp = os.path.join(root, f)
+            z.write(fp, os.path.relpath(fp, src))
+" "$tmp_zip_dir" "$zip_backup"
+  else
+    warn "Neither zip nor python3 found — using tar fallback"
+    tar -czf "${zip_backup%.zip}.tar.gz" -C "$tmp_zip_dir" . 2>/dev/null || true
+    zip_backup="${zip_backup%.zip}.tar.gz"
+  fi
+
+  rm -rf "$tmp_zip_dir"
+
+  if [[ -f "$zip_backup" ]]; then
+    chmod 600 "$zip_backup"
+    chown root:root "$zip_backup"
+    info "Backup created: $zip_backup"
+    detail "Size: $(du -sh "$zip_backup" | cut -f1)"
+  else
+    warn "Backup creation may have failed — check $BACKUP_DIR"
+  fi
+
+  # Separate .env backup (root-only, never in ZIP)
   local env_backup="${BACKUP_DIR}/.env-pre-update-${TIMESTAMP}"
-  cp "$ENV_FILE" "$env_backup"
-  chmod 600 "$env_backup"
-  info ".env backup: $env_backup"
+  if [[ -f "$ENV_FILE" ]]; then
+    cp "$ENV_FILE" "$env_backup"
+    chmod 600 "$env_backup"
+    chown root:root "$env_backup"
+    info ".env backup: $env_backup"
+  fi
 }
 
 # ── Clone ────────────────────────────────────────────
@@ -263,6 +312,24 @@ deploy_static() {
   info "Static files updated (uploads preserved)"
 }
 
+deploy_manage_sh() {
+  if [[ -f "${BUILD_DIR}/manage.sh" ]]; then
+    cp "${BUILD_DIR}/manage.sh" "${INSTALL_DIR}/manage.sh"
+    chmod +x "${INSTALL_DIR}/manage.sh"
+    chown root:root "${INSTALL_DIR}/manage.sh"
+    detail "manage.sh refreshed"
+  fi
+}
+
+deploy_rollback_sh() {
+  if [[ -f "${BUILD_DIR}/rollback.sh" ]]; then
+    cp "${BUILD_DIR}/rollback.sh" "${INSTALL_DIR}/rollback.sh"
+    chmod +x "${INSTALL_DIR}/rollback.sh"
+    chown root:root "${INSTALL_DIR}/rollback.sh"
+    detail "rollback.sh refreshed"
+  fi
+}
+
 deploy_update_script() {
   # Keep update.sh fresh on the server after each update
   if [[ -f "${BUILD_DIR}/update.sh" ]]; then
@@ -308,34 +375,95 @@ start_service() {
   systemctl status "$SERVICE_NAME" --no-pager -l | head -20 | sed 's/^/    /'
 }
 
+run_self_test() {
+  step "Self-test"
+  if "${OLD_BINARY}" \
+      --db="${DB_FILE}" \
+      --templates="${INSTALL_DIR}/templates" \
+      --static="${INSTALL_DIR}/static" \
+      --self-test 2>&1 | sed 's/^/    /'; then
+    info "Self-test passed"
+  else
+    error "Self-test FAILED — rolling back"
+  fi
+}
+
+rollback_deployment() {
+  warn "Rolling back deployment..."
+  systemctl stop "$SERVICE_NAME" 2>/dev/null || true
+
+  local old_bin_backup="${OLD_BINARY}.backup-${TIMESTAMP}"
+  if [[ -f "$old_bin_backup" ]]; then
+    cp "$old_bin_backup" "$OLD_BINARY"
+    chmod +x "$OLD_BINARY"
+    info "Previous binary restored"
+  fi
+
+  systemctl start "$SERVICE_NAME" 2>/dev/null || true
+  sleep 2
+  if systemctl is-active --quiet "$SERVICE_NAME"; then
+    info "Previous service restored and running"
+  else
+    warn "Service failed to start after rollback — check logs:"
+    journalctl -u "$SERVICE_NAME" -n 30 --no-pager || true
+  fi
+}
+
 health_check() {
   step "Health check"
-  local url="http://127.0.0.1:${APP_PORT}/health"
+  local base="http://127.0.0.1:${APP_PORT}"
   local attempts=5
   local wait=2
+  local passed=false
 
   for i in $(seq 1 $attempts); do
     local http_code
-    http_code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 "$url" 2>/dev/null || echo '000')"
-    if [[ "$http_code" == "200" ]]; then
-      info "Health check passed (HTTP $http_code) — $url"
-      return 0
+    http_code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 "${base}/" 2>/dev/null || echo '000')"
+    if [[ "$http_code" =~ ^(200|301|302)$ ]]; then
+      info "Root health check passed (HTTP $http_code)"
+      passed=true
+      break
     fi
     detail "Attempt $i/$attempts — HTTP $http_code — waiting ${wait}s..."
     sleep $wait
     wait=$((wait * 2))
   done
 
-  # Fall back to root path if /health not available
-  local root_code
-  root_code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 "http://127.0.0.1:${APP_PORT}/" 2>/dev/null || echo '000')"
-  if [[ "$root_code" =~ ^(200|301|302)$ ]]; then
-    info "Health check passed (HTTP $root_code from root path)"
-    return 0
+  if [[ "$passed" != "true" ]]; then
+    rollback_deployment
+    error "Health check failed — rolled back to previous version"
   fi
 
-  warn "Health check failed (HTTP $root_code). Service may still be starting."
-  warn "Check logs: journalctl -u $SERVICE_NAME -f"
+  # Verify critical admin routes (404 is unacceptable)
+  local admin_routes=("/zed-admin/integrations/telegram" "/zed-admin/settings/appearance")
+  local route_fail=false
+  for route in "${admin_routes[@]}"; do
+    local code
+    code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 "${base}${route}" 2>/dev/null || echo '000')"
+    if [[ "$code" =~ ^(200|301|302)$ ]]; then
+      info "Route check OK: $route (HTTP $code)"
+    else
+      warn "Route check FAILED: $route returned HTTP $code"
+      route_fail=true
+    fi
+  done
+
+  if [[ "$route_fail" == "true" ]]; then
+    rollback_deployment
+    error "Admin route check failed — rolled back to previous version"
+  fi
+
+  # Post-update verification: confirm new templates are deployed
+  step "Post-update template verification"
+  grep -rq "integrations/telegram" "${INSTALL_DIR}/templates" && \
+    info "  [OK] integrations/telegram found in templates" || \
+    warn "  [!] integrations/telegram not found in templates — may be missing"
+  grep -rq "settings/appearance" "${INSTALL_DIR}/templates" && \
+    info "  [OK] settings/appearance found in templates" || \
+    warn "  [!] settings/appearance not found in templates — may be missing"
+  grep -rq "admin-accent" "${INSTALL_DIR}/templates" && \
+    info "  [OK] CSS variable admin-accent found in templates" || \
+    warn "  [!] CSS variable admin-accent not found in templates"
 }
 
 # ── Print result ──────────────────────────────────────
@@ -349,7 +477,7 @@ print_result() {
   echo -e "  Repository:   ${CYAN}${REPO_URL}${NC}"
   echo -e "  Branch:       ${CYAN}${BRANCH}${NC}"
   echo -e "  Time:         ${WHITE}${TIMESTAMP}${NC}"
-  echo -e "  DB backup:    ${WHITE}${BACKUP_DIR}/zedproxy-pre-update-${TIMESTAMP}.db${NC}"
+  echo -e "  Backup:       ${WHITE}${BACKUP_DIR}/zedproxy-pre-update-${TIMESTAMP}.zip${NC}"
   echo -e "  Log file:     ${WHITE}${LOG_FILE}${NC}"
   echo ""
   echo -e "${WHITE}Useful commands:${NC}"
@@ -383,8 +511,11 @@ stop_service
 deploy_binary
 deploy_templates
 deploy_static
+deploy_manage_sh
+deploy_rollback_sh
 deploy_update_script
 fix_permissions
+run_self_test
 start_service
 health_check
 notify_update_done

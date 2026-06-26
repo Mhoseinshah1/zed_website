@@ -199,18 +199,19 @@ show_menu() {
   echo ""
   echo -e "${WHITE}  Telegram Admin Reporter${NC}"
   echo "  34) Telegram Bot Status"
-  echo "  35) Configure Bot Token"
-  echo "  36) Configure Group Chat ID"
-  echo "  37) Test Bot Connection"
-  echo "  38) Send Test Message"
-  echo "  39) Create Group Topics"
-  echo "  40) Enable Telegram Alerts"
-  echo "  41) Disable Telegram Alerts"
-  echo "  42) Send Daily Report Now"
+  echo "  35) Test Bot Connection"
+  echo "  36) Send Test Message"
+  echo "  37) Create Group Topics"
+  echo "  38) Enable Telegram Alerts"
+  echo "  39) Disable Telegram Alerts"
+  echo "  40) Send Daily Report Now"
+  echo ""
+  echo -e "${CYAN}  Configure Telegram token and chat ID from the admin panel:${NC}"
+  echo -e "  Admin panel -> /zed-admin/integrations/telegram"
   echo ""
   echo -e "${WHITE}  Danger Zone${NC}"
-  echo "  43) Uninstall ZedProxy"
-  echo "  44) Exit"
+  echo "  41) Uninstall ZedProxy"
+  echo "  42) Exit"
   echo ""
 }
 
@@ -631,27 +632,6 @@ action_tg_status() {
   run_cli --telegram-status 2>&1 || err "Failed to get Telegram status"
 }
 
-action_tg_set_token() {
-  echo ""
-  read -rsp "Enter Telegram bot token (from @BotFather): " TG_TOKEN
-  echo ""
-  if [[ -z "$TG_TOKEN" ]]; then
-    err "No token entered."
-    return
-  fi
-  run_cli --telegram-set-token="$TG_TOKEN" && ok "Token saved (not displayed for security)" || err "Failed to save token"
-}
-
-action_tg_set_chat() {
-  echo ""
-  read -rp "Enter Telegram group Chat ID (e.g. -1001234567890): " TG_CHAT
-  if [[ -z "$TG_CHAT" ]]; then
-    err "No Chat ID entered."
-    return
-  fi
-  run_cli --telegram-set-chat-id="$TG_CHAT" && ok "Chat ID saved: $TG_CHAT" || err "Failed to save Chat ID"
-}
-
 action_tg_test() {
   run_cli --telegram-test 2>&1 || err "Connection test failed. Check token and Chat ID."
 }
@@ -720,7 +700,7 @@ main() {
 
   while true; do
     show_menu
-    read -rp "Select option [1-44]: " CHOICE
+    read -rp "Select option [1-42]: " CHOICE
     echo ""
     case "$CHOICE" in
       1)  action_system_status ;;
@@ -759,16 +739,14 @@ main() {
       32) action_disk_usage ;;
       33) action_clean_tmp ;;
       34) action_tg_status ;;
-      35) action_tg_set_token ;;
-      36) action_tg_set_chat ;;
-      37) action_tg_test ;;
-      38) action_tg_send_test ;;
-      39) action_tg_create_topics ;;
-      40) action_tg_enable ;;
-      41) action_tg_disable ;;
-      42) action_tg_daily_report ;;
-      43) action_uninstall ;;
-      44) echo "Goodbye."; exit 0 ;;
+      35) action_tg_test ;;
+      36) action_tg_send_test ;;
+      37) action_tg_create_topics ;;
+      38) action_tg_enable ;;
+      39) action_tg_disable ;;
+      40) action_tg_daily_report ;;
+      41) action_uninstall ;;
+      42) echo "Goodbye."; exit 0 ;;
       "q"|"Q"|"exit") echo "Goodbye."; exit 0 ;;
       *) warn "Invalid option: $CHOICE" ;;
     esac
