@@ -12,6 +12,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 
 	"zedproxy/internal/database"
 	"zedproxy/internal/handlers"
@@ -46,6 +47,12 @@ func main() {
 		maintenanceOff    = flag.Bool("maintenance-off", false, "disable maintenance mode and exit")
 		maintenanceStatus = flag.Bool("maintenance-status", false, "show maintenance mode status and exit")
 		selfTest          = flag.Bool("self-test", false, "run self-test and exit")
+		versionFlag       = flag.Bool("version", false, "print version and exit")
+
+		// Admin management CLI flags
+		resetAdmin  = flag.Bool("reset-admin", false, "reset existing admin credentials and exit")
+		createAdmin = flag.Bool("create-admin", false, "create a new admin and exit")
+		cliRole     = flag.String("role", "owner", "role for --create-admin (owner/content_manager/support)")
 
 		// Telegram CLI flags
 		telegramStatus       = flag.Bool("telegram-status", false, "show Telegram bot status and exit")
@@ -67,24 +74,52 @@ func main() {
 	database.Init(*dbPath)
 	tg.SeedDefaultTopics()
 
+	// Version
+	if *versionFlag {
+		fmt.Printf("ZedProxy %s (build %s, commit %s)\n", Version, BuildDate, GitCommit)
+		return
+	}
+
 	// CLI maintenance controls (exit after action)
 	if *maintenanceOn {
 		models.SetSetting("maintenance_enabled", "1")
-		fmt.Println("[✓] حالت تعمیر فعال شد")
+		fmt.Println("[✓] Maintenance mode enabled")
 		return
 	}
 	if *maintenanceOff {
 		models.SetSetting("maintenance_enabled", "0")
-		fmt.Println("[✓] حالت تعمیر غیرفعال شد")
+		fmt.Println("[✓] Maintenance mode disabled")
 		return
 	}
 	if *maintenanceStatus {
 		v := models.GetSetting("maintenance_enabled")
 		if v == "1" {
-			fmt.Println("[!] حالت تعمیر: فعال")
+			fmt.Println("[!] Maintenance mode: ENABLED")
 		} else {
-			fmt.Println("[✓] حالت تعمیر: غیرفعال")
+			fmt.Println("[✓] Maintenance mode: disabled")
 		}
+		return
+	}
+
+	// Admin management CLI
+	if *resetAdmin {
+		if *adminUser == "" || *adminPass == "" {
+			log.Fatal("--reset-admin requires --admin-user and --admin-pass")
+		}
+		if err := cliResetAdmin(*adminUser, *adminPass); err != nil {
+			log.Fatalf("[✗] reset-admin failed: %v", err)
+		}
+		fmt.Printf("[✓] Admin credentials reset for user: %s\n", *adminUser)
+		return
+	}
+	if *createAdmin {
+		if *adminUser == "" || *adminPass == "" {
+			log.Fatal("--create-admin requires --admin-user and --admin-pass")
+		}
+		if err := cliCreateAdmin(*adminUser, *adminEmail, *adminPass, *cliRole); err != nil {
+			log.Fatalf("[✗] create-admin failed: %v", err)
+		}
+		fmt.Printf("[✓] Admin created: %s (role: %s)\n", *adminUser, *cliRole)
 		return
 	}
 	if *selfTest {
@@ -496,9 +531,9 @@ func runSelfTest(dbPath, templateDir, staticDir, uploadDir string) {
 
 	v := models.GetSetting("maintenance_enabled")
 	if v == "1" {
-		fmt.Println("[!] maintenance_enabled: فعال")
+		fmt.Println("[!] maintenance_enabled: ENABLED")
 	} else {
-		fmt.Printf("[✓] maintenance_enabled: غیرفعال (%q)\n", v)
+		fmt.Printf("[✓] maintenance_enabled: disabled (%q)\n", v)
 	}
 
 	var count int
@@ -506,11 +541,10 @@ func runSelfTest(dbPath, templateDir, staticDir, uploadDir string) {
 	check("Admin users", fmt.Sprintf("%d", count), count > 0)
 
 	_, errUpd := os.Stat("/opt/zedproxy/update.sh")
-	if errUpd == nil {
-		fmt.Println("[✓] update.sh: /opt/zedproxy/update.sh")
-	} else {
-		fmt.Println("[!] update.sh: /opt/zedproxy/update.sh یافت نشد")
-	}
+	check("update.sh", "/opt/zedproxy/update.sh", errUpd == nil)
+
+	_, errMng := os.Stat("/opt/zedproxy/manage.sh")
+	check("manage.sh", "/opt/zedproxy/manage.sh", errMng == nil)
 
 	fmt.Printf("[✓] Build: version=%s date=%s commit=%s\n", Version, BuildDate, GitCommit)
 
@@ -520,4 +554,24 @@ func runSelfTest(dbPath, templateDir, staticDir, uploadDir string) {
 		fmt.Println("=== Self-test FAILED ===")
 		os.Exit(1)
 	}
+}
+
+func cliResetAdmin(username, password string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	admin, err := models.GetAdminByUsername(username)
+	if err != nil {
+		return fmt.Errorf("admin %q not found: %w", username, err)
+	}
+	return models.UpdateAdminPassword(admin.ID, string(hash))
+}
+
+func cliCreateAdmin(username, email, password, role string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return models.CreateAdminWithRole(username, email, string(hash), role)
 }

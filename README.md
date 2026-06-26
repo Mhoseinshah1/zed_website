@@ -1,188 +1,268 @@
-# ZedProxy Website
+# ZedProxy — Premium Persian RTL VPN Website
 
-یک وبسایت پریمیوم فارسی RTL برای سرویس پروکسی ZedProxy، ساخته شده با Go، Gin، SQLite، Tailwind CSS و Alpine.js.
+A complete Persian RTL VPN/proxy service website built with Go, SQLite, Tailwind CSS, and Alpine.js. Includes a full admin panel, Telegram Admin Reporter Bot, and production Ubuntu deployment scripts.
 
-## ویژگی‌ها
+---
 
-- 🎨 طراحی premium، dark، futuristic با glassmorphism
-- 🇮🇷 کاملاً فارسی و RTL
-- 📱 Mobile-first و Responsive
-- ⚡ سریع و سبک
-- 🔒 امنیت بالا
-- 🎛️ پنل مدیریت کامل در `/zed-admin`
-- 📊 ردیابی کلیک‌های تلگرام
-- 🗺️ Sitemap.xml و Robots.txt
-- 📰 وبلاگ و SEO Articles
-- 📚 صفحه آموزش‌ها
-- ❓ صفحه FAQ با schema markup
-- 🌍 مدیریت لوکیشن‌ها
-- 📢 اطلاعیه‌های وضعیت سرویس
-- 📁 آپلود و مدیریت فایل
-- 🔑 امنیت کامل (bcrypt، session، rate limit)
-
-> **Note:** Installer terminal messages are English for compatibility with Ubuntu SSH terminals. The website and admin panel remain fully Persian RTL.
-
-## نصب سریع
+## Quick Install
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/mhoseinshah1/zed_website/main/install.sh)
 ```
 
-## بروزرسانی سایت
+Or on the server:
 
-پس از نصب، برای بروزرسانی به آخرین نسخه:
+```bash
+sudo bash install.sh
+```
+
+### Installer Prompts
+
+The installer asks the following in order:
+
+1. **Domain name** (required)
+2. **Admin username** — Enter a username or press Enter to auto-generate (`admin_xxxxxx` format)
+3. **Admin email** — Enter email or press Enter to use `admin@zedproxy.com`
+4. **Admin password** — Enter a password (min 8 chars) or press Enter to auto-generate securely
+5. **Telegram Admin Reporter Bot** — Optional setup (can be done later)
+
+All credentials are printed at the end. The password is shown only once — save it securely.
+
+---
+
+## Server Manager
+
+After installation:
+
+```bash
+sudo zedproxy-manager
+```
+
+Or:
+
+```bash
+sudo bash /opt/zedproxy/manage.sh
+```
+
+### Manager Menu (44 options)
+
+| # | Action |
+|---|--------|
+| 1 | Show System Status |
+| 2 | Emergency Recovery |
+| 3 | Restart Service |
+| 4 | Start Service |
+| 5 | Stop Service |
+| 6 | Reset Admin Username / Password |
+| 7 | Create New Owner Admin |
+| 8 | Maintenance Mode Status |
+| 9 | Maintenance Mode ON |
+| 10 | Maintenance Mode OFF / Emergency Disable |
+| 11 | Run Website Update |
+| 12 | Repair Missing update.sh |
+| 13 | Rollback to Previous Release |
+| 14 | Create Backup |
+| 15 | List Backups |
+| 16 | Restore Backup |
+| 17 | Run Self-Test |
+| 18 | Show Health Check |
+| 19 | Check SQLite Database |
+| 20 | Repair SQLite Database |
+| 21 | Vacuum SQLite Database |
+| 22 | View Recent Logs |
+| 23 | Follow Live Logs |
+| 24 | Export Diagnostic Report |
+| 25 | Fix File Permissions |
+| 26 | Show App Version |
+| 27 | Show Domain and URLs |
+| 28 | Change Domain |
+| 29 | Check Nginx Config |
+| 30 | Reload Nginx |
+| 31 | Renew SSL Certificate |
+| 32 | Show Disk Usage |
+| 33 | Clean Temporary Files |
+| 34 | Telegram Bot Status |
+| 35 | Configure Bot Token |
+| 36 | Configure Group Chat ID |
+| 37 | Test Bot Connection |
+| 38 | Send Test Message |
+| 39 | Create Group Topics |
+| 40 | Enable Telegram Alerts |
+| 41 | Disable Telegram Alerts |
+| 42 | Send Daily Report Now |
+| 43 | Uninstall ZedProxy |
+| 44 | Exit |
+
+---
+
+## Update
 
 ```bash
 sudo bash /opt/zedproxy/update.sh
 ```
 
-این دستور:
-- نسخه پشتیبان از دیتابیس می‌گیرد
-- آخرین کد را از GitHub دریافت می‌کند
-- باینری، قالب‌ها و فایل‌های استاتیک را بروزرسانی می‌کند
-- دیتابیس، آپلودها و `.env` را دست نمی‌زند
-- سرویس را ری‌استارت و سلامت آن را بررسی می‌کند
-- لاگ بروزرسانی در `/opt/zedproxy/logs/update-YYYYMMDD-HHMMSS.log` ذخیره می‌شود
-
-## بازیابی update.sh
-
-اگر `update.sh` در دسترس نبود:
+### If update.sh is missing
 
 ```bash
 sudo curl -fsSL https://raw.githubusercontent.com/mhoseinshah1/zed_website/main/update.sh \
-  -o /opt/zedproxy/update.sh
-sudo chmod +x /opt/zedproxy/update.sh
+  -o /opt/zedproxy/update.sh && sudo chmod +x /opt/zedproxy/update.sh
 sudo bash /opt/zedproxy/update.sh
 ```
 
-## مدیریت حالت تعمیر از CLI
+---
 
-```bash
-# فعال کردن حالت تعمیر
-sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --maintenance-on
-
-# غیرفعال کردن حالت تعمیر
-sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --maintenance-off
-
-# بررسی وضعیت حالت تعمیر
-sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --maintenance-status
-```
-
-## تست سیستم
-
-```bash
-sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db \
-  --templates=/opt/zedproxy/templates --static=/opt/zedproxy/static \
-  --uploads=/opt/zedproxy/static/uploads --self-test
-```
-
-## Rollback به نسخه قبلی
+## Rollback
 
 ```bash
 sudo bash /opt/zedproxy/rollback.sh
+# or from manager: option 13
 ```
 
-## نصب دستی
+---
 
-### پیش‌نیازها
-- Ubuntu 20.04/22.04/24.04
-- Go 1.22+
-- Nginx
-- SQLite3
-- gcc (برای go-sqlite3)
-
-### مراحل
+## CLI Reference
 
 ```bash
-# 1. کلون پروژه
-git clone https://github.com/mhoseinshah1/zed_website.git
-cd zed_website
+BIN=/opt/zedproxy/zedproxy
+DB="--db=/opt/zedproxy/data/zedproxy.db"
 
-# 2. دانلود وابستگی‌ها
-go mod download
+# Version
+$BIN --version
 
-# 3. بیلد
-VERSION=2.1.0
-COMMIT=$(git rev-parse --short HEAD)
-DATE=$(date +%Y-%m-%d)
+# Maintenance
+$BIN $DB --maintenance-on
+$BIN $DB --maintenance-off
+$BIN $DB --maintenance-status
+
+# Self-test
+$BIN $DB --self-test --templates=/opt/zedproxy/templates \
+  --static=/opt/zedproxy/static --uploads=/opt/zedproxy/static/uploads
+
+# Admin management
+$BIN $DB --reset-admin --admin-user="admin" --admin-pass="newpassword"
+$BIN $DB --create-admin --admin-user="newadmin" --admin-email="new@example.com" \
+  --admin-pass="securepass" --role="owner"
+
+# Telegram
+$BIN $DB --telegram-status
+$BIN $DB --telegram-set-token="YOUR_BOT_TOKEN"
+$BIN $DB --telegram-set-chat-id="-1001234567890"
+$BIN $DB --telegram-enable
+$BIN $DB --telegram-disable
+$BIN $DB --telegram-test
+$BIN $DB --telegram-send-test
+$BIN $DB --telegram-create-topics
+$BIN $DB --send-daily-report
+```
+
+---
+
+## Telegram Admin Reporter Bot
+
+This is an **internal admin reporting bot** — separate from the customer purchase bot. It sends alerts to a private Telegram supergroup.
+
+### Setup Steps
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) — save the token
+2. Create a Telegram supergroup
+3. Enable **Topics** in group settings
+4. Add the bot to the group as admin with: Manage Topics + Send Messages permissions
+5. Get the group Chat ID (use @userinfobot or check bot API)
+
+### Configuration
+
+**From admin panel:**
+```
+https://yourdomain.com/zed-admin/integrations/telegram
+```
+
+**From server manager** (options 34-42):
+```bash
+sudo zedproxy-manager
+```
+
+### Telegram Forum Topics (Persian titles, English internal keys)
+
+| Internal Key | Persian Title |
+|---|---|
+| system_status | 📌 وضعیت سیستم |
+| critical_alerts | 🚨 هشدارهای مهم |
+| updates | 🔄 بروزرسانی‌ها |
+| maintenance | 🧰 حالت تعمیرات |
+| backups | 💾 بکاپ‌ها |
+| security | 🔐 امنیت |
+| daily_reports | 📊 گزارش روزانه |
+| click_analytics | 📈 آمار کلیک‌ها |
+| seo_pages | 🌐 سئو و صفحات |
+| admin_activity | 🧾 فعالیت ادمین |
+| errors | ❌ خطاها |
+
+### Events That Trigger Notifications
+
+- Maintenance mode on/off
+- Backup created
+- Admin login failed
+- Admin password changed
+- New admin created
+- Update started/completed/failed
+- Rollback performed
+
+### Daily Report
+
+Auto-sent at 09:00 Asia/Tehran (configurable). Includes maintenance status, CTA clicks, plan/post counts.
+
+```bash
+# Send manually
+/opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --send-daily-report
+# or: sudo zedproxy-manager (option 42)
+```
+
+---
+
+## Admin Panel Routes
+
+| Route | Description |
+|---|---|
+| `/zed-admin` | Dashboard |
+| `/zed-admin/settings` | Site settings |
+| `/zed-admin/integrations/telegram` | Telegram Admin Reporter |
+| `/zed-admin/system/health` | System health |
+| `/zed-admin/system/logs` | Audit logs |
+| `/zed-admin/maintenance` | Maintenance mode |
+| `/zed-admin/backups` | Database backups |
+| `/zed-admin/users` | Admin user management |
+| `/zed-admin/plans` | VPN plans |
+| `/zed-admin/analytics` | Click analytics |
+
+---
+
+## Tech Stack
+
+- **Go 1.22** + Gin web framework
+- **SQLite** (CGO_ENABLED=1, WAL mode)
+- **Tailwind CSS** + **Alpine.js** via CDN
+- **Vazirmatn** Persian font, RTL layout throughout
+- **systemd** service (www-data user, PrivateTmp, NoNewPrivileges)
+- **Nginx** reverse proxy with ACME challenge support
+- **Let's Encrypt** SSL via Certbot
+- **Telegram Bot API** for admin reporting (queue/retry, token masking)
+
+---
+
+## Build with Version Info
+
+```bash
 CGO_ENABLED=1 go build \
-  -ldflags="-s -w -X main.Version=$VERSION -X main.BuildDate=$DATE -X main.GitCommit=$COMMIT" \
+  -ldflags="-s -w -X main.Version=1.0.0 -X main.BuildDate=$(date -u +%Y-%m-%d) -X main.GitCommit=$(git rev-parse --short HEAD)" \
   -o zedproxy .
-
-# 4. مقداردهی اولیه دیتابیس
-./zedproxy --seed --admin-user=admin --admin-email=admin@yourdomain.com --admin-pass=YOUR_PASS --secret=YOUR_SECRET
-
-# 5. اجرا
-./zedproxy --addr=:8080 --secret=YOUR_SECRET
 ```
 
-## ساختار پروژه
+---
 
+## Service Commands
+
+```bash
+sudo systemctl status zedproxy
+sudo systemctl restart zedproxy
+sudo journalctl -u zedproxy -f
 ```
-zed_website/
-├── main.go                    # نقطه ورود برنامه
-├── go.mod
-├── internal/
-│   ├── database/database.go   # اتصال SQLite و migrations
-│   ├── models/models.go       # مدل‌های داده
-│   ├── handlers/
-│   │   ├── helpers.go         # توابع کمکی قالب
-│   │   ├── public.go          # هندلرهای صفحات عمومی
-│   │   └── admin.go           # هندلرهای پنل مدیریت
-│   ├── middleware/auth.go     # احراز هویت و rate limiting
-│   └── seed/seed.go          # داده‌های اولیه پارسی
-├── templates/
-│   ├── layouts/
-│   │   ├── base.html          # قالب اصلی صفحات عمومی
-│   │   └── admin.html         # قالب پنل مدیریت
-│   ├── public/               # صفحات عمومی
-│   └── admin/                # صفحات پنل مدیریت
-├── static/
-│   └── uploads/              # فایل‌های آپلود شده
-├── install.sh                # اسکریپت نصب خودکار
-├── zedproxy.service           # فایل systemd
-└── nginx.conf.template        # نمونه تنظیمات Nginx
-```
-
-## پنل مدیریت
-
-آدرس: `/zed-admin`
-
-### بخش‌های قابل مدیریت:
-- **تنظیمات سایت**: نام، لوگو، شعار، رنگ‌ها، لینک‌های تلگرام، SEO
-- **پلن‌ها**: افزودن، ویرایش، حذف پلن‌های سرویس
-- **ویژگی‌ها**: ویژگی‌های نمایش داده شده در صفحه اصلی
-- **سوالات متداول**: FAQ با دسته‌بندی
-- **مقالات**: وبلاگ با SEO کامل
-- **آموزش‌ها**: راهنمای نصب برای پلتفرم‌های مختلف
-- **لوکیشن‌ها**: سرورهای موجود
-- **اطلاعیه‌ها**: وضعیت سرویس
-- **صفحات قانونی**: شرایط استفاده و حریم خصوصی
-- **مدیریت فایل**: آپلود تصاویر
-- **آمار کلیک**: تعداد کلیک‌های دکمه‌های تلگرام
-
-## متغیرهای محیطی
-
-| متغیر | توضیح | پیش‌فرض |
-|-------|-------|---------|
-| `SESSION_SECRET` | رمز رمزگذاری session | - |
-
-## پارامترهای اجرا
-
-| پارامتر | توضیح | پیش‌فرض |
-|---------|-------|---------|
-| `--addr` | آدرس listen | `:8080` |
-| `--db` | مسیر فایل SQLite | `./data/zedproxy.db` |
-| `--templates` | مسیر قالب‌ها | `./templates` |
-| `--static` | مسیر فایل‌های استاتیک | `./static` |
-| `--uploads` | مسیر آپلودها | `./static/uploads` |
-| `--secret` | رمز session | - |
-| `--dev` | حالت توسعه | `false` |
-| `--seed` | مقداردهی اولیه | `false` |
-| `--admin-user` | نام کاربری ادمین | `admin` |
-| `--admin-email` | ایمیل ادمین | - |
-| `--admin-pass` | رمز عبور ادمین | - |
-
-## مجوز
-
-MIT License

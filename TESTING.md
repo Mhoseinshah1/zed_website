@@ -1,264 +1,313 @@
-# ZedProxy — راهنمای تست و بررسی
+# ZedProxy — Testing Guide
 
-## نصب اولیه
+## Script Syntax Validation
 
 ```bash
-# روی سرور Ubuntu (به عنوان root یا با sudo):
-bash <(curl -fsSL https://raw.githubusercontent.com/mhoseinshah1/zed_website/main/install.sh)
+bash -n install.sh    # Must pass with no output
+bash -n update.sh     # Must pass with no output
+bash -n manage.sh     # Must pass with no output
+bash -n rollback.sh   # Must pass with no output
 ```
 
-پس از نصب، اطلاعات زیر نمایش داده می‌شود:
-- آدرس سایت
-- آدرس پنل مدیریت (`/zed-admin`)
-- نام کاربری و رمز عبور ادمین
-
----
-
-## بروزرسانی سایت
+## No Persian in Shell Scripts
 
 ```bash
-sudo bash /opt/zedproxy/update.sh
+grep -RInP '[\x{0600}-\x{06FF}]' --include='*.sh' .
+# Must return NO output
 ```
 
----
-
-## بررسی وضعیت سرویس
+## Go Build
 
 ```bash
-# وضعیت سرویس
-sudo systemctl status zedproxy
-
-# مشاهده لاگ زنده
-sudo journalctl -u zedproxy -f
-
-# ریستارت سرویس
-sudo systemctl restart zedproxy
+go mod tidy
+go build ./...
+# Must complete with no errors
 ```
 
 ---
 
-## تست Health Check
+## Installation Tests
+
+### Test 1: Manual admin credentials
 
 ```bash
-curl -s http://127.0.0.1:8080/health | python3 -m json.tool
+sudo bash install.sh
+# At prompts:
+#   Domain: example.com
+#   Admin username: myadmin
+#   Admin email: me@example.com
+#   Admin password: MySecure123!
+#   Telegram: N
 ```
 
-خروجی موردانتظار:
-```json
-{
-  "db": {"ok": true},
-  "status": "ok",
-  "timestamp": "...",
-  "version": "2.0.0"
-}
-```
+Expected: Final output shows `myadmin` / `me@example.com` / `MySecure123!`
 
----
-
-## تست صفحه اصلی
+### Test 2: Auto-generated credentials
 
 ```bash
-curl -I http://127.0.0.1:8080/
+sudo bash install.sh
+# At prompts:
+#   Domain: example.com
+#   Admin username: [press Enter]
+#   Admin email: [press Enter]
+#   Admin password: [press Enter]
+#   Telegram: N
 ```
 
-باید HTTP 200 برگرداند.
+Expected: Final output shows auto-generated username like `admin_a3f2b1`, default email `admin@zedproxy.com`, and a generated password.
 
----
-
-## تست صفحات عمومی
-
-| صفحه | آدرس | نتیجه موردانتظار |
-|------|------|------------------|
-| صفحه اصلی | `/` | 200 OK |
-| پلن‌ها | `/plans` | 200 OK |
-| آموزش‌ها | `/tutorials` | 200 OK |
-| سوالات متداول | `/faq` | 200 OK |
-| وبلاگ | `/blog` | 200 OK |
-| وضعیت سرویس | `/status` | 200 OK |
-| Sitemap | `/sitemap.xml` | 200 OK |
-| Robots.txt | `/robots.txt` | 200 OK |
-| Health | `/health` | 200 OK (JSON) |
-
----
-
-## تست پنل مدیریت
+### Test 3: Invalid then fallback
 
 ```bash
-# باز کردن در مرورگر:
-https://yourdomain.com/zed-admin
+sudo bash install.sh
+# Admin username: ab     <- too short, triggers auto-generation
+# Admin password: 123    <- too short, triggers auto-generation
 ```
 
-### چک‌لیست پنل مدیریت
+Expected: Warning shown, auto-generation used, credentials printed at end.
 
-- [ ] ورود با نام کاربری و رمز عبور
-- [ ] تنظیمات سایت — ذخیره و بررسی
-- [ ] پلن‌ها — افزودن، ویرایش، حذف
-- [ ] کمپین‌ها — افزودن با کد تخفیف و شمارش معکوس
-- [ ] صفحات فرود SEO — افزودن، بررسی `/l/slug`
-- [ ] اطلاعیه‌ها — افزودن و بررسی نمایش در صفحه اصلی
-- [ ] کدهای تخفیف — افزودن و بررسی نمایش در صفحه اصلی
-- [ ] وضعیت سرویس‌ها — افزودن آیتم و بررسی `/status`
-- [ ] کارت‌های اعتماد — افزودن و بررسی در صفحه اصلی
-- [ ] مقایسه پلن‌ها — افزودن ردیف و بررسی جدول
-- [ ] مدیریت بخش‌های صفحه اصلی — تغییر ترتیب/وضعیت
-- [ ] پاپ‌آپ فروش — افزودن و بررسی نمایش
-- [ ] آمار کلیک — بررسی داشبورد
-- [ ] رسانه — آپلود تصویر، ویرایش alt text
-- [ ] آموزش‌ها — افزودن با video_url
-- [ ] سوالات متداول — افزودن با show_on_homepage
-- [ ] مقالات وبلاگ — افزودن و بررسی در `/blog`
-- [ ] ادمین‌ها — افزودن (فقط owner)
-- [ ] پشتیبان — گرفتن، دانلود، حذف
-- [ ] حالت تعمیر — فعال/غیرفعال
+### Test 4: Verify credentials work
+
+After install, log in at `https://yourdomain.com/zed-admin` with the printed credentials.
 
 ---
 
-## تست کمپین و صفحه فرود
+## Server Manager Tests
+
+### Test: Script exists after install
 
 ```bash
-# کمپین (اگر slug = black-friday باشد):
-curl -I https://yourdomain.com/campaign/black-friday
-
-# صفحه فرود (اگر slug = vpn-iran باشد):
-curl -I https://yourdomain.com/l/vpn-iran
+ls -la /opt/zedproxy/manage.sh       # Must exist
+ls -la /usr/local/bin/zedproxy-manager  # Must be a symlink
+which zedproxy-manager               # Must return a path
 ```
 
----
-
-## تست ردیابی کلیک تلگرام
+### Test: Syntax
 
 ```bash
-# کلیک روی دکمه خرید (به Telegram ریدایرکت می‌شود):
-curl -I "http://127.0.0.1:8080/track?page=home&source=hero&plan=gold"
+bash -n /opt/zedproxy/manage.sh
 ```
 
-باید HTTP 302 و redirect به telegram برگرداند.
-
----
-
-## تست حالت تعمیر
-
-1. از پنل مدیریت، حالت تعمیر را فعال کنید
-2. آدرس سایت را در مرورگر باز کنید → باید صفحه تعمیر نمایش داده شود
-3. آدرس `/zed-admin` → ادمین‌ها هنوز دسترسی دارند
-4. حالت تعمیر را غیرفعال کنید → سایت طبیعی برمی‌گردد
-
----
-
-## تست پشتیبان‌گیری
+### Test: Run the manager
 
 ```bash
-# فایل‌های پشتیبان:
-ls -lh /opt/zedproxy/backups/
-ls -lh /opt/zedproxy/data/backups/
+sudo zedproxy-manager
+# Menu must appear with 44 options
+```
 
-# بررسی سلامت دیتابیس:
-sqlite3 /opt/zedproxy/data/zedproxy.db "PRAGMA integrity_check;"
+### Test: Maintenance off (option 10)
+
+```bash
+sudo zedproxy-manager
+# Select 10
+# Confirm
+# Expected: Maintenance disabled + service restarted
+```
+
+### Test: Reset admin (option 6)
+
+```bash
+sudo zedproxy-manager
+# Select 6
+# Enter username to reset
+# Press Enter for auto-generated password
+# Expected: New password shown once
+```
+
+### Test: Create admin (option 7)
+
+```bash
+sudo zedproxy-manager
+# Select 7
+# Enter new username
+# Enter email
+# Enter password
+# Expected: New owner admin created, credentials shown
+```
+
+### Test: Update from manager (option 11)
+
+```bash
+sudo zedproxy-manager
+# Select 11
+# Confirm
+# Expected: update.sh runs
 ```
 
 ---
 
-## چک‌لیست ایمنی بروزرسانی
-
-پس از اجرای `sudo bash /opt/zedproxy/update.sh` بررسی کنید:
-
-- [ ] دیتابیس دست نخورده: `ls -lh /opt/zedproxy/data/zedproxy.db`
-- [ ] آپلودها حفظ شده: `ls /opt/zedproxy/static/uploads/`
-- [ ] `.env` دست نخورده: `cat /opt/zedproxy/.env`
-- [ ] رمز عبور ادمین تغییر نکرده (ورود به پنل)
-- [ ] تنظیمات سایت حفظ شده (نام سایت، لینک‌های تلگرام و ...)
-- [ ] پشتیبان DB ایجاد شده: `ls /opt/zedproxy/backups/`
-
----
-
-## تست HEAD requests
+## CLI Tests
 
 ```bash
-curl -I http://127.0.0.1:8080/        # باید 200 برگرداند
-curl -I http://127.0.0.1:8080/plans   # باید 200 برگرداند
-curl -I http://127.0.0.1:8080/health  # باید 200 برگرداند
-```
+BIN=/opt/zedproxy/zedproxy
+DB="--db=/opt/zedproxy/data/zedproxy.db"
 
----
+# Version
+$BIN --version
 
-## تست حالت تعمیر (CLI)
+# Maintenance
+$BIN $DB --maintenance-status
+$BIN $DB --maintenance-on
+$BIN $DB --maintenance-status   # Should show ENABLED
+$BIN $DB --maintenance-off
+$BIN $DB --maintenance-status   # Should show disabled
 
-```bash
-# فعال کردن
-sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --maintenance-on
-
-# بررسی
-sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --maintenance-status
-
-# غیرفعال کردن
-sudo /opt/zedproxy/zedproxy --db=/opt/zedproxy/data/zedproxy.db --maintenance-off
-```
-
----
-
-## تست Self-Test
-
-```bash
-sudo /opt/zedproxy/zedproxy \
-  --db=/opt/zedproxy/data/zedproxy.db \
+# Self-test
+$BIN $DB --self-test \
   --templates=/opt/zedproxy/templates \
   --static=/opt/zedproxy/static \
-  --uploads=/opt/zedproxy/static/uploads \
-  --self-test
+  --uploads=/opt/zedproxy/static/uploads
+# Expected: === Self-test PASSED ===
+
+# Reset admin password
+$BIN $DB --reset-admin --admin-user="admin" --admin-pass="NewPass123!"
+# Expected: [✓] Admin credentials reset for user: admin
+
+# Create admin
+$BIN $DB --create-admin \
+  --admin-user="testadmin" \
+  --admin-email="test@example.com" \
+  --admin-pass="SecurePass123!" \
+  --role="owner"
+# Expected: [✓] Admin created: testadmin (role: owner)
 ```
 
 ---
 
-## بازیابی update.sh
+## Health Check Test
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/mhoseinshah1/zed_website/main/update.sh \
-  -o /opt/zedproxy/update.sh
-sudo chmod +x /opt/zedproxy/update.sh
+curl -s http://localhost:8080/health | python3 -m json.tool
+# Expected: {"status":"ok", "maintenance":false, ...}
 ```
 
 ---
 
-## Rollback
+## Telegram Tests
+
+> **Note:** Live API tests require a real bot token and group chat ID. Skip if unavailable.
+
+### Test: Telegram CLI (no token needed)
 
 ```bash
-sudo bash /opt/zedproxy/rollback.sh
+BIN=/opt/zedproxy/zedproxy
+DB="--db=/opt/zedproxy/data/zedproxy.db"
+
+$BIN $DB --telegram-status
+# Shows: enabled/disabled state, chat ID, bot username
+
+$BIN $DB --telegram-enable
+$BIN $DB --telegram-status   # Should show enabled: 1
+
+$BIN $DB --telegram-disable
+$BIN $DB --telegram-status   # Should show enabled: 0
+```
+
+### Test: Configure Telegram (requires real token)
+
+```bash
+$BIN $DB --telegram-set-token="YOUR_REAL_TOKEN"
+$BIN $DB --telegram-set-chat-id="-1001234567890"
+$BIN $DB --telegram-enable
+
+$BIN $DB --telegram-test
+# Expected: [✓] Bot: @yourbotname | Chat: Your Group (supergroup)
+
+$BIN $DB --telegram-send-test
+# Expected: [✓] Test message sent
+# Check: Test message appears in Telegram group
+```
+
+### Test: Create Persian forum topics
+
+```bash
+$BIN $DB --telegram-create-topics
+# Expected: [✓] Forum topics created
+# Check: 11 topics appear in Telegram group with Persian names
+```
+
+### Test: Daily report
+
+```bash
+$BIN $DB --send-daily-report
+# Expected: [✓] Daily report sent
+# Check: Report appears in daily_reports topic
+```
+
+### Test: Configure from admin panel
+
+1. Log in to `/zed-admin/integrations/telegram`
+2. Enter bot token (displayed masked after save)
+3. Enter Chat ID
+4. Enable bot
+5. Click "Test Connection" button
+6. Click "Send Test Message" button
+7. Click "Create Group Topics" button
+8. Verify topic list shows with thread IDs
+
+### Test: Configure from manager
+
+```bash
+sudo zedproxy-manager
+# Option 34: Telegram Bot Status
+# Option 35: Set bot token (hidden input)
+# Option 36: Set Chat ID
+# Option 37: Test connection
+# Option 38: Send test message
+# Option 39: Create topics
+# Option 40: Enable
+# Option 42: Send daily report
 ```
 
 ---
 
-## دستورات عیب‌یابی
+## Security Verification
 
 ```bash
-# وضعیت سرویس
-sudo systemctl status zedproxy
+# No secrets in logs
+journalctl -u zedproxy | grep -i token   # Should be empty
+journalctl -u zedproxy | grep -i password  # Should be empty
 
-# لاگ‌های اخیر
-sudo journalctl -u zedproxy -n 100 --no-pager
+# No Persian in shell scripts
+grep -RInP '[\x{0600}-\x{06FF}]' --include='*.sh' /opt/zedproxy/
+# Must return no output
 
-# لاگ زنده
-sudo journalctl -u zedproxy -f
+# .env permissions
+ls -la /opt/zedproxy/.env
+# Must be: -rw------- (600), owned by root
 
-# لاگ‌های بروزرسانی
-ls -lh /opt/zedproxy/logs/
-
-# تست دستی اجرای باینری
-sudo -u www-data /opt/zedproxy/zedproxy \
-  --addr=127.0.0.1:8081 \
-  --db=/opt/zedproxy/data/zedproxy.db \
-  --templates=/opt/zedproxy/templates \
-  --static=/opt/zedproxy/static \
-  --uploads=/opt/zedproxy/static/uploads \
-  --secret=test_secret_only
-
-# بررسی فایروال
-sudo ufw status
-
-# بررسی Nginx
-sudo nginx -t
-sudo systemctl status nginx
-
-# سلامت سیستم (پنل ادمین)
-# آدرس: /zed-admin/system/health
-# لاگ‌های سیستم: /zed-admin/system/logs
+# Token not in DB as plaintext (it IS stored, but only shown masked in UI)
+# Verify admin panel shows: 123456:ABC...xyz (masked)
 ```
+
+---
+
+## File Existence After Install
+
+```bash
+ls -la /opt/zedproxy/zedproxy          # binary
+ls -la /opt/zedproxy/data/zedproxy.db  # database
+ls -la /opt/zedproxy/update.sh         # update script
+ls -la /opt/zedproxy/manage.sh         # manager
+ls -la /opt/zedproxy/rollback.sh       # rollback
+ls -la /opt/zedproxy/.env              # env (600 permissions)
+ls -la /usr/local/bin/zedproxy-manager # symlink
+```
+
+---
+
+## Admin Panel Smoke Tests
+
+| URL | Expected |
+|---|---|
+| `/zed-admin/login` | Login page loads |
+| `/zed-admin` | Dashboard (after login) |
+| `/zed-admin/integrations/telegram` | Telegram config page |
+| `/zed-admin/system/health` | Health info |
+| `/zed-admin/system/logs` | System log table |
+| `/zed-admin/maintenance` | Maintenance toggle |
+| `/zed-admin/backups` | Backup list |
+| `/zed-admin/users` | Admin user list |
+| `/health` | JSON health response |
+| `/sitemap.xml` | Valid XML sitemap |
+| `/robots.txt` | Robots file |
