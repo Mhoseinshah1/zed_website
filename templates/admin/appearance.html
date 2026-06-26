@@ -1,0 +1,198 @@
+{{define "admin-content"}}
+<div class="space-y-6 max-w-4xl" dir="rtl">
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <h1 class="text-xl font-bold text-white">تنظیمات ظاهر پنل</h1>
+    <form method="post" action="/zed-admin/settings/appearance/reset" class="inline">
+      <button type="submit" class="btn-secondary text-sm text-yellow-400" onclick="return confirm('بازگشت به تنظیمات پیش‌فرض؟')">↩ بازگشت به پیش‌فرض</button>
+    </form>
+  </div>
+
+  {{if .FlashOK}}
+  <div class="bg-green-500/20 border border-green-500/40 text-green-400 px-4 py-3 rounded-xl text-sm">✓ {{.FlashOK}}</div>
+  {{end}}
+
+  <form method="post" action="/zed-admin/settings/appearance/save" class="space-y-5">
+
+    <!-- Theme Presets -->
+    <div class="admin-card p-5 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">🎨 پیش‌نمایش تم</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {{range .ThemePresets}}
+        <label class="cursor-pointer group">
+          <input type="radio" name="admin_theme_name" value="{{.ID}}" class="sr-only peer" {{if eq $.admin_theme_name .ID}}checked{{end}}>
+          <div class="border-2 border-white/10 rounded-xl p-3 text-center transition-all peer-checked:border-cyan-400 peer-checked:bg-cyan-500/10 hover:border-white/30">
+            <div class="w-full h-10 rounded-lg mb-2 flex items-center justify-center text-xs font-bold {{.Preview}}">
+              <span class="text-white/80">Aa</span>
+            </div>
+            <div class="text-xs text-gray-300">{{.Name}}</div>
+            <div class="w-4 h-4 rounded-full mx-auto mt-1.5" style="background-color: {{.AccentColor}}"></div>
+          </div>
+        </label>
+        {{end}}
+      </div>
+    </div>
+
+    <!-- Accent Color -->
+    <div class="admin-card p-5 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">🖌️ رنگ اصلی</h2>
+      <div class="flex items-center gap-4">
+        <input type="color" name="admin_accent_color" value="{{.admin_accent_color}}"
+          class="w-12 h-10 rounded-lg cursor-pointer bg-transparent border-0">
+        <input type="text" id="accentText" value="{{.admin_accent_color}}"
+          class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono w-36 focus:outline-none focus:border-cyan-500"
+          oninput="document.querySelector('[name=admin_accent_color]').value=this.value">
+        <span class="text-xs text-gray-500">مثال: #06b6d4</span>
+      </div>
+    </div>
+
+    <!-- Layout -->
+    <div class="admin-card p-5 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">📐 چیدمان</h2>
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="space-y-1">
+          <label class="text-xs text-gray-400">حالت سایدبار</label>
+          <select name="admin_sidebar_mode" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <option value="full" {{if eq .admin_sidebar_mode "full"}}selected{{end}}>کامل</option>
+            <option value="compact" {{if eq .admin_sidebar_mode "compact"}}selected{{end}}>فشرده</option>
+            <option value="icons" {{if eq .admin_sidebar_mode "icons"}}selected{{end}}>فقط آیکون</option>
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs text-gray-400">عرض سایدبار</label>
+          <select name="admin_sidebar_width" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <option value="narrow" {{if eq .admin_sidebar_width "narrow"}}selected{{end}}>باریک</option>
+            <option value="normal" {{if eq .admin_sidebar_width "normal"}}selected{{end}}>معمولی</option>
+            <option value="wide" {{if eq .admin_sidebar_width "wide"}}selected{{end}}>عریض</option>
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs text-gray-400">تراکم داشبورد</label>
+          <select name="admin_dashboard_density" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <option value="comfortable" {{if eq .admin_dashboard_density "comfortable"}}selected{{end}}>راحت</option>
+            <option value="compact" {{if eq .admin_dashboard_density "compact"}}selected{{end}}>فشرده</option>
+            <option value="spacious" {{if eq .admin_dashboard_density "spacious"}}selected{{end}}>فضادار</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Typography -->
+    <div class="admin-card p-5 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">🔤 متن و آیکون</h2>
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="space-y-1">
+          <label class="text-xs text-gray-400">سایز فونت</label>
+          <select name="admin_font_size" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <option value="small" {{if eq .admin_font_size "small"}}selected{{end}}>کوچک</option>
+            <option value="normal" {{if eq .admin_font_size "normal"}}selected{{end}}>معمولی</option>
+            <option value="large" {{if eq .admin_font_size "large"}}selected{{end}}>بزرگ</option>
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs text-gray-400">سایز آیکون</label>
+          <select name="admin_icon_size" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <option value="small" {{if eq .admin_icon_size "small"}}selected{{end}}>کوچک</option>
+            <option value="medium" {{if eq .admin_icon_size "medium"}}selected{{end}}>متوسط</option>
+            <option value="large" {{if eq .admin_icon_size "large"}}selected{{end}}>بزرگ</option>
+            <option value="xl" {{if eq .admin_icon_size "xl"}}selected{{end}}>خیلی بزرگ</option>
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs text-gray-400">سایز متن منو</label>
+          <select name="admin_menu_text_size" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <option value="small" {{if eq .admin_menu_text_size "small"}}selected{{end}}>کوچک</option>
+            <option value="medium" {{if eq .admin_menu_text_size "medium"}}selected{{end}}>متوسط</option>
+            <option value="large" {{if eq .admin_menu_text_size "large"}}selected{{end}}>بزرگ</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cards -->
+    <div class="admin-card p-5 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">🃏 کارت‌ها</h2>
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="space-y-1">
+          <label class="text-xs text-gray-400">گوشه‌های کارت</label>
+          <select name="admin_card_radius" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <option value="none" {{if eq .admin_card_radius "none"}}selected{{end}}>بدون گوشه</option>
+            <option value="md" {{if eq .admin_card_radius "md"}}selected{{end}}>کم</option>
+            <option value="xl" {{if eq .admin_card_radius "xl"}}selected{{end}}>متوسط</option>
+            <option value="2xl" {{if eq .admin_card_radius "2xl"}}selected{{end}}>زیاد</option>
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs text-gray-400">سایه کارت</label>
+          <select name="admin_card_shadow" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <option value="none" {{if eq .admin_card_shadow "none"}}selected{{end}}>بدون</option>
+            <option value="soft" {{if eq .admin_card_shadow "soft"}}selected{{end}}>ملایم</option>
+            <option value="medium" {{if eq .admin_card_shadow "medium"}}selected{{end}}>متوسط</option>
+            <option value="strong" {{if eq .admin_card_shadow "strong"}}selected{{end}}>قوی</option>
+            <option value="neon" {{if eq .admin_card_shadow "neon"}}selected{{end}}>نئون</option>
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs text-gray-400">حاشیه کارت</label>
+          <select name="admin_card_border" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <option value="none" {{if eq .admin_card_border "none"}}selected{{end}}>بدون</option>
+            <option value="subtle" {{if eq .admin_card_border "subtle"}}selected{{end}}>ظریف</option>
+            <option value="strong" {{if eq .admin_card_border "strong"}}selected{{end}}>قوی</option>
+            <option value="glow" {{if eq .admin_card_border "glow"}}selected{{end}}>درخشان</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Effects & Toggles -->
+    <div class="admin-card p-5 space-y-3">
+      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">✨ جلوه‌های بصری</h2>
+      <label class="flex items-center justify-between cursor-pointer py-1.5 border-b border-white/5">
+        <div>
+          <div class="text-sm text-gray-300">افکت شیشه‌ای</div>
+          <div class="text-xs text-gray-500">پس‌زمینه شفاف در کارت‌ها</div>
+        </div>
+        <input type="hidden" name="admin_glass_effect_enabled" value="0">
+        <input type="checkbox" name="admin_glass_effect_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .admin_glass_effect_enabled "1"}}checked{{end}}>
+      </label>
+      <label class="flex items-center justify-between cursor-pointer py-1.5 border-b border-white/5">
+        <div>
+          <div class="text-sm text-gray-300">انیمیشن‌ها</div>
+          <div class="text-xs text-gray-500">تراکنش‌ها و hover effects</div>
+        </div>
+        <input type="hidden" name="admin_animations_enabled" value="0">
+        <input type="checkbox" name="admin_animations_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .admin_animations_enabled "1"}}checked{{end}}>
+      </label>
+      <label class="flex items-center justify-between cursor-pointer py-1.5">
+        <div>
+          <div class="text-sm text-gray-300">حالت فشرده</div>
+          <div class="text-xs text-gray-500">کاهش فاصله‌ها برای نمایش بیشتر</div>
+        </div>
+        <input type="hidden" name="admin_compact_mode_enabled" value="0">
+        <input type="checkbox" name="admin_compact_mode_enabled" value="1" class="w-4 h-4 rounded accent-cyan-500" {{if eq .admin_compact_mode_enabled "1"}}checked{{end}}>
+      </label>
+    </div>
+
+    <!-- Custom Branding -->
+    <div class="admin-card p-5 space-y-4">
+      <h2 class="text-sm font-semibold text-gray-300 border-b border-white/10 pb-2">🏷️ برندینگ سفارشی</h2>
+      <div class="space-y-1">
+        <label class="text-xs text-gray-400">لوگو سفارشی (آدرس فایل)</label>
+        <input type="text" name="admin_custom_logo" value="{{.admin_custom_logo}}"
+          placeholder="/static/uploads/logo.png"
+          class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-cyan-500">
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs text-gray-400">پس‌زمینه سفارشی (رنگ CSS یا آدرس تصویر)</label>
+        <input type="text" name="admin_custom_background" value="{{.admin_custom_background}}"
+          placeholder="#0f172a یا /static/bg.jpg"
+          class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono focus:outline-none focus:border-cyan-500">
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit" class="btn-primary">💾 ذخیره تنظیمات</button>
+      <a href="/zed-admin" class="btn-secondary">انصراف</a>
+    </div>
+  </form>
+</div>
+{{end}}

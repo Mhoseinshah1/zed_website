@@ -184,6 +184,28 @@
           کاربران ادمین
         </a>
 
+        <div class="pt-3 pb-1 px-4 text-xs text-gray-600 font-bold uppercase tracking-wider">یکپارچه‌سازی</div>
+
+        <a href="/zed-admin/integrations/telegram" class="sidebar-item {{if eq .Section "telegram"}}active{{end}}">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+          تلگرام
+        </a>
+
+        <a href="/zed-admin/settings/appearance" class="sidebar-item {{if eq .Section "appearance"}}active{{end}}">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+          ظاهر پنل
+        </a>
+
+        <a href="/zed-admin/system/health" class="sidebar-item {{if eq .Section "system-health"}}active{{end}}">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          سلامت سیستم
+        </a>
+
+        <a href="/zed-admin/system/logs" class="sidebar-item {{if eq .Section "system-logs"}}active{{end}}">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          لاگ‌های سیستم
+        </a>
+
         <div class="pt-3 pb-1 px-4 text-xs text-gray-600 font-bold uppercase tracking-wider">حساب کاربری</div>
 
         <a href="/zed-admin/password" class="sidebar-item {{if eq .Section "password"}}active{{end}}">

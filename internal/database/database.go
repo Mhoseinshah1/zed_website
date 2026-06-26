@@ -405,8 +405,37 @@ func Migrate() {
 		{"telegram_admin_error_alerts_enabled", "1"},
 		{"telegram_admin_maintenance_alerts_enabled", "1"},
 		{"telegram_admin_admin_activity_enabled", "1"},
+		// Backup-to-Telegram settings
+		{"telegram_admin_send_db_zip_enabled", "0"},
+		{"telegram_admin_daily_db_backup_enabled", "0"},
+		{"telegram_admin_daily_db_backup_time", "02:00"},
+		{"telegram_admin_backup_before_update", "1"},
+		{"telegram_admin_backup_before_rollback", "1"},
 	}
 	for _, s := range tgDefaults {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
+	}
+
+	// Seed admin appearance settings defaults
+	appearanceDefaults := []struct{ key, val string }{
+		{"admin_theme_name", "zed-dark-neon"},
+		{"admin_accent_color", "#06b6d4"},
+		{"admin_sidebar_mode", "full"},
+		{"admin_sidebar_width", "normal"},
+		{"admin_icon_size", "medium"},
+		{"admin_menu_text_size", "medium"},
+		{"admin_font_size", "normal"},
+		{"admin_card_radius", "xl"},
+		{"admin_card_shadow", "soft"},
+		{"admin_card_border", "subtle"},
+		{"admin_glass_effect_enabled", "1"},
+		{"admin_animations_enabled", "1"},
+		{"admin_compact_mode_enabled", "0"},
+		{"admin_dashboard_density", "comfortable"},
+		{"admin_custom_logo", ""},
+		{"admin_custom_background", ""},
+	}
+	for _, s := range appearanceDefaults {
 		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
 	}
 

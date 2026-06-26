@@ -170,7 +170,9 @@ show_menu() {
   echo "  11) Run Website Update"
   echo "  12) Repair Missing update.sh"
   echo "  13) Rollback to Previous Release"
-  echo "  14) Create Backup"
+  echo "  14) Create ZIP DB Backup"
+  echo "  14t) Create ZIP Backup + Send to Telegram"
+  echo "  14f) Create Full ZIP Backup (db+uploads)"
   echo "  15) List Backups"
   echo "  16) Restore Backup"
   echo ""
@@ -376,16 +378,35 @@ action_rollback() {
 }
 
 action_backup() {
-  local ts
-  ts="$(date +%Y%m%d-%H%M%S)"
-  local dest="${INSTALL_DIR}/data/backups/manual-${ts}.db"
-  mkdir -p "${INSTALL_DIR}/data/backups"
-  if [[ ! -f "$DB_FILE" ]]; then
-    err "Database not found: $DB_FILE"
-    return
-  fi
-  cp "$DB_FILE" "$dest" && ok "Backup created: $dest" || err "Backup failed"
-  ls -lh "$dest"
+  ok "Creating ZIP database backup..."
+  "${INSTALL_DIR}/zedproxy" \
+    --db="$DB_FILE" \
+    --backups="${INSTALL_DIR}/data/backups" \
+    --create-db-backup 2>&1 || {
+      warn "ZIP backup failed, falling back to raw copy..."
+      local ts
+      ts="$(date +%Y%m%d-%H%M%S)"
+      local dest="${INSTALL_DIR}/data/backups/manual-${ts}.db"
+      mkdir -p "${INSTALL_DIR}/data/backups"
+      cp "$DB_FILE" "$dest" && ok "Raw backup created: $dest" || err "Backup failed"
+    }
+}
+
+action_backup_telegram() {
+  ok "Creating ZIP backup and sending to Telegram..."
+  "${INSTALL_DIR}/zedproxy" \
+    --db="$DB_FILE" \
+    --backups="${INSTALL_DIR}/data/backups" \
+    --send-db-backup-telegram 2>&1 && ok "Backup sent to Telegram" || warn "Telegram send failed (local backup kept)"
+}
+
+action_backup_full() {
+  ok "Creating full ZIP backup (db + uploads)..."
+  "${INSTALL_DIR}/zedproxy" \
+    --db="$DB_FILE" \
+    --backups="${INSTALL_DIR}/data/backups" \
+    --uploads="${INSTALL_DIR}/static/uploads" \
+    --create-full-backup 2>&1 && ok "Full backup created" || err "Full backup failed"
 }
 
 action_list_backups() {
@@ -716,6 +737,8 @@ main() {
       12) action_repair_update_sh ;;
       13) action_rollback ;;
       14) action_backup ;;
+      14t) action_backup_telegram ;;
+      14f) action_backup_full ;;
       15) action_list_backups ;;
       16) action_restore_backup ;;
       17) action_self_test ;;

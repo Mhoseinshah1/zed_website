@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
+	bkp "zedproxy/internal/backup"
 	"zedproxy/internal/database"
 	"zedproxy/internal/handlers"
 	"zedproxy/internal/middleware"
@@ -67,6 +68,12 @@ func main() {
 		telegramNotifyTitle  = flag.String("telegram-notify-title", "", "notification title (use with --telegram-notify-msg)")
 		telegramNotifyMsg    = flag.String("telegram-notify-msg", "", "notification message body")
 		telegramNotifyCat    = flag.String("telegram-notify-cat", "system_status", "notification category/topic key")
+
+		// Backup CLI flags
+		createDBBackup        = flag.Bool("create-db-backup", false, "create a ZIP database backup and exit")
+		createFullBackup      = flag.Bool("create-full-backup", false, "create a ZIP full backup (db+uploads) and exit")
+		sendDBBackupTelegram  = flag.Bool("send-db-backup-telegram", false, "create ZIP backup and send to Telegram and exit")
+		sendLatestBackupTG    = flag.Bool("send-latest-backup-telegram", false, "send the latest local ZIP backup to Telegram and exit")
 	)
 	flag.Parse()
 
@@ -194,6 +201,77 @@ func main() {
 		tg.Send(tg.LevelInfo, tg.Category(*telegramNotifyCat), *telegramNotifyTitle, *telegramNotifyMsg)
 		tg.ProcessQueue() // flush synchronously since we're exiting
 		fmt.Println("[✓] Notification sent")
+		return
+	}
+
+	// Backup CLI commands
+	if *createDBBackup || *sendDBBackupTelegram {
+		zipData, filename, err := bkp.CreateDBZip(*dbPath)
+		if err != nil {
+			fmt.Printf("[✗] Backup failed: %v\n", err)
+			os.Exit(1)
+		}
+		savedPath, err := bkp.SaveZipToDir(zipData, *backupDirFlag, filename)
+		if err != nil {
+			fmt.Printf("[✗] Save backup failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("[✓] DB backup created: %s\n", savedPath)
+		if *sendDBBackupTelegram {
+			caption := fmt.Sprintf("💾 بکاپ دیتابیس ZedProxy\nتاریخ: %s", time.Now().Format("2006/01/02 15:04"))
+			if err := tg.SendBackupToTelegram(zipData, filename, caption); err != nil {
+				fmt.Printf("[!] Telegram upload failed (local backup kept): %v\n", err)
+			} else {
+				fmt.Println("[✓] Backup sent to Telegram")
+			}
+		}
+		return
+	}
+	if *createFullBackup {
+		uploadsDir := *uploadDirFlag
+		zipData, filename, err := bkp.CreateFullZip(*dbPath, uploadsDir)
+		if err != nil {
+			fmt.Printf("[✗] Full backup failed: %v\n", err)
+			os.Exit(1)
+		}
+		savedPath, err := bkp.SaveZipToDir(zipData, *backupDirFlag, filename)
+		if err != nil {
+			fmt.Printf("[✗] Save full backup failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("[✓] Full backup created: %s\n", savedPath)
+		return
+	}
+	if *sendLatestBackupTG {
+		entries, err := os.ReadDir(*backupDirFlag)
+		if err != nil || len(entries) == 0 {
+			fmt.Println("[✗] No backups found in backup directory")
+			os.Exit(1)
+		}
+		var latest string
+		for i := len(entries) - 1; i >= 0; i-- {
+			name := entries[i].Name()
+			if !entries[i].IsDir() && (len(name) > 4 && name[len(name)-4:] == ".zip") {
+				latest = filepath.Join(*backupDirFlag, name)
+				break
+			}
+		}
+		if latest == "" {
+			fmt.Println("[✗] No ZIP backup files found")
+			os.Exit(1)
+		}
+		data, err := os.ReadFile(latest)
+		if err != nil {
+			fmt.Printf("[✗] Read backup failed: %v\n", err)
+			os.Exit(1)
+		}
+		filename := filepath.Base(latest)
+		caption := fmt.Sprintf("💾 بکاپ ZedProxy\nفایل: %s\nتاریخ: %s", filename, time.Now().Format("2006/01/02 15:04"))
+		if err := tg.SendBackupToTelegram(data, filename, caption); err != nil {
+			fmt.Printf("[!] Telegram upload failed (local backup kept): %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("[✓] Backup %s sent to Telegram\n", filename)
 		return
 	}
 
@@ -470,6 +548,11 @@ func main() {
 			protected.GET("/system/logs", handlers.AdminSystemLogsPage)
 			protected.GET("/system/health", handlers.AdminSystemHealthPage)
 
+			// Appearance settings
+			protected.GET("/settings/appearance", handlers.AdminAppearancePage)
+			protected.POST("/settings/appearance/save", handlers.AdminAppearanceSave)
+			protected.POST("/settings/appearance/reset", handlers.AdminAppearanceReset)
+
 			// Telegram Integration
 			integrations := protected.Group("/integrations")
 			{
@@ -480,6 +563,7 @@ func main() {
 				integrations.POST("/telegram/send-test", handlers.AdminTelegramSendTest)
 				integrations.POST("/telegram/create-topics", handlers.AdminTelegramCreateTopics)
 				integrations.POST("/telegram/daily-report", handlers.AdminTelegramSendDailyReport)
+				integrations.POST("/telegram/send-db-backup", handlers.AdminTelegramSendDBBackup)
 			}
 		}
 	}

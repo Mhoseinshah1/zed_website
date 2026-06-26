@@ -112,6 +112,19 @@ func AdminDashboard(c *gin.Context) {
 	data["TutorialCount"] = len(tutorials)
 	data["Title"] = "داشبورد مدیریت"
 
+	// System status cards
+	settings := models.GetAllSettings()
+	data["MaintenanceEnabled"] = settings["maintenance_enabled"]
+	data["TGBotEnabled"] = settings["telegram_admin_bot_enabled"]
+	data["TGBotUsername"] = settings["telegram_admin_bot_username"]
+	data["AppVersionDash"] = AppVersion
+
+	// Latest backup
+	backups, _ := models.GetAllBackups()
+	if len(backups) > 0 {
+		data["LastBackup"] = backups[len(backups)-1]
+	}
+
 	renderAdmin(c, "dashboard", data)
 }
 

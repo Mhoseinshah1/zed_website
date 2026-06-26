@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 
+	bkp "zedproxy/internal/backup"
 	"zedproxy/internal/database"
 	"zedproxy/internal/models"
 	tg "zedproxy/internal/telegram"
@@ -20,7 +23,6 @@ func AdminTelegramPage(c *gin.Context) {
 	data["Title"] = "یکپارچه‌سازی تلگرام"
 	data["Section"] = "telegram"
 
-	// Collect settings
 	settings := models.GetAllSettings()
 	data["TGEnabled"] = settings["telegram_admin_bot_enabled"]
 	data["TGChatID"] = settings["telegram_admin_chat_id"]
@@ -38,16 +40,20 @@ func AdminTelegramPage(c *gin.Context) {
 	data["TGMaintenance"] = settings["telegram_admin_maintenance_alerts_enabled"]
 	data["TGAdminActivity"] = settings["telegram_admin_admin_activity_enabled"]
 
+	// Backup-to-Telegram settings
+	data["TGSendDBZip"] = settings["telegram_admin_send_db_zip_enabled"]
+	data["TGDailyDBBackup"] = settings["telegram_admin_daily_db_backup_enabled"]
+	data["TGDailyDBBackupTime"] = settings["telegram_admin_daily_db_backup_time"]
+	data["TGBackupBeforeUpdate"] = settings["telegram_admin_backup_before_update"]
+	data["TGBackupBeforeRollback"] = settings["telegram_admin_backup_before_rollback"]
+
 	// Masked token
 	rawToken := settings["telegram_admin_bot_token"]
 	data["TGTokenMasked"] = maskToken(rawToken)
 	data["TGTokenSet"] = rawToken != ""
 
-	// Owner check for sensitive fields
-	role := ""
-	if v, ok := sess.Get("role").(string); ok {
-		role = v
-	}
+	// Owner check
+	role, _ := sess.Get("role").(string)
 	data["IsOwner"] = role == "owner" || role == ""
 
 	// Topics
@@ -98,10 +104,14 @@ func AdminTelegramPage(c *gin.Context) {
 	}
 	data["Notifications"] = notifs
 
-	// Flash
 	if f := sess.Get("flash_ok"); f != nil {
 		data["FlashOK"] = f.(string)
 		sess.Delete("flash_ok")
+		sess.Save()
+	}
+	if f := sess.Get("flash_err"); f != nil {
+		data["FlashErr"] = f.(string)
+		sess.Delete("flash_err")
 		sess.Save()
 	}
 
@@ -116,20 +126,38 @@ func AdminTelegramPage(c *gin.Context) {
 // AdminTelegramSave handles the settings form.
 func AdminTelegramSave(c *gin.Context) {
 	sess := sessions.Default(c)
-	role := ""
-	if v, ok := sess.Get("role").(string); ok {
-		role = v
-	}
+	role, _ := sess.Get("role").(string)
 	isOwner := role == "owner" || role == ""
 
 	// Only owner can change token / chat ID
 	if isOwner {
 		rawToken := strings.TrimSpace(c.PostForm("bot_token"))
-		if rawToken != "" && rawToken != "***" && !strings.HasSuffix(rawToken, "...") {
+		// Accept new token only if it's not empty and not a masked placeholder
+		if rawToken != "" && !strings.Contains(rawToken, "...") && rawToken != "***" {
+			// Validate token via getMe before saving
+			if _, err := tg.GetMe(rawToken); err != nil {
+				sess.Set("flash_err", "توکن نامعتبر است: "+err.Error())
+				sess.Save()
+				c.Redirect(http.StatusFound, "/zed-admin/integrations/telegram")
+				return
+			}
 			models.SetSetting("telegram_admin_bot_token", rawToken)
 		}
+
 		chatID := strings.TrimSpace(c.PostForm("chat_id"))
 		if chatID != "" {
+			// Validate chat ID
+			currentToken := models.GetSetting("telegram_admin_bot_token")
+			if currentToken != "" {
+				chat, err := tg.GetChat(currentToken, chatID)
+				if err != nil {
+					sess.Set("flash_err", "Chat ID نامعتبر است: "+err.Error())
+					sess.Save()
+					c.Redirect(http.StatusFound, "/zed-admin/integrations/telegram")
+					return
+				}
+				models.SetSetting("telegram_admin_group_title", chat.Title)
+			}
 			models.SetSetting("telegram_admin_chat_id", chatID)
 		}
 	}
@@ -152,11 +180,20 @@ func AdminTelegramSave(c *gin.Context) {
 	models.SetSetting("telegram_admin_maintenance_alerts_enabled", checkbox("maintenance_enabled"))
 	models.SetSetting("telegram_admin_admin_activity_enabled", checkbox("admin_activity_enabled"))
 
+	// Backup-to-Telegram toggles
+	models.SetSetting("telegram_admin_send_db_zip_enabled", checkbox("send_db_zip_enabled"))
+	models.SetSetting("telegram_admin_daily_db_backup_enabled", checkbox("daily_db_backup_enabled"))
+	models.SetSetting("telegram_admin_backup_before_update", checkbox("backup_before_update"))
+	models.SetSetting("telegram_admin_backup_before_rollback", checkbox("backup_before_rollback"))
+
 	if t := c.PostForm("daily_time"); t != "" {
 		models.SetSetting("telegram_admin_daily_report_time", t)
 	}
 	if tz := c.PostForm("daily_timezone"); tz != "" {
 		models.SetSetting("telegram_admin_daily_report_timezone", tz)
+	}
+	if t := c.PostForm("daily_db_backup_time"); t != "" {
+		models.SetSetting("telegram_admin_daily_db_backup_time", t)
 	}
 
 	sess.Set("flash_ok", "تنظیمات تلگرام ذخیره شد")
@@ -171,6 +208,13 @@ func AdminTelegramTest(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": false, "error": err.Error()})
 		return
 	}
+	// Update cached bot username after successful test
+	token := models.GetSetting("telegram_admin_bot_token")
+	if token != "" {
+		if me, err := tg.GetMe(token); err == nil && me != nil {
+			models.SetSetting("telegram_admin_bot_username", me.Username)
+		}
+	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "description": desc})
 }
 
@@ -181,7 +225,7 @@ func AdminTelegramSendTest(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"ok": true})
+	c.JSON(http.StatusOK, gin.H{"ok": true, "description": "پیام تست ارسال شد"})
 }
 
 // AdminTelegramCreateTopics creates forum topics in the group.
@@ -191,7 +235,7 @@ func AdminTelegramCreateTopics(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"ok": true})
+	c.JSON(http.StatusOK, gin.H{"ok": true, "description": "تاپیک‌های گروه ایجاد شدند"})
 }
 
 // AdminTelegramSendDailyReport sends today's daily report immediately.
@@ -201,7 +245,35 @@ func AdminTelegramSendDailyReport(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": false, "error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"ok": true})
+	c.JSON(http.StatusOK, gin.H{"ok": true, "description": "گزارش روزانه ارسال شد"})
+}
+
+// AdminTelegramSendDBBackup creates a ZIP backup and sends it to Telegram.
+func AdminTelegramSendDBBackup(c *gin.Context) {
+	dbp := resolveDBPath()
+	zipData, filename, err := bkp.CreateDBZip(dbp)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"ok": false, "error": "خطا در ایجاد بکاپ: " + err.Error()})
+		return
+	}
+
+	// Always save locally first
+	if _, err := bkp.SaveZipToDir(zipData, backupDir, filename); err != nil {
+		c.JSON(http.StatusOK, gin.H{"ok": false, "error": "خطا در ذخیره بکاپ: " + err.Error()})
+		return
+	}
+	models.RecordBackup(filename, int64(len(zipData)))
+
+	caption := fmt.Sprintf("💾 بکاپ دیتابیس ZedProxy\nتاریخ: %s", time.Now().Format("2006/01/02 15:04"))
+	if err := tg.SendBackupToTelegram(zipData, filename, caption); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"ok":          false,
+			"error":       "بکاپ ذخیره شد اما ارسال به تلگرام ناموفق بود: " + err.Error(),
+			"description": fmt.Sprintf("فایل محلی ذخیره شد: %s", filename),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "description": fmt.Sprintf("بکاپ %s ارسال شد", filename)})
 }
 
 // AdminTelegramDisable disables the bot.
