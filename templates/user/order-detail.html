@@ -6,39 +6,100 @@
   </div>
 
   {{if .Order}}
+  <!-- Status header -->
   <div class="u-card p-6">
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-start justify-between mb-4">
       <div>
-        <h2 class="text-base font-bold text-white mb-1">سفارش {{.Order.OrderNumber}}</h2>
+        <h2 class="text-base font-bold text-white mb-1">سفارش {{.Order.PublicID}}</h2>
         <p class="text-xs" style="color:var(--u-muted)">{{formatTime .Order.CreatedAt}}</p>
       </div>
-      {{if eq .Order.PaymentStatus "paid"}}<span class="badge badge-green">پرداخت شده</span>
-      {{else if eq .Order.PaymentStatus "pending"}}<span class="badge badge-yellow">در انتظار پرداخت</span>
-      {{else if eq .Order.PaymentStatus "failed"}}<span class="badge badge-red">ناموفق</span>
-      {{else if eq .Order.PaymentStatus "refunded"}}<span class="badge badge-purple">بازگشت وجه</span>
-      {{else}}<span class="badge badge-gray">{{.Order.PaymentStatus}}</span>{{end}}
+      {{if eq .Order.Status "pending_payment"}}<span class="badge badge-yellow">در انتظار پرداخت</span>
+      {{else if eq .Order.Status "payment_review"}}<span class="badge badge-blue">در حال بررسی پرداخت</span>
+      {{else if eq .Order.Status "paid"}}<span class="badge badge-green">پرداخت شده</span>
+      {{else if eq .Order.Status "provisioning_pending"}}<span class="badge badge-blue">در انتظار فعال‌سازی</span>
+      {{else if eq .Order.Status "completed"}}<span class="badge badge-green">تکمیل شده</span>
+      {{else if eq .Order.Status "canceled"}}<span class="badge badge-red">لغو شده</span>
+      {{else if eq .Order.Status "cancelled"}}<span class="badge badge-red">لغو شده</span>
+      {{else if eq .Order.Status "failed"}}<span class="badge badge-red">ناموفق</span>
+      {{else}}<span class="badge badge-gray">{{.Order.Status}}</span>{{end}}
     </div>
 
-    <div class="space-y-3">
-      <div class="flex justify-between py-3 text-sm" style="border-bottom:1px solid var(--u-border)">
-        <span style="color:var(--u-muted)">پلن</span>
-        <span class="font-semibold text-white">{{.Order.PlanName}}</span>
+    <div class="space-y-3 text-sm">
+      <div class="flex justify-between py-3" style="border-bottom:1px solid var(--u-border)">
+        <span style="color:var(--u-muted)">سرویس</span>
+        <span class="font-semibold text-white">{{.Order.ProductTitleSnapshot}}</span>
       </div>
-      <div class="flex justify-between py-3 text-sm" style="border-bottom:1px solid var(--u-border)">
+      <div class="flex justify-between py-3" style="border-bottom:1px solid var(--u-border)">
         <span style="color:var(--u-muted)">مبلغ</span>
-        <span class="font-bold text-white">{{.Order.Amount}} {{.Order.Currency}}</span>
+        <span class="font-bold text-white">{{.Order.PriceIRR}} تومان</span>
       </div>
-      <div class="flex justify-between py-3 text-sm" style="border-bottom:1px solid var(--u-border)">
-        <span style="color:var(--u-muted)">وضعیت سفارش</span>
-        <span class="text-white">{{.Order.OrderStatus}}</span>
+      <div class="flex justify-between py-3" style="border-bottom:1px solid var(--u-border)">
+        <span style="color:var(--u-muted)">آخرین بروزرسانی</span>
+        <span style="color:var(--u-muted)">{{formatTime .Order.UpdatedAt}}</span>
       </div>
-      {{if .Order.Notes}}
-      <div class="py-3 text-sm">
-        <p style="color:var(--u-muted)" class="mb-2">یادداشت</p>
-        <p class="text-white">{{.Order.Notes}}</p>
-      </div>
-      {{end}}
     </div>
+  </div>
+
+  <!-- Status messages -->
+  {{if eq .Order.Status "pending_payment"}}
+  <div class="u-card p-4 text-sm" style="background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2);color:#fbbf24">
+    سرویس شما پس از تایید پرداخت فعال می‌شود. لطفاً منتظر تایید تیم پشتیبانی باشید.
+  </div>
+  {{else if eq .Order.Status "payment_review"}}
+  <div class="u-card p-4 text-sm" style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);color:#93c5fd">
+    پرداخت شما در حال بررسی است. نتیجه به زودی اعلام می‌شود.
+  </div>
+  {{else if eq .Order.Status "provisioning_pending"}}
+  <div class="u-card p-4 text-sm" style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);color:#93c5fd">
+    سفارش شما تایید شده و در حال آماده‌سازی سرویس هستیم.
+  </div>
+  {{else if eq .Order.Status "completed"}}
+  <div class="u-card p-4 text-sm" style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);color:#4ade80">
+    سفارش شما تکمیل شد.
+  </div>
+  {{else if eq .Order.Status "canceled"}}
+  <div class="u-card p-4 text-sm" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#f87171">
+    این سفارش لغو شده است. برای اطلاعات بیشتر با پشتیبانی تماس بگیرید.
+  </div>
+  {{else if eq .Order.Status "failed"}}
+  <div class="u-card p-4 text-sm" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#f87171">
+    پردازش این سفارش با خطا مواجه شد. لطفاً با پشتیبانی تماس بگیرید.
+  </div>
+  {{end}}
+
+  <!-- Subscription info (if completed and URL exists) -->
+  {{if and (eq .Order.Status "completed") .Order.ManualSubscriptionURL}}
+  <div class="u-card p-5 space-y-3">
+    <h3 class="font-semibold text-white text-sm">اطلاعات سرویس</h3>
+    <div class="rounded-xl p-3 font-mono text-xs break-all" style="background:rgba(255,255,255,0.04);color:var(--u-text)">
+      {{.Order.ManualSubscriptionURL}}
+    </div>
+    {{if .Order.ManualServiceNote}}
+    <p class="text-xs" style="color:var(--u-muted)">{{.Order.ManualServiceNote}}</p>
+    {{end}}
+  </div>
+  {{else if eq .Order.Status "completed"}}
+  <div class="u-card p-4 text-sm text-center" style="color:var(--u-muted)">
+    سرویس شما پس از تایید پرداخت فعال می‌شود.
+  </div>
+  {{end}}
+
+  <!-- Admin note visible to user -->
+  {{if .Order.AdminNote}}
+  <div class="u-card p-4 text-sm" style="color:var(--u-muted)">
+    <span class="font-semibold text-white">یادداشت:</span> {{.Order.AdminNote}}
+  </div>
+  {{end}}
+
+  <!-- Support link -->
+  <div class="u-card p-4 text-center text-sm" style="color:var(--u-muted)">
+    سوالی دارید؟ <a href="/user/tickets/new" class="text-cyan-400 hover:underline">با پشتیبانی تماس بگیرید</a>
+  </div>
+
+  {{else}}
+  <div class="u-card p-12 text-center">
+    <p class="text-sm" style="color:var(--u-muted)">سفارش یافت نشد</p>
+    <a href="/user/orders" class="btn-secondary mt-4 inline-block px-4 py-2">بازگشت به سفارش‌ها</a>
   </div>
   {{end}}
 </div>

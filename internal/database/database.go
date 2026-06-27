@@ -346,6 +346,11 @@ func Migrate() {
 		`ALTER TABLE tutorials ADD COLUMN meta_title TEXT DEFAULT ''`,
 		`ALTER TABLE tutorials ADD COLUMN meta_description TEXT DEFAULT ''`,
 		`ALTER TABLE uploaded_files ADD COLUMN alt_text TEXT DEFAULT ''`,
+		// orders table additions for manual fulfillment and snapshot
+		`ALTER TABLE orders ADD COLUMN product_title_snapshot TEXT DEFAULT ''`,
+		`ALTER TABLE orders ADD COLUMN manual_subscription_url TEXT DEFAULT ''`,
+		`ALTER TABLE orders ADD COLUMN manual_service_note TEXT DEFAULT ''`,
+		`ALTER TABLE orders ADD COLUMN admin_note TEXT DEFAULT ''`,
 	}
 	for _, q := range alterQueries {
 		safeExec(q)

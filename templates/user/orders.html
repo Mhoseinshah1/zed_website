@@ -1,15 +1,27 @@
 {{template "user" .}}
 {{define "user-content"}}
 <div class="max-w-4xl">
+
+  {{if .FlashOK}}
+  <div class="u-card p-4 mb-4 text-sm" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#4ade80">
+    {{.FlashOK}}
+  </div>
+  {{end}}
+
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-lg font-bold text-white">سفارش‌های من</h2>
+    <a href="/plans" class="btn-primary text-sm px-4 py-2">خرید سرویس جدید</a>
+  </div>
+
   {{if .Orders}}
   <div class="u-card overflow-hidden">
     <table class="w-full text-sm">
       <thead>
         <tr style="border-bottom:1px solid var(--u-border)">
           <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">شماره سفارش</th>
-          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">پلن</th>
+          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">سرویس</th>
           <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">مبلغ</th>
-          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">وضعیت پرداخت</th>
+          <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">وضعیت</th>
           <th class="px-5 py-3 text-right text-xs font-bold" style="color:var(--u-muted)">تاریخ</th>
           <th class="px-5 py-3"></th>
         </tr>
@@ -17,19 +29,23 @@
       <tbody>
         {{range .Orders}}
         <tr style="border-bottom:1px solid rgba(255,255,255,0.04)" class="hover:bg-white/2">
-          <td class="px-5 py-4 font-mono text-xs text-white">{{.OrderNumber}}</td>
-          <td class="px-5 py-4 text-white font-medium">{{.PlanName}}</td>
-          <td class="px-5 py-4 text-white">{{.Amount}} {{.Currency}}</td>
+          <td class="px-5 py-4 font-mono text-xs text-white">{{.PublicID}}</td>
+          <td class="px-5 py-4 text-white font-medium">{{.ProductTitleSnapshot}}</td>
+          <td class="px-5 py-4 text-white">{{.PriceIRR}} تومان</td>
           <td class="px-5 py-4">
-            {{if eq .PaymentStatus "paid"}}<span class="badge badge-green">پرداخت شده</span>
-            {{else if eq .PaymentStatus "pending"}}<span class="badge badge-yellow">در انتظار</span>
-            {{else if eq .PaymentStatus "failed"}}<span class="badge badge-red">ناموفق</span>
-            {{else if eq .PaymentStatus "refunded"}}<span class="badge badge-purple">بازگشت وجه</span>
-            {{else}}<span class="badge badge-gray">{{.PaymentStatus}}</span>{{end}}
+            {{if eq .Status "pending_payment"}}<span class="badge badge-yellow">در انتظار پرداخت</span>
+            {{else if eq .Status "payment_review"}}<span class="badge badge-blue">بررسی پرداخت</span>
+            {{else if eq .Status "paid"}}<span class="badge badge-green">پرداخت شده</span>
+            {{else if eq .Status "provisioning_pending"}}<span class="badge badge-blue">در انتظار فعال‌سازی</span>
+            {{else if eq .Status "completed"}}<span class="badge badge-green">تکمیل شده</span>
+            {{else if eq .Status "canceled"}}<span class="badge badge-red">لغو شده</span>
+            {{else if eq .Status "cancelled"}}<span class="badge badge-red">لغو شده</span>
+            {{else if eq .Status "failed"}}<span class="badge badge-red">ناموفق</span>
+            {{else}}<span class="badge badge-gray">{{.Status}}</span>{{end}}
           </td>
           <td class="px-5 py-4 text-xs" style="color:var(--u-muted)">{{formatTime .CreatedAt}}</td>
           <td class="px-5 py-4">
-            <a href="/user/orders/{{.OrderNumber}}" class="btn-secondary text-xs px-3 py-1.5">جزئیات</a>
+            <a href="/user/orders/{{.PublicID}}" class="btn-secondary text-xs px-3 py-1.5">مشاهده سفارش</a>
           </td>
         </tr>
         {{end}}
@@ -40,7 +56,8 @@
   <div class="u-card p-12 text-center">
     <svg class="w-14 h-14 mx-auto mb-4" fill="none" stroke="currentColor" style="color:var(--u-muted)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
     <p class="text-white font-semibold mb-2">سفارشی وجود ندارد</p>
-    <p class="text-sm" style="color:var(--u-muted)">هنوز هیچ سفارشی ثبت نشده است</p>
+    <p class="text-sm mb-6" style="color:var(--u-muted)">هنوز هیچ سفارشی ثبت نشده است</p>
+    <a href="/plans" class="btn-primary px-6 py-3">خرید سرویس</a>
   </div>
   {{end}}
 </div>

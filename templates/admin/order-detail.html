@@ -1,0 +1,110 @@
+{{template "admin" .}}
+{{define "admin-content"}}
+<div class="space-y-5 max-w-3xl">
+  <div class="flex items-center gap-3">
+    <a href="/zed-admin/orders" class="btn-edit text-xs px-3 py-2">← بازگشت</a>
+    <h2 class="text-lg font-bold" style="color:var(--admin-text)">جزئیات سفارش</h2>
+  </div>
+
+  {{if .FlashOK}}
+  <div class="admin-card p-4 text-sm" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#4ade80">{{.FlashOK}}</div>
+  {{end}}
+  {{if .FlashErr}}
+  <div class="admin-card p-4 text-sm" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#f87171">{{.FlashErr}}</div>
+  {{end}}
+
+  {{if .Order}}
+  <!-- Order summary -->
+  <div class="admin-card p-5 space-y-3">
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-xs font-mono" style="color:var(--admin-muted)">{{.Order.PublicID}}</p>
+        <p class="text-xs mt-1" style="color:var(--admin-muted)">ثبت: {{formatTime .Order.CreatedAt}} — بروزرسانی: {{formatTime .Order.UpdatedAt}}</p>
+      </div>
+      {{if eq .Order.Status "pending_payment"}}<span class="badge badge-yellow">در انتظار پرداخت</span>
+      {{else if eq .Order.Status "payment_review"}}<span class="badge badge-blue">در حال بررسی پرداخت</span>
+      {{else if eq .Order.Status "paid"}}<span class="badge badge-green">پرداخت شده</span>
+      {{else if eq .Order.Status "provisioning_pending"}}<span class="badge badge-blue">در انتظار فعال‌سازی</span>
+      {{else if eq .Order.Status "completed"}}<span class="badge badge-green">تکمیل شده</span>
+      {{else if eq .Order.Status "canceled"}}<span class="badge badge-red">لغو شده</span>
+      {{else if eq .Order.Status "cancelled"}}<span class="badge badge-red">لغو شده</span>
+      {{else if eq .Order.Status "failed"}}<span class="badge badge-red">ناموفق</span>
+      {{else}}<span class="badge badge-gray">{{.Order.Status}}</span>{{end}}
+    </div>
+    <div class="grid grid-cols-2 gap-3 text-sm pt-2" style="border-top:1px solid var(--admin-border)">
+      <div>
+        <p class="text-xs mb-1" style="color:var(--admin-muted)">سرویس</p>
+        <p class="font-semibold" style="color:var(--admin-text)">{{.Order.ProductTitleSnapshot}}</p>
+      </div>
+      <div>
+        <p class="text-xs mb-1" style="color:var(--admin-muted)">مبلغ</p>
+        <p class="font-bold" style="color:var(--admin-text)">{{.Order.PriceIRR}} تومان</p>
+      </div>
+      <div>
+        <p class="text-xs mb-1" style="color:var(--admin-muted)">کاربر — ایمیل</p>
+        <p style="color:var(--admin-text)">{{if .Order.UserEmail}}{{.Order.UserEmail}}{{else}}<span style="color:var(--admin-muted)">—</span>{{end}}</p>
+      </div>
+      <div>
+        <p class="text-xs mb-1" style="color:var(--admin-muted)">کاربر — تلفن</p>
+        <p style="color:var(--admin-text)">{{if .Order.UserPhone}}{{.Order.UserPhone}}{{else}}<span style="color:var(--admin-muted)">—</span>{{end}}</p>
+      </div>
+      {{if .Order.ManualSubscriptionURL}}
+      <div class="col-span-2">
+        <p class="text-xs mb-1" style="color:var(--admin-muted)">لینک سرویس (فعلی)</p>
+        <p class="font-mono text-xs break-all" style="color:var(--admin-text)">{{.Order.ManualSubscriptionURL}}</p>
+      </div>
+      {{end}}
+      {{if .Order.ManualServiceNote}}
+      <div class="col-span-2">
+        <p class="text-xs mb-1" style="color:var(--admin-muted)">یادداشت سرویس (فعلی)</p>
+        <p class="text-xs" style="color:var(--admin-text)">{{.Order.ManualServiceNote}}</p>
+      </div>
+      {{end}}
+    </div>
+  </div>
+
+  <!-- Change status -->
+  <div class="admin-card p-5">
+    <h3 class="text-sm font-bold mb-3" style="color:var(--admin-text)">تغییر وضعیت</h3>
+    <form method="POST" action="/zed-admin/orders/{{.Order.ID}}/status" class="flex gap-3 flex-wrap">
+      <select name="status" class="form-input" style="max-width:240px">
+        <option value="pending_payment" {{if eq .Order.Status "pending_payment"}}selected{{end}}>در انتظار پرداخت</option>
+        <option value="payment_review" {{if eq .Order.Status "payment_review"}}selected{{end}}>در حال بررسی پرداخت</option>
+        <option value="paid" {{if eq .Order.Status "paid"}}selected{{end}}>پرداخت شده</option>
+        <option value="provisioning_pending" {{if eq .Order.Status "provisioning_pending"}}selected{{end}}>در انتظار فعال‌سازی</option>
+        <option value="completed" {{if eq .Order.Status "completed"}}selected{{end}}>تکمیل شده</option>
+        <option value="canceled" {{if eq .Order.Status "canceled"}}selected{{end}}>لغو شده</option>
+        <option value="failed" {{if eq .Order.Status "failed"}}selected{{end}}>ناموفق</option>
+      </select>
+      <button type="submit" class="btn-save">ذخیره وضعیت</button>
+    </form>
+  </div>
+
+  <!-- Admin note + manual fulfillment -->
+  <div class="admin-card p-5 space-y-4">
+    <h3 class="text-sm font-bold" style="color:var(--admin-text)">اطلاعات تکمیلی و یادداشت</h3>
+    <form method="POST" action="/zed-admin/orders/{{.Order.ID}}/note" class="space-y-3">
+      <div>
+        <label class="block text-xs mb-1" style="color:var(--admin-muted)">لینک اشتراک (برای کاربر نمایش داده می‌شود)</label>
+        <input type="text" name="manual_subscription_url" value="{{.Order.ManualSubscriptionURL}}" class="form-input w-full font-mono text-sm" placeholder="vless://... یا https://...">
+      </div>
+      <div>
+        <label class="block text-xs mb-1" style="color:var(--admin-muted)">یادداشت سرویس (برای کاربر نمایش داده می‌شود)</label>
+        <textarea name="manual_service_note" rows="2" class="form-input w-full text-sm" placeholder="راهنمای اتصال، لینک برنامه و ...">{{.Order.ManualServiceNote}}</textarea>
+      </div>
+      <div>
+        <label class="block text-xs mb-1" style="color:var(--admin-muted)">یادداشت داخلی ادمین (برای کاربر نمایش داده می‌شود)</label>
+        <textarea name="admin_note" rows="2" class="form-input w-full text-sm" placeholder="توضیحات برای کاربر...">{{.Order.AdminNote}}</textarea>
+      </div>
+      <button type="submit" class="btn-save">ذخیره اطلاعات</button>
+    </form>
+  </div>
+
+  {{else}}
+  <div class="admin-card p-12 text-center" style="color:var(--admin-muted)">
+    سفارش یافت نشد.
+    <a href="/zed-admin/orders" class="btn-edit mt-4 inline-block px-4 py-2">بازگشت</a>
+  </div>
+  {{end}}
+</div>
+{{end}}

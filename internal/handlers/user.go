@@ -174,19 +174,37 @@ func UserServiceDetailPage(c *gin.Context) {
 
 func UserOrdersPage(c *gin.Context) {
 	uid := currentUserID(c)
-	orders, _ := models.GetUserOrders(uid)
-	renderUser(c, "orders", map[string]interface{}{
+	// Show new product-based orders from the orders table
+	orders, _ := models.GetSalesOrdersByUserID(uid)
+	sess := sessions.Default(c)
+	data := map[string]interface{}{
 		"Title":  "سفارش‌های من",
 		"Orders": orders,
-	})
+	}
+	if f := sess.Get("flash_ok"); f != nil {
+		data["FlashOK"] = f.(string)
+		sess.Delete("flash_ok")
+		sess.Save()
+	}
+	renderUser(c, "orders", data)
 }
 
 func UserOrderDetailPage(c *gin.Context) {
 	uid := currentUserID(c)
-	number := c.Param("order_number")
-	order, err := models.GetUserOrderByNumber(number, uid)
+	publicID := c.Param("order_number")
+	order, err := models.GetSalesOrderByPublicID(publicID, uid)
 	if err != nil {
-		c.Redirect(http.StatusFound, "/user/orders")
+		// Fallback: try legacy user_orders table
+		legacy, legacyErr := models.GetUserOrderByNumber(publicID, uid)
+		if legacyErr != nil {
+			c.Redirect(http.StatusFound, "/user/orders")
+			return
+		}
+		renderUser(c, "order-detail-legacy", map[string]interface{}{
+			"Title":    "جزئیات سفارش",
+			"Legacy":   true,
+			"Order":    legacy,
+		})
 		return
 	}
 	renderUser(c, "order-detail", map[string]interface{}{

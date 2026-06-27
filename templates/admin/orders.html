@@ -1,3 +1,4 @@
+{{template "admin" .}}
 {{define "admin-content"}}
 <div class="space-y-4">
   <div class="flex items-center justify-between">
@@ -7,20 +8,16 @@
 
   <div class="admin-card p-4">
     <form method="GET" class="flex flex-wrap gap-3">
-      <input name="search" value="{{.Search}}" placeholder="جستجو شماره سفارش، ایمیل..." class="form-input" style="max-width:280px">
-      <select name="payment_status" class="form-input" style="max-width:160px">
-        <option value="">وضعیت پرداخت</option>
-        <option value="pending" {{if eq .PaymentStatus "pending"}}selected{{end}}>در انتظار</option>
-        <option value="paid" {{if eq .PaymentStatus "paid"}}selected{{end}}>پرداخت شده</option>
-        <option value="failed" {{if eq .PaymentStatus "failed"}}selected{{end}}>ناموفق</option>
-        <option value="refunded" {{if eq .PaymentStatus "refunded"}}selected{{end}}>استرداد</option>
-      </select>
-      <select name="order_status" class="form-input" style="max-width:160px">
-        <option value="">وضعیت سفارش</option>
-        <option value="pending" {{if eq .OrderStatus "pending"}}selected{{end}}>در انتظار</option>
-        <option value="processing" {{if eq .OrderStatus "processing"}}selected{{end}}>در حال پردازش</option>
-        <option value="completed" {{if eq .OrderStatus "completed"}}selected{{end}}>تکمیل شده</option>
-        <option value="cancelled" {{if eq .OrderStatus "cancelled"}}selected{{end}}>لغو شده</option>
+      <input name="search" value="{{.Search}}" placeholder="جستجو شناسه، ایمیل، سرویس..." class="form-input" style="max-width:280px">
+      <select name="status" class="form-input" style="max-width:200px">
+        <option value="">همه وضعیت‌ها</option>
+        <option value="pending_payment" {{if eq .StatusFilter "pending_payment"}}selected{{end}}>در انتظار پرداخت</option>
+        <option value="payment_review" {{if eq .StatusFilter "payment_review"}}selected{{end}}>در حال بررسی پرداخت</option>
+        <option value="paid" {{if eq .StatusFilter "paid"}}selected{{end}}>پرداخت شده</option>
+        <option value="provisioning_pending" {{if eq .StatusFilter "provisioning_pending"}}selected{{end}}>در انتظار فعال‌سازی</option>
+        <option value="completed" {{if eq .StatusFilter "completed"}}selected{{end}}>تکمیل شده</option>
+        <option value="canceled" {{if eq .StatusFilter "canceled"}}selected{{end}}>لغو شده</option>
+        <option value="failed" {{if eq .StatusFilter "failed"}}selected{{end}}>ناموفق</option>
       </select>
       <button type="submit" class="btn-save">فیلتر</button>
       <a href="/zed-admin/orders" class="btn-edit">پاک‌سازی</a>
@@ -32,39 +29,49 @@
     <table class="data-table">
       <thead>
         <tr>
-          <th>شماره سفارش</th>
+          <th>شناسه</th>
           <th>کاربر</th>
-          <th>پلن</th>
-          <th>مبلغ</th>
-          <th>وضعیت پرداخت</th>
-          <th>وضعیت سفارش</th>
+          <th>سرویس</th>
+          <th>مبلغ (تومان)</th>
+          <th>وضعیت</th>
           <th>تاریخ</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         {{range .Orders}}
         <tr>
-          <td class="font-mono text-sm">{{.OrderNumber}}</td>
-          <td>{{if .UserEmail}}{{.UserEmail}}{{else}}{{.UserPhone}}{{end}}</td>
-          <td>{{.PlanName}}</td>
-          <td class="font-bold">{{.Amount}} {{.Currency}}</td>
+          <td class="font-mono text-xs">{{.PublicID}}</td>
+          <td class="text-sm">{{if .UserEmail}}{{.UserEmail}}{{else}}{{.UserPhone}}{{end}}</td>
+          <td class="text-sm font-medium">{{.ProductTitleSnapshot}}</td>
+          <td class="font-bold">{{.PriceIRR}}</td>
           <td>
-            {{if eq .PaymentStatus "paid"}}<span class="badge badge-green">پرداخت شده</span>
-            {{else if eq .PaymentStatus "failed"}}<span class="badge badge-red">ناموفق</span>
-            {{else if eq .PaymentStatus "refunded"}}<span class="badge badge-yellow">استرداد</span>
-            {{else}}<span class="badge badge-gray">در انتظار</span>{{end}}
-          </td>
-          <td>
-            {{if eq .OrderStatus "completed"}}<span class="badge badge-green">تکمیل</span>
-            {{else if eq .OrderStatus "cancelled"}}<span class="badge badge-red">لغو</span>
-            {{else if eq .OrderStatus "processing"}}<span class="badge badge-blue">پردازش</span>
-            {{else}}<span class="badge badge-gray">در انتظار</span>{{end}}
+            {{if eq .Status "pending_payment"}}<span class="badge badge-yellow">در انتظار پرداخت</span>
+            {{else if eq .Status "payment_review"}}<span class="badge badge-blue">بررسی پرداخت</span>
+            {{else if eq .Status "paid"}}<span class="badge badge-green">پرداخت شده</span>
+            {{else if eq .Status "provisioning_pending"}}<span class="badge badge-blue">در انتظار فعال‌سازی</span>
+            {{else if eq .Status "completed"}}<span class="badge badge-green">تکمیل شده</span>
+            {{else if eq .Status "canceled"}}<span class="badge badge-red">لغو شده</span>
+            {{else if eq .Status "cancelled"}}<span class="badge badge-red">لغو شده</span>
+            {{else if eq .Status "failed"}}<span class="badge badge-red">ناموفق</span>
+            {{else}}<span class="badge badge-gray">{{.Status}}</span>{{end}}
           </td>
           <td class="text-sm" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</td>
+          <td><a href="/zed-admin/orders/{{.ID}}" class="btn-edit text-xs">مشاهده</a></td>
         </tr>
         {{end}}
       </tbody>
     </table>
+
+    {{if gt .Pages 1}}
+    <div class="flex justify-center gap-2 p-4">
+      {{range .PageNums}}
+      <a href="?page={{.}}&status={{$.StatusFilter}}&search={{$.Search}}"
+         class="px-3 py-1 rounded text-sm {{if eq . $.Page}}btn-save{{else}}btn-edit{{end}}">{{.}}</a>
+      {{end}}
+    </div>
+    {{end}}
+
     {{else}}
     <div class="p-16 text-center" style="color:var(--admin-muted)">
       <svg class="w-12 h-12 mx-auto mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>

@@ -483,6 +483,7 @@ func main() {
 	}
 
 	// ── Checkout & Payment routes ────────────────────────
+	r.GET("/checkout/:product_id", handlers.CheckoutPage)
 	r.POST("/checkout/:product_id", handlers.CheckoutCreate)
 	r.GET("/checkout/:order_id/pay", handlers.CheckoutPayPage)
 	r.POST("/webhook/nowpayments", handlers.NOWPaymentsWebhook)
@@ -736,15 +737,19 @@ func main() {
 			protected.POST("/products/save", handlers.AdminProductSave)
 			protected.POST("/products/:id/delete", handlers.AdminProductDelete)
 			protected.POST("/products/:id/toggle", handlers.AdminProductToggle)
+			// Orders
+			protected.GET("/orders", handlers.AdminOrdersPage)
 			protected.GET("/orders/:id", handlers.AdminOrderDetail)
+			protected.POST("/orders/:id/status", handlers.AdminOrderUpdateStatus)
+			protected.POST("/orders/:id/note", handlers.AdminOrderUpdateNote)
+			// Aliases
+			protected.GET("/sales/orders", func(c *gin.Context) { c.Redirect(http.StatusFound, "/zed-admin/orders") })
+			protected.GET("/users/orders", func(c *gin.Context) { c.Redirect(http.StatusFound, "/zed-admin/orders") })
 
 			// Payments
 			protected.GET("/payments/nowpayments", handlers.AdminNOWPaymentsPage)
 			protected.POST("/payments/nowpayments/save", handlers.AdminNOWPaymentsSave)
 			protected.POST("/payments/nowpayments/test", handlers.AdminNOWPaymentsTest)
-
-			// Orders
-			protected.GET("/orders", handlers.AdminOrdersPage)
 
 			// Wallets
 			protected.GET("/wallets", handlers.AdminWalletsPage)

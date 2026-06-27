@@ -1,0 +1,97 @@
+{{define "content"}}
+<div class="pt-24 pb-20 min-h-screen">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6">
+
+    {{if .Product}}
+    <div class="mb-8 text-center">
+      <h1 class="text-3xl font-black text-white mb-2">تایید سفارش</h1>
+      <p class="text-gray-400">اطلاعات سرویس انتخابی را بررسی و سفارش را تایید کنید</p>
+    </div>
+
+    <!-- Product summary -->
+    <div class="glass rounded-2xl p-6 mb-6 space-y-4">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1">
+          <h2 class="text-xl font-black text-white mb-1">{{.Product.Title}}</h2>
+          {{if .Product.Subtitle}}<p class="text-sm text-gray-400 mb-2">{{.Product.Subtitle}}</p>{{end}}
+          {{if .Product.Description}}<p class="text-sm text-gray-400">{{.Product.Description}}</p>{{end}}
+        </div>
+        {{if .Product.BadgeText}}
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex-shrink-0">{{.Product.BadgeText}}</span>
+        {{end}}
+      </div>
+
+      <!-- Specs -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4" style="border-top:1px solid rgba(255,255,255,0.08)">
+        {{if .Product.TrafficGB}}
+        <div class="glass rounded-xl p-3 text-center">
+          <div class="text-lg font-bold text-cyan-400">{{.Product.TrafficGB}} GB</div>
+          <div class="text-xs text-gray-400 mt-1">ترافیک</div>
+        </div>
+        {{end}}
+        {{if .Product.DurationDays}}
+        <div class="glass rounded-xl p-3 text-center">
+          <div class="text-lg font-bold text-purple-400">{{.Product.DurationDays}} روز</div>
+          <div class="text-xs text-gray-400 mt-1">مدت اشتراک</div>
+        </div>
+        {{end}}
+        {{if .Product.DeviceLimit}}
+        <div class="glass rounded-xl p-3 text-center">
+          <div class="text-lg font-bold text-green-400">{{.Product.DeviceLimit}}</div>
+          <div class="text-xs text-gray-400 mt-1">تعداد دستگاه</div>
+        </div>
+        {{end}}
+      </div>
+    </div>
+
+    <!-- Price -->
+    <div class="glass rounded-2xl p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-gray-400">قیمت سرویس</span>
+        <span class="text-2xl font-black text-white">{{.Product.PriceIRR}} تومان</span>
+      </div>
+      <div class="flex items-center justify-between pt-4 text-lg font-bold" style="border-top:1px solid rgba(255,255,255,0.08)">
+        <span class="text-white">مبلغ قابل پرداخت</span>
+        <span class="text-cyan-400">{{.Product.PriceIRR}} تومان</span>
+      </div>
+    </div>
+
+    <!-- Notice -->
+    <div class="rounded-xl p-4 mb-6 text-sm" style="background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.2);color:#fbbf24">
+      پرداخت آنلاین به‌زودی فعال می‌شود. پس از ثبت سفارش، وضعیت پرداخت و فعال‌سازی از پنل کاربری قابل پیگیری است.
+    </div>
+
+    <!-- Auth check -->
+    {{if .LoggedIn}}
+    <form method="POST" action="/checkout/{{.Product.ID}}">
+      <button type="submit" class="btn-primary w-full py-4 text-lg font-bold rounded-xl">
+        تایید و ثبت سفارش
+      </button>
+    </form>
+    {{else}}
+    <div class="space-y-3">
+      <a href="/auth/login?next=/checkout/{{.Product.ID}}"
+         class="btn-primary w-full py-4 text-lg font-bold rounded-xl flex items-center justify-center">
+        ورود و ادامه خرید
+      </a>
+      <a href="/auth/register?next=/checkout/{{.Product.ID}}"
+         class="glass w-full py-3 text-sm font-semibold rounded-xl flex items-center justify-center text-gray-300 hover:text-white transition-colors">
+        ثبت‌نام رایگان
+      </a>
+    </div>
+    {{end}}
+
+    <p class="text-center text-xs text-gray-500 mt-4">
+      با ثبت سفارش، قوانین و شرایط استفاده از سرویس را می‌پذیرید.
+    </p>
+
+    {{else}}
+    <div class="glass rounded-2xl p-12 text-center">
+      <p class="text-gray-400 text-lg mb-4">محصول یافت نشد</p>
+      <a href="/plans" class="btn-primary px-6 py-3 rounded-xl">مشاهده پلن‌ها</a>
+    </div>
+    {{end}}
+
+  </div>
+</div>
+{{end}}

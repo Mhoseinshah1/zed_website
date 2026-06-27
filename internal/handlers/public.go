@@ -45,13 +45,26 @@ func HomePage(c *gin.Context) {
 	renderPage(c, "home", data)
 }
 
+func getActiveProducts() []Product {
+	all, _ := getProducts()
+	var active []Product
+	for _, p := range all {
+		if p.IsActive {
+			active = append(active, p)
+		}
+	}
+	return active
+}
+
 func PlansPage(c *gin.Context) {
 	data := basePageData("plans")
 	plans, _ := models.GetActivePlans()
+	products := getActiveProducts()
 	comparisons, _ := models.GetAllPlanComparisons()
 	announcements, _ := models.GetActiveAnnouncements("plans")
 	settings := data["Settings"].(map[string]string)
 	data["Plans"] = plans
+	data["Products"] = products
 	data["Comparisons"] = comparisons
 	data["Announcements"] = announcements
 	data["Title"] = "پلن‌های ZedProxy - خرید اشتراک پروکسی"
