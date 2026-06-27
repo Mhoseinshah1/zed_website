@@ -188,8 +188,8 @@ func AdminTelegramSave(c *gin.Context) {
 	// Backup-to-Telegram toggles
 	models.SetSetting("telegram_admin_send_db_zip_enabled", checkbox("telegram_backup_db_zip_enabled"))
 	models.SetSetting("telegram_admin_daily_db_backup_enabled", checkbox("telegram_backup_daily_enabled"))
-	models.SetSetting("telegram_admin_backup_before_update", checkbox("backup_before_update"))
-	models.SetSetting("telegram_admin_backup_before_rollback", checkbox("backup_before_rollback"))
+	models.SetSetting("telegram_admin_backup_before_update", checkbox("telegram_backup_before_update_enabled"))
+	models.SetSetting("telegram_admin_backup_before_rollback", checkbox("telegram_backup_before_rollback_enabled"))
 
 	if t := c.PostForm("telegram_admin_daily_report_time"); t != "" {
 		models.SetSetting("telegram_admin_daily_report_time", t)
@@ -201,9 +201,9 @@ func AdminTelegramSave(c *gin.Context) {
 		models.SetSetting("telegram_admin_daily_db_backup_time", t)
 	}
 
-	LogAdminActivity(c, "telegram_settings_updated", "تنظیمات تلگرام ذخیره شد")
+	LogAdminActivity(c, "telegram_settings_saved", "تنظیمات تلگرام ذخیره شد")
 
-	sess.Set("flash_ok", "تنظیمات تلگرام ذخیره شد.")
+	sess.Set("flash_ok", "تنظیمات تلگرام با موفقیت ذخیره شد.")
 	sess.Save()
 	c.Redirect(http.StatusFound, "/zed-admin/integrations/telegram")
 }
