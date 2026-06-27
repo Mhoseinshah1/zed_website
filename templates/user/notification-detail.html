@@ -1,0 +1,19 @@
+{{define "user-content"}}
+<div class="max-w-2xl">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/user/notifications" class="text-sm" style="color:var(--u-muted)">← اعلان‌ها</a>
+  </div>
+  <div class="u-card p-6">
+    <div class="flex items-start justify-between mb-4">
+      <h1 class="text-base font-bold text-white">{{.Notification.Title}}</h1>
+      <span class="text-xs" style="color:var(--u-muted)">{{formatTime .Notification.CreatedAt}}</span>
+    </div>
+    <div class="text-sm leading-relaxed" style="color:var(--u-muted)">{{.Notification.Message}}</div>
+    {{if .Notification.LinkURL}}
+    <div class="mt-4">
+      <a href="{{.Notification.LinkURL}}" class="btn-primary text-sm">مشاهده</a>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

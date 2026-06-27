@@ -250,7 +250,12 @@ build_binary() {
   go mod download 2>&1 | sed 's/^/    /'
 
   detail "CGO_ENABLED=1 go build..."
-  CGO_ENABLED=1 go build -ldflags="-s -w" -o "$NEW_BINARY" .
+  _VER="$(git -C "$BUILD_DIR" describe --tags --always 2>/dev/null || echo 'unknown')"
+  _COMMIT="$(git -C "$BUILD_DIR" rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+  _DATE="$(date -u +%Y%m%dT%H%M%SZ)"
+  CGO_ENABLED=1 go build \
+    -ldflags="-s -w -X main.Version=${_VER} -X main.GitCommit=${_COMMIT} -X main.BuildDate=${_DATE}" \
+    -o "$NEW_BINARY" .
 
   if [[ ! -f "$NEW_BINARY" ]]; then
     error "Build failed: new binary was not created"
@@ -263,13 +268,43 @@ build_binary() {
 # ── Stop service ──────────────────────────────────────
 stop_service() {
   step "Stopping service"
-  if systemctl is-active --quiet "$SERVICE_NAME"; then
-    systemctl stop "$SERVICE_NAME"
-    sleep 2
-    info "Service $SERVICE_NAME stopped"
-  else
-    warn "Service $SERVICE_NAME was not running"
-  fi
+  systemctl stop "$SERVICE_NAME" 2>/dev/null || true
+  systemctl reset-failed "$SERVICE_NAME" 2>/dev/null || true
+  sleep 1
+
+  for i in $(seq 1 10); do
+    if ! ss -tlnp 2>/dev/null | grep -q ':8080 '; then
+      break
+    fi
+    PID="$(ss -tlnp 2>/dev/null | grep ':8080 ' | grep -oP 'pid=\K[0-9]+' | head -1 || true)"
+    if [[ -n "$PID" ]]; then
+      PROC="$(cat /proc/$PID/comm 2>/dev/null || echo unknown)"
+      if [[ "$PROC" == "zedproxy" ]]; then
+        kill "$PID" 2>/dev/null || true
+        detail "Killed stale zedproxy process (pid $PID)"
+      else
+        error "Port 8080 is held by $PROC (pid $PID), not zedproxy. Aborting."
+      fi
+    fi
+    sleep 1
+  done
+
+  info "Service $SERVICE_NAME stopped"
+}
+
+# ── Ensure required directories exist ─────────────────
+ensure_dirs() {
+  mkdir -p "${INSTALL_DIR}/static/uploads"
+  mkdir -p "${INSTALL_DIR}/static/uploads/images"
+  mkdir -p "${INSTALL_DIR}/static/uploads/videos"
+  mkdir -p "${INSTALL_DIR}/static/uploads/plans"
+  mkdir -p "${INSTALL_DIR}/static/uploads/blog"
+  mkdir -p "${INSTALL_DIR}/static/uploads/pages"
+  mkdir -p "${INSTALL_DIR}/static/uploads/tmp"
+  mkdir -p "${INSTALL_DIR}/logs"
+  mkdir -p "${INSTALL_DIR}/backups"
+  mkdir -p "${INSTALL_DIR}/data"
+  detail "Required directories ensured"
 }
 
 # ── Deploy ────────────────────────────────────────────
@@ -507,6 +542,7 @@ create_backups
 notify_update_start
 clone_repo
 build_binary
+ensure_dirs
 stop_service
 deploy_binary
 deploy_templates

@@ -1,0 +1,57 @@
+{{define "admin-content"}}
+<div class="space-y-4">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-bold" style="color:var(--admin-text)">محصولات</h2>
+    <a href="/zed-admin/products/new" class="btn-save">+ محصول جدید</a>
+  </div>
+
+  {{if .FlashOK}}<div class="admin-alert-ok">{{.FlashOK}}</div>{{end}}
+  {{if .FlashErr}}<div class="admin-alert-err">{{.FlashErr}}</div>{{end}}
+
+  <div class="admin-card overflow-hidden">
+    {{if .Products}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>عنوان</th>
+          <th>قیمت (تومان)</th>
+          <th>مدت (روز)</th>
+          <th>ترافیک (GB)</th>
+          <th>دسته</th>
+          <th>وضعیت</th>
+          <th>عملیات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Products}}
+        <tr>
+          <td>
+            <span class="font-semibold">{{.Title}}</span>
+            {{if .BadgeText}}<span class="badge badge-yellow mr-2">{{.BadgeText}}</span>{{end}}
+          </td>
+          <td>{{.PriceIRR}}</td>
+          <td>{{.DurationDays}}</td>
+          <td>{{.TrafficGB}}</td>
+          <td>{{.Category}}</td>
+          <td>
+            {{if .IsActive}}<span class="badge badge-green">فعال</span>{{else}}<span class="badge badge-gray">غیرفعال</span>{{end}}
+          </td>
+          <td class="flex gap-2">
+            <a href="/zed-admin/products/{{.ID}}/edit" class="btn-edit text-xs">ویرایش</a>
+            <form method="POST" action="/zed-admin/products/{{.ID}}/delete" onsubmit="return confirm('حذف شود؟')">
+              <button type="submit" class="btn-delete text-xs">حذف</button>
+            </form>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="p-16 text-center" style="color:var(--admin-muted)">
+      <p class="text-lg font-semibold">هنوز محصولی تعریف نشده است.</p>
+      <a href="/zed-admin/products/new" class="btn-save mt-4 inline-block">ایجاد محصول اول</a>
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}

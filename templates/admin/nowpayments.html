@@ -1,0 +1,71 @@
+{{define "admin-content"}}
+<div class="max-w-xl space-y-6">
+  <h2 class="text-lg font-bold" style="color:var(--admin-text)">درگاه NOWPayments</h2>
+
+  {{if .FlashOK}}<div class="admin-alert-ok">{{.FlashOK}}</div>{{end}}
+  {{if .FlashErr}}<div class="admin-alert-err">{{.FlashErr}}</div>{{end}}
+
+  <form method="POST" action="/zed-admin/payments/nowpayments/save" class="space-y-5">
+    <div class="admin-card p-5 space-y-4">
+      <div class="flex items-center gap-4">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="nowpayments_enabled" value="1" {{if eq .NPEnabled "1"}}checked{{end}}>
+          <span>فعال‌سازی NOWPayments</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="nowpayments_sandbox" value="1" {{if eq .NPSandbox "1"}}checked{{end}}>
+          <span>حالت آزمایشی (Sandbox)</span>
+        </label>
+      </div>
+      <div>
+        <label class="form-label">API Key {{if .NPAPIKeySet}}<span class="badge badge-green">تنظیم شده</span>{{end}}</label>
+        <input type="password" name="nowpayments_api_key" class="form-input w-full" placeholder="کلید API (خالی = بدون تغییر)">
+      </div>
+      <div>
+        <label class="form-label">IPN Secret (خالی = بدون تغییر)</label>
+        <input type="password" name="nowpayments_ipn_secret" class="form-input w-full">
+      </div>
+      <div>
+        <label class="form-label">ارز پرداخت</label>
+        <input type="text" name="nowpayments_pay_currency" value="{{.NPPayCurrency}}" class="form-input w-full" placeholder="usdttrc20">
+      </div>
+      <div>
+        <label class="form-label">آدرس موفقیت پرداخت</label>
+        <input type="url" name="nowpayments_success_url" value="{{.NPSuccessURL}}" class="form-input w-full">
+      </div>
+      <div>
+        <label class="form-label">آدرس لغو پرداخت</label>
+        <input type="url" name="nowpayments_cancel_url" value="{{.NPCancelURL}}" class="form-input w-full">
+      </div>
+    </div>
+
+    <div class="admin-card p-5 space-y-4">
+      <h3 class="font-bold">نرخ ارز USD/IRR</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">منبع نرخ</label>
+          <select name="usd_irr_rate_provider" class="form-input w-full">
+            <option value="manual" {{if eq .USDIRRProvider "manual"}}selected{{end}}>دستی</option>
+            <option value="exchangerate-api" {{if eq .USDIRRProvider "exchangerate-api"}}selected{{end}}>exchangerate-api (خودکار)</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">نرخ دستی (ریال/دلار)</label>
+          <input type="number" name="usd_irr_rate_manual" value="{{.USDIRRRate}}" class="form-input w-full" min="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit" class="btn-save">ذخیره</button>
+      <button type="button" onclick="testNP()" class="btn-edit">تست اتصال</button>
+    </div>
+  </form>
+</div>
+<script>
+function testNP() {
+  fetch('/zed-admin/payments/nowpayments/test', {method:'POST'})
+    .then(r=>r.json()).then(d=>alert(d.ok ? '✓ '+d.description : '✗ '+d.error));
+}
+</script>
+{{end}}

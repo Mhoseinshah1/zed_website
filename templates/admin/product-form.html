@@ -1,0 +1,86 @@
+{{define "admin-content"}}
+<div class="max-w-2xl">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/zed-admin/products" class="btn-edit text-sm">← بازگشت</a>
+    <h2 class="text-lg font-bold" style="color:var(--admin-text)">{{if .IsNew}}محصول جدید{{else}}ویرایش محصول{{end}}</h2>
+  </div>
+
+  <form method="POST" action="/zed-admin/products/save" class="space-y-4">
+    {{if not .IsNew}}<input type="hidden" name="id" value="{{.Product.ID}}">{{end}}
+
+    <div class="admin-card p-5 space-y-4">
+      <div>
+        <label class="form-label">عنوان *</label>
+        <input type="text" name="title" value="{{.Product.Title}}" required class="form-input w-full">
+      </div>
+      <div>
+        <label class="form-label">زیرعنوان</label>
+        <input type="text" name="subtitle" value="{{.Product.Subtitle}}" class="form-input w-full">
+      </div>
+      <div>
+        <label class="form-label">توضیحات</label>
+        <textarea name="description" class="form-input w-full" rows="3">{{.Product.Description}}</textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">قیمت (ریال)</label>
+          <input type="number" name="price_irr" value="{{.Product.PriceIRR}}" class="form-input w-full" min="0">
+        </div>
+        <div>
+          <label class="form-label">قیمت (USD)</label>
+          <input type="number" name="price_usd" value="{{.Product.PriceUSD}}" class="form-input w-full" min="0" step="0.01">
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-4">
+        <div>
+          <label class="form-label">مدت (روز)</label>
+          <input type="number" name="duration_days" value="{{.Product.DurationDays}}" class="form-input w-full" min="1">
+        </div>
+        <div>
+          <label class="form-label">ترافیک (GB)</label>
+          <input type="number" name="traffic_gb" value="{{.Product.TrafficGB}}" class="form-input w-full" min="0">
+        </div>
+        <div>
+          <label class="form-label">تعداد دستگاه</label>
+          <input type="number" name="device_limit" value="{{.Product.DeviceLimit}}" class="form-input w-full" min="1">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">دسته‌بندی</label>
+          <select name="category" class="form-input w-full">
+            <option value="month_1" {{if eq .Product.Category "month_1"}}selected{{end}}>۱ ماهه</option>
+            <option value="month_3" {{if eq .Product.Category "month_3"}}selected{{end}}>۳ ماهه</option>
+            <option value="month_6" {{if eq .Product.Category "month_6"}}selected{{end}}>۶ ماهه</option>
+            <option value="month_12" {{if eq .Product.Category "month_12"}}selected{{end}}>۱۲ ماهه</option>
+            <option value="special" {{if eq .Product.Category "special"}}selected{{end}}>ویژه</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">برچسب</label>
+          <input type="text" name="badge_text" value="{{.Product.BadgeText}}" class="form-input w-full" placeholder="پرفروش">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">ترتیب نمایش</label>
+        <input type="number" name="sort_order" value="{{.Product.SortOrder}}" class="form-input w-full" min="0">
+      </div>
+      <div class="flex gap-6">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="is_active" value="1" {{if .Product.IsActive}}checked{{end}}>
+          <span class="form-label mb-0">فعال</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="is_featured" value="1" {{if .Product.IsFeatured}}checked{{end}}>
+          <span class="form-label mb-0">ویژه</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit" class="btn-save">ذخیره</button>
+      <a href="/zed-admin/products" class="btn-edit">انصراف</a>
+    </div>
+  </form>
+</div>
+{{end}}

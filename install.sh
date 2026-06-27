@@ -269,6 +269,19 @@ install_scripts() {
     ln -sf "$INSTALL_DIR/manage.sh" /usr/local/bin/zedproxy-manager
     info "manage.sh installed"
     info "Server manager shortcut: sudo zedproxy-manager"
+
+    cat > /usr/local/bin/zedproxy-doctor << 'WRAPPER'
+#!/bin/bash
+exec /opt/zedproxy/zedproxy --doctor "$@"
+WRAPPER
+    chmod +x /usr/local/bin/zedproxy-doctor
+
+    cat > /usr/local/bin/zedproxy-repair << 'WRAPPER'
+#!/bin/bash
+exec /opt/zedproxy/zedproxy --repair "$@"
+WRAPPER
+    chmod +x /usr/local/bin/zedproxy-repair
+    info "Installed: zedproxy-doctor, zedproxy-repair"
   else
     warn "manage.sh not found in project — downloading from GitHub..."
     curl -fsSL "https://raw.githubusercontent.com/mhoseinshah1/zed_website/main/manage.sh" \

@@ -178,6 +178,8 @@ show_menu() {
   echo ""
   echo -e "${WHITE}  Diagnostics${NC}"
   echo "  17) Run Self-Test"
+  echo "  17d) Run Doctor (full health check)"
+  echo "  17r) Run Repair (fix dirs + restart)"
   echo "  18) Show Health Check"
   echo "  19) Check SQLite Database"
   echo "  20) Repair SQLite Database"
@@ -722,6 +724,8 @@ main() {
       15) action_list_backups ;;
       16) action_restore_backup ;;
       17) action_self_test ;;
+      17d) run_cli --doctor 2>&1 ;;
+      17r) confirm "Run repair?" && run_cli --repair 2>&1 ;;
       18) action_health_check ;;
       19) action_check_db ;;
       20) action_repair_db ;;
