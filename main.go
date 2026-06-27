@@ -80,15 +80,15 @@ func main() {
 	)
 	flag.Parse()
 
-	// Init DB
-	database.Init(*dbPath)
-	tg.SeedDefaultTopics()
-
-	// Version
+	// Version must work without DB/migrations
 	if *versionFlag {
 		fmt.Printf("ZedProxy %s (build %s, commit %s)\n", Version, BuildDate, GitCommit)
 		return
 	}
+
+	// Init DB
+	database.Init(*dbPath)
+	tg.SeedDefaultTopics()
 
 	// Inject Telegram sender into doctor package (avoids import cycle)
 	doctor.SetTelegramSender(func(title, message, category string) {

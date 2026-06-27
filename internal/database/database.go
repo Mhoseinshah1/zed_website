@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -30,9 +31,40 @@ func Init(dbPath string) {
 	Migrate()
 }
 
+// tableExists returns true if the named table exists.
+func tableExists(name string) bool {
+	var count int
+	DB.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", name).Scan(&count)
+	return count > 0
+}
+
+// columnExists returns true if table.column exists.
+func columnExists(table, column string) bool {
+	var count int
+	DB.QueryRow("SELECT COUNT(*) FROM pragma_table_info(?) WHERE name=?", table, column).Scan(&count)
+	return count > 0
+}
+
+// ensureColumn adds column to table only if both table and column don't already exist.
+// It is a no-op if the table doesn't exist (prevents crashes on ALTER before CREATE).
+func ensureColumn(table, column, alterSQL string) {
+	if !tableExists(table) {
+		return
+	}
+	if columnExists(table, column) {
+		return
+	}
+	if _, err := DB.Exec(alterSQL); err != nil {
+		msg := err.Error()
+		if strings.Contains(msg, "duplicate column name") || strings.Contains(msg, "already exists") {
+			return
+		}
+		log.Fatalf("migration failed adding %s.%s: %v\nQuery: %s", table, column, err, alterSQL)
+	}
+}
+
 func safeExec(query string) {
 	if _, err := DB.Exec(query); err != nil {
-		// Ignore "duplicate column name" and "already exists" errors
 		msg := err.Error()
 		if strings.Contains(msg, "duplicate column name") ||
 			strings.Contains(msg, "already exists") {
@@ -43,7 +75,7 @@ func safeExec(query string) {
 }
 
 func Migrate() {
-	// Core tables (idempotent)
+	// ── Step 1: Core tables (always idempotent) ─────────────────────
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS admins (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -165,8 +197,6 @@ func Migrate() {
 			alt_text TEXT DEFAULT '',
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
-
-		// New tables for 20 advanced features
 		`CREATE TABLE IF NOT EXISTS announcements (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			message TEXT NOT NULL,
@@ -228,7 +258,7 @@ func Migrate() {
 			discount_code TEXT DEFAULT '',
 			discount_percent INTEGER DEFAULT 0,
 			countdown_at DATETIME,
-			cta_text TEXT DEFAULT 'خرید از ربات تلگرام',
+			cta_text TEXT DEFAULT '',
 			image TEXT DEFAULT '',
 			meta_title TEXT DEFAULT '',
 			meta_description TEXT DEFAULT '',
@@ -251,7 +281,7 @@ func Migrate() {
 			hero_title TEXT DEFAULT '',
 			hero_subtitle TEXT DEFAULT '',
 			content TEXT DEFAULT '',
-			cta_text TEXT DEFAULT 'خرید از ربات تلگرام',
+			cta_text TEXT DEFAULT '',
 			featured_image TEXT DEFAULT '',
 			meta_title TEXT DEFAULT '',
 			meta_description TEXT DEFAULT '',
@@ -265,7 +295,7 @@ func Migrate() {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			title TEXT NOT NULL,
 			message TEXT DEFAULT '',
-			cta_text TEXT DEFAULT 'خرید از ربات',
+			cta_text TEXT DEFAULT '',
 			show_after_seconds INTEGER DEFAULT 5,
 			exit_intent INTEGER DEFAULT 0,
 			once_per_session INTEGER DEFAULT 1,
@@ -331,151 +361,11 @@ func Migrate() {
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 	}
-
 	for _, q := range queries {
 		safeExec(q)
 	}
 
-	// Safe ALTER TABLE migrations for existing tables
-	alterQueries := []string{
-		`ALTER TABLE admins ADD COLUMN role TEXT NOT NULL DEFAULT 'owner'`,
-		`ALTER TABLE db_backups ADD COLUMN backup_type TEXT DEFAULT 'database'`,
-		`ALTER TABLE faqs ADD COLUMN show_on_homepage INTEGER DEFAULT 0`,
-		`ALTER TABLE faqs ADD COLUMN show_on_faq INTEGER DEFAULT 1`,
-		`ALTER TABLE tutorials ADD COLUMN video_url TEXT DEFAULT ''`,
-		`ALTER TABLE tutorials ADD COLUMN meta_title TEXT DEFAULT ''`,
-		`ALTER TABLE tutorials ADD COLUMN meta_description TEXT DEFAULT ''`,
-		`ALTER TABLE uploaded_files ADD COLUMN alt_text TEXT DEFAULT ''`,
-		// orders table additions for manual fulfillment and snapshot
-		`ALTER TABLE orders ADD COLUMN product_title_snapshot TEXT DEFAULT ''`,
-		`ALTER TABLE orders ADD COLUMN manual_subscription_url TEXT DEFAULT ''`,
-		`ALTER TABLE orders ADD COLUMN manual_service_note TEXT DEFAULT ''`,
-		`ALTER TABLE orders ADD COLUMN admin_note TEXT DEFAULT ''`,
-	}
-	for _, q := range alterQueries {
-		safeExec(q)
-	}
-
-	// Seed homepage sections if empty
-	var count int
-	DB.QueryRow("SELECT COUNT(*) FROM homepage_sections").Scan(&count)
-	if count == 0 {
-		sections := []struct {
-			key       string
-			title     string
-			sortOrder int
-		}{
-			{"hero", "بخش هیرو", 1},
-			{"announcement", "اطلاعیه", 2},
-			{"discount", "کد تخفیف", 3},
-			{"features", "ویژگی‌ها", 4},
-			{"plans", "پلن‌ها", 5},
-			{"comparison", "مقایسه پلن‌ها", 6},
-			{"tutorials", "آموزش‌ها", 7},
-			{"faq", "سوالات متداول", 8},
-			{"trust", "اعتمادسازی", 9},
-			{"status", "وضعیت سرویس", 10},
-			{"blog", "وبلاگ", 11},
-			{"final_cta", "دعوت به اقدام نهایی", 12},
-		}
-		for _, s := range sections {
-			active := 1
-			if s.key == "comparison" || s.key == "discount" || s.key == "announcement" {
-				active = 0
-			}
-			DB.Exec("INSERT INTO homepage_sections (section_key, title, sort_order, is_active) VALUES (?,?,?,?)",
-				s.key, s.title, s.sortOrder, active)
-		}
-	}
-
-	// Seed maintenance_enabled default (idempotent)
-	DB.Exec("INSERT INTO settings (key, value) VALUES ('maintenance_enabled', '0') ON CONFLICT(key) DO NOTHING")
-
-	// Seed Telegram admin bot settings defaults
-	tgDefaults := []struct{ key, val string }{
-		{"telegram_admin_bot_enabled", "0"},
-		{"telegram_admin_bot_token", ""},
-		{"telegram_admin_chat_id", ""},
-		{"telegram_admin_group_title", ""},
-		{"telegram_admin_bot_username", ""},
-		{"telegram_admin_daily_report_enabled", "0"},
-		{"telegram_admin_daily_report_time", "09:00"},
-		{"telegram_admin_daily_report_timezone", "Asia/Tehran"},
-		{"telegram_admin_last_daily_report_date", ""},
-		{"telegram_admin_alerts_enabled", "1"},
-		{"telegram_admin_security_alerts_enabled", "1"},
-		{"telegram_admin_update_alerts_enabled", "1"},
-		{"telegram_admin_backup_alerts_enabled", "1"},
-		{"telegram_admin_analytics_enabled", "0"},
-		{"telegram_admin_error_alerts_enabled", "1"},
-		{"telegram_admin_maintenance_alerts_enabled", "1"},
-		{"telegram_admin_admin_activity_enabled", "1"},
-		// Backup-to-Telegram settings
-		{"telegram_admin_send_db_zip_enabled", "0"},
-		{"telegram_admin_daily_db_backup_enabled", "0"},
-		{"telegram_admin_daily_db_backup_time", "02:00"},
-		{"telegram_admin_backup_before_update", "1"},
-		{"telegram_admin_backup_before_rollback", "1"},
-	}
-	for _, s := range tgDefaults {
-		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
-	}
-
-	// Seed admin appearance settings defaults
-	appearanceDefaults := []struct{ key, val string }{
-		{"admin_theme_name", "zed-dark-neon"},
-		{"admin_accent_color", "#06b6d4"},
-		{"admin_background_color", "#0d0d16"},
-		{"admin_sidebar_color", "#0f0f1a"},
-		{"admin_card_color", "#1a1a2e"},
-		{"admin_text_color", "#f1f5f9"},
-		{"admin_muted_text_color", "#94a3b8"},
-		{"admin_border_color", "rgba(255,255,255,0.1)"},
-		{"admin_button_color", "#06b6d4"},
-		{"admin_hover_color", "rgba(255,255,255,0.07)"},
-		{"admin_sidebar_mode", "full"},
-		{"admin_sidebar_width", "normal"},
-		{"admin_icon_size", "medium"},
-		{"admin_menu_text_size", "medium"},
-		{"admin_font_size", "normal"},
-		{"admin_card_radius", "xl"},
-		{"admin_card_shadow", "soft"},
-		{"admin_card_border", "subtle"},
-		{"admin_glass_effect_enabled", "1"},
-		{"admin_animations_enabled", "1"},
-		{"admin_compact_mode_enabled", "0"},
-		{"admin_dashboard_density", "comfortable"},
-		{"admin_custom_logo", ""},
-		{"admin_custom_background", ""},
-	}
-	for _, s := range appearanceDefaults {
-		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
-	}
-
-	// Seed public site appearance settings defaults
-	siteAppearanceDefaults := []struct{ key, val string }{
-		{"site_theme_name", "default"},
-		{"site_accent_color", "#6366f1"},
-		{"site_background_color", "#0a0a0f"},
-		{"site_card_color", "rgba(255,255,255,0.05)"},
-		{"site_text_color", "#e2e8f0"},
-		{"site_muted_text_color", "#94a3b8"},
-		{"site_border_color", "rgba(255,255,255,0.1)"},
-		{"site_button_color", "#6366f1"},
-		{"site_hover_color", "rgba(255,255,255,0.05)"},
-		{"site_hero_style", "gradient"},
-		{"site_card_radius", "xl"},
-		{"site_card_shadow", "medium"},
-		{"site_glass_effect_enabled", "1"},
-		{"site_animations_enabled", "1"},
-		{"site_custom_logo", ""},
-		{"site_custom_background", ""},
-	}
-	for _, s := range siteAppearanceDefaults {
-		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
-	}
-
-	// ── Customer User System ─────────────────────────
+	// ── Step 2: User system tables ───────────────────────────────────
 	userTables := []string{
 		`CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -637,7 +527,6 @@ func Migrate() {
 			note TEXT NOT NULL,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
-		// Indexes
 		`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`,
 		`CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone)`,
 		`CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id)`,
@@ -657,48 +546,81 @@ func Migrate() {
 		safeExec(q)
 	}
 
-	// Seed internal API key for bot callbacks
-	DB.Exec("INSERT INTO settings (key, value) VALUES ('internal_api_key', '') ON CONFLICT(key) DO NOTHING")
-	// Seed customer bot username
-	DB.Exec("INSERT INTO settings (key, value) VALUES ('customer_telegram_bot_username', '') ON CONFLICT(key) DO NOTHING")
-
-	// Email / SMTP settings
-	smtpDefaults := [][2]string{
-		{"smtp_enabled", "0"},
-		{"smtp_host", ""},
-		{"smtp_port", "587"},
-		{"smtp_username", ""},
-		{"smtp_password", ""},
-		{"smtp_from_email", ""},
-		{"smtp_from_name", "ZedProxy"},
-		{"smtp_use_tls", "1"},
-		{"email_verification_code_ttl_minutes", "5"},
-		{"email_verification_resend_cooldown_seconds", "60"},
-		{"email_verification_max_attempts", "5"},
+	// ── Step 3: Products, orders, marzban tables ─────────────────────
+	// IMPORTANT: orders must be created here, BEFORE the ALTER TABLE
+	// migrations in Step 4. The full current schema is defined here so
+	// fresh installs never need the ALTER TABLE path for these columns.
+	productTables := []string{
+		`CREATE TABLE IF NOT EXISTS products (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			title TEXT NOT NULL,
+			subtitle TEXT DEFAULT '',
+			description TEXT DEFAULT '',
+			price_irr INTEGER NOT NULL DEFAULT 0,
+			price_usd REAL DEFAULT 0,
+			duration_days INTEGER NOT NULL DEFAULT 30,
+			traffic_gb INTEGER NOT NULL DEFAULT 10,
+			device_limit INTEGER NOT NULL DEFAULT 1,
+			category TEXT DEFAULT 'month_1',
+			badge_text TEXT DEFAULT '',
+			icon_path TEXT DEFAULT '',
+			is_active INTEGER NOT NULL DEFAULT 1,
+			is_featured INTEGER NOT NULL DEFAULT 0,
+			sort_order INTEGER NOT NULL DEFAULT 0,
+			marzban_panel_id INTEGER DEFAULT NULL,
+			marzban_data_limit_gb INTEGER DEFAULT 0,
+			marzban_expire_days INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		// Full schema includes all columns so fresh installs need no ALTER TABLE
+		`CREATE TABLE IF NOT EXISTS orders (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			public_id TEXT UNIQUE NOT NULL,
+			user_id INTEGER NOT NULL,
+			product_id INTEGER NOT NULL,
+			product_title_snapshot TEXT DEFAULT '',
+			status TEXT NOT NULL DEFAULT 'pending_payment',
+			price_irr INTEGER NOT NULL DEFAULT 0,
+			price_usd REAL DEFAULT 0,
+			usd_irr_rate REAL DEFAULT 0,
+			fx_provider TEXT DEFAULT '',
+			fx_timestamp DATETIME DEFAULT NULL,
+			payment_gateway TEXT DEFAULT '',
+			payment_id TEXT DEFAULT '',
+			payment_status TEXT DEFAULT '',
+			payment_raw_json TEXT DEFAULT '',
+			marzban_panel_id INTEGER DEFAULT NULL,
+			marzban_username TEXT DEFAULT '',
+			subscription_url TEXT DEFAULT '',
+			manual_subscription_url TEXT DEFAULT '',
+			manual_service_note TEXT DEFAULT '',
+			admin_note TEXT DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY(user_id) REFERENCES users(id),
+			FOREIGN KEY(product_id) REFERENCES products(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS marzban_panels (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			base_url TEXT NOT NULL,
+			username TEXT NOT NULL,
+			password_enc TEXT NOT NULL,
+			is_enabled INTEGER NOT NULL DEFAULT 1,
+			is_default INTEGER NOT NULL DEFAULT 0,
+			notes TEXT DEFAULT '',
+			last_tested_at DATETIME DEFAULT NULL,
+			last_test_ok INTEGER DEFAULT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
-	for _, kv := range smtpDefaults {
-		DB.Exec("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING", kv[0], kv[1])
+	for _, q := range productTables {
+		safeExec(q)
 	}
 
-	// Email verification codes table
-	DB.Exec(`CREATE TABLE IF NOT EXISTS email_verification_codes (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-		email TEXT NOT NULL,
-		code_hash TEXT NOT NULL,
-		purpose TEXT NOT NULL DEFAULT 'register',
-		attempts INTEGER NOT NULL DEFAULT 0,
-		max_attempts INTEGER NOT NULL DEFAULT 5,
-		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		expires_at DATETIME NOT NULL,
-		used_at DATETIME,
-		sent_at DATETIME,
-		ip_hash TEXT
-	)`)
-	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_email_verification_user ON email_verification_codes(user_id)`)
-	DB.Exec(`CREATE INDEX IF NOT EXISTS idx_email_verification_email ON email_verification_codes(email)`)
-
-	// New tables for admin features
+	// ── Step 4: Other new tables ─────────────────────────────────────
 	newTables := []string{
 		`CREATE TABLE IF NOT EXISTS testimonials (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -733,8 +655,153 @@ func Migrate() {
 		safeExec(q)
 	}
 
-	// Seed new settings
-	newSettings := []struct{ key, val string }{
+	// Email verification codes
+	safeExec(`CREATE TABLE IF NOT EXISTS email_verification_codes (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		email TEXT NOT NULL,
+		code_hash TEXT NOT NULL,
+		purpose TEXT NOT NULL DEFAULT 'register',
+		attempts INTEGER NOT NULL DEFAULT 0,
+		max_attempts INTEGER NOT NULL DEFAULT 5,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		expires_at DATETIME NOT NULL,
+		used_at DATETIME,
+		sent_at DATETIME,
+		ip_hash TEXT
+	)`)
+	safeExec(`CREATE INDEX IF NOT EXISTS idx_email_verification_user ON email_verification_codes(user_id)`)
+	safeExec(`CREATE INDEX IF NOT EXISTS idx_email_verification_email ON email_verification_codes(email)`)
+
+	// ── Step 5: Additive column migrations (idempotent, table-safe) ──
+	// These handle existing databases that were created before certain
+	// columns were added to the CREATE TABLE schemas above.
+	// ensureColumn is a no-op if the table or column already exists.
+	ensureColumn("admins", "role",
+		`ALTER TABLE admins ADD COLUMN role TEXT NOT NULL DEFAULT 'owner'`)
+	ensureColumn("db_backups", "backup_type",
+		`ALTER TABLE db_backups ADD COLUMN backup_type TEXT DEFAULT 'database'`)
+	ensureColumn("faqs", "show_on_homepage",
+		`ALTER TABLE faqs ADD COLUMN show_on_homepage INTEGER DEFAULT 0`)
+	ensureColumn("faqs", "show_on_faq",
+		`ALTER TABLE faqs ADD COLUMN show_on_faq INTEGER DEFAULT 1`)
+	ensureColumn("tutorials", "video_url",
+		`ALTER TABLE tutorials ADD COLUMN video_url TEXT DEFAULT ''`)
+	ensureColumn("tutorials", "meta_title",
+		`ALTER TABLE tutorials ADD COLUMN meta_title TEXT DEFAULT ''`)
+	ensureColumn("tutorials", "meta_description",
+		`ALTER TABLE tutorials ADD COLUMN meta_description TEXT DEFAULT ''`)
+	ensureColumn("uploaded_files", "alt_text",
+		`ALTER TABLE uploaded_files ADD COLUMN alt_text TEXT DEFAULT ''`)
+	// Orders columns: safe because productTables (Step 3) creates orders first
+	ensureColumn("orders", "product_title_snapshot",
+		`ALTER TABLE orders ADD COLUMN product_title_snapshot TEXT DEFAULT ''`)
+	ensureColumn("orders", "manual_subscription_url",
+		`ALTER TABLE orders ADD COLUMN manual_subscription_url TEXT DEFAULT ''`)
+	ensureColumn("orders", "manual_service_note",
+		`ALTER TABLE orders ADD COLUMN manual_service_note TEXT DEFAULT ''`)
+	ensureColumn("orders", "admin_note",
+		`ALTER TABLE orders ADD COLUMN admin_note TEXT DEFAULT ''`)
+
+	// ── Step 6: Settings seeds (idempotent) ─────────────────────────
+	DB.Exec("INSERT INTO settings (key, value) VALUES ('maintenance_enabled', '0') ON CONFLICT(key) DO NOTHING")
+	DB.Exec("INSERT INTO settings (key, value) VALUES ('internal_api_key', '') ON CONFLICT(key) DO NOTHING")
+	DB.Exec("INSERT INTO settings (key, value) VALUES ('customer_telegram_bot_username', '') ON CONFLICT(key) DO NOTHING")
+
+	for _, kv := range [][2]string{
+		{"telegram_admin_bot_enabled", "0"},
+		{"telegram_admin_bot_token", ""},
+		{"telegram_admin_chat_id", ""},
+		{"telegram_admin_group_title", ""},
+		{"telegram_admin_bot_username", ""},
+		{"telegram_admin_daily_report_enabled", "0"},
+		{"telegram_admin_daily_report_time", "09:00"},
+		{"telegram_admin_daily_report_timezone", "Asia/Tehran"},
+		{"telegram_admin_last_daily_report_date", ""},
+		{"telegram_admin_alerts_enabled", "1"},
+		{"telegram_admin_security_alerts_enabled", "1"},
+		{"telegram_admin_update_alerts_enabled", "1"},
+		{"telegram_admin_backup_alerts_enabled", "1"},
+		{"telegram_admin_analytics_enabled", "0"},
+		{"telegram_admin_error_alerts_enabled", "1"},
+		{"telegram_admin_maintenance_alerts_enabled", "1"},
+		{"telegram_admin_admin_activity_enabled", "1"},
+		{"telegram_admin_send_db_zip_enabled", "0"},
+		{"telegram_admin_daily_db_backup_enabled", "0"},
+		{"telegram_admin_daily_db_backup_time", "02:00"},
+		{"telegram_admin_backup_before_update", "1"},
+		{"telegram_admin_backup_before_rollback", "1"},
+	} {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", kv[0], kv[1])
+	}
+
+	for _, kv := range [][2]string{
+		{"admin_theme_name", "zed-dark-neon"},
+		{"admin_accent_color", "#06b6d4"},
+		{"admin_background_color", "#0d0d16"},
+		{"admin_sidebar_color", "#0f0f1a"},
+		{"admin_card_color", "#1a1a2e"},
+		{"admin_text_color", "#f1f5f9"},
+		{"admin_muted_text_color", "#94a3b8"},
+		{"admin_border_color", "rgba(255,255,255,0.1)"},
+		{"admin_button_color", "#06b6d4"},
+		{"admin_hover_color", "rgba(255,255,255,0.07)"},
+		{"admin_sidebar_mode", "full"},
+		{"admin_sidebar_width", "normal"},
+		{"admin_icon_size", "medium"},
+		{"admin_menu_text_size", "medium"},
+		{"admin_font_size", "normal"},
+		{"admin_card_radius", "xl"},
+		{"admin_card_shadow", "soft"},
+		{"admin_card_border", "subtle"},
+		{"admin_glass_effect_enabled", "1"},
+		{"admin_animations_enabled", "1"},
+		{"admin_compact_mode_enabled", "0"},
+		{"admin_dashboard_density", "comfortable"},
+		{"admin_custom_logo", ""},
+		{"admin_custom_background", ""},
+	} {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", kv[0], kv[1])
+	}
+
+	for _, kv := range [][2]string{
+		{"site_theme_name", "default"},
+		{"site_accent_color", "#6366f1"},
+		{"site_background_color", "#0a0a0f"},
+		{"site_card_color", "rgba(255,255,255,0.05)"},
+		{"site_text_color", "#e2e8f0"},
+		{"site_muted_text_color", "#94a3b8"},
+		{"site_border_color", "rgba(255,255,255,0.1)"},
+		{"site_button_color", "#6366f1"},
+		{"site_hover_color", "rgba(255,255,255,0.05)"},
+		{"site_hero_style", "gradient"},
+		{"site_card_radius", "xl"},
+		{"site_card_shadow", "medium"},
+		{"site_glass_effect_enabled", "1"},
+		{"site_animations_enabled", "1"},
+		{"site_custom_logo", ""},
+		{"site_custom_background", ""},
+	} {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", kv[0], kv[1])
+	}
+
+	for _, kv := range [][2]string{
+		{"smtp_enabled", "0"},
+		{"smtp_host", ""},
+		{"smtp_port", "587"},
+		{"smtp_username", ""},
+		{"smtp_password", ""},
+		{"smtp_from_email", ""},
+		{"smtp_from_name", "ZedProxy"},
+		{"smtp_use_tls", "1"},
+		{"email_verification_code_ttl_minutes", "5"},
+		{"email_verification_resend_cooldown_seconds", "60"},
+		{"email_verification_max_attempts", "5"},
+	} {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", kv[0], kv[1])
+	}
+
+	for _, kv := range [][2]string{
 		{"updates_locked", "0"},
 		{"updates_locked_reason", ""},
 		{"seo_default_title", ""},
@@ -744,82 +811,13 @@ func Migrate() {
 		{"seo_robots_txt", "User-agent: *\nAllow: /"},
 		{"seo_enable_sitemap", "1"},
 		{"customer_telegram_bot_enabled", "0"},
-		{"customer_telegram_bot_username", ""},
 		{"customer_telegram_bot_token", ""},
 		{"customer_bot_internal_api_key", ""},
-	}
-	for _, s := range newSettings {
-		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
-	}
-
-	// Products and orders tables
-	productTables := []string{
-		`CREATE TABLE IF NOT EXISTS products (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			title TEXT NOT NULL,
-			subtitle TEXT DEFAULT '',
-			description TEXT DEFAULT '',
-			price_irr INTEGER NOT NULL DEFAULT 0,
-			price_usd REAL DEFAULT 0,
-			duration_days INTEGER NOT NULL DEFAULT 30,
-			traffic_gb INTEGER NOT NULL DEFAULT 10,
-			device_limit INTEGER NOT NULL DEFAULT 1,
-			category TEXT DEFAULT 'month_1',
-			badge_text TEXT DEFAULT '',
-			icon_path TEXT DEFAULT '',
-			is_active INTEGER NOT NULL DEFAULT 1,
-			is_featured INTEGER NOT NULL DEFAULT 0,
-			sort_order INTEGER NOT NULL DEFAULT 0,
-			marzban_panel_id INTEGER DEFAULT NULL,
-			marzban_data_limit_gb INTEGER DEFAULT 0,
-			marzban_expire_days INTEGER DEFAULT 0,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		)`,
-		`CREATE TABLE IF NOT EXISTS orders (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			public_id TEXT UNIQUE NOT NULL,
-			user_id INTEGER NOT NULL,
-			product_id INTEGER NOT NULL,
-			status TEXT NOT NULL DEFAULT 'pending_payment',
-			price_irr INTEGER NOT NULL DEFAULT 0,
-			price_usd REAL DEFAULT 0,
-			usd_irr_rate REAL DEFAULT 0,
-			fx_provider TEXT DEFAULT '',
-			fx_timestamp DATETIME DEFAULT NULL,
-			payment_gateway TEXT DEFAULT '',
-			payment_id TEXT DEFAULT '',
-			payment_status TEXT DEFAULT '',
-			payment_raw_json TEXT DEFAULT '',
-			marzban_panel_id INTEGER DEFAULT NULL,
-			marzban_username TEXT DEFAULT '',
-			subscription_url TEXT DEFAULT '',
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			FOREIGN KEY(user_id) REFERENCES users(id),
-			FOREIGN KEY(product_id) REFERENCES products(id)
-		)`,
-		`CREATE TABLE IF NOT EXISTS marzban_panels (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL,
-			base_url TEXT NOT NULL,
-			username TEXT NOT NULL,
-			password_enc TEXT NOT NULL,
-			is_enabled INTEGER NOT NULL DEFAULT 1,
-			is_default INTEGER NOT NULL DEFAULT 0,
-			notes TEXT DEFAULT '',
-			last_tested_at DATETIME DEFAULT NULL,
-			last_test_ok INTEGER DEFAULT NULL,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		)`,
-	}
-	for _, q := range productTables {
-		safeExec(q)
+	} {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", kv[0], kv[1])
 	}
 
-	// NOWPayments and FX settings
-	paymentSettings := []struct{ key, val string }{
+	for _, kv := range [][2]string{
 		{"nowpayments_enabled", "0"},
 		{"nowpayments_api_key", ""},
 		{"nowpayments_ipn_secret", ""},
@@ -832,10 +830,94 @@ func Migrate() {
 		{"usd_irr_rate_cache", ""},
 		{"usd_irr_rate_cache_time", ""},
 		{"marzban_enabled", "0"},
+	} {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", kv[0], kv[1])
 	}
-	for _, s := range paymentSettings {
-		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
+
+	// ── Step 7: Homepage sections seed ──────────────────────────────
+	var hsCount int
+	DB.QueryRow("SELECT COUNT(*) FROM homepage_sections").Scan(&hsCount)
+	if hsCount == 0 {
+		for _, s := range []struct {
+			key   string
+			title string
+			sort  int
+		}{
+			{"hero", "hero", 1},
+			{"announcement", "announcement", 2},
+			{"discount", "discount", 3},
+			{"features", "features", 4},
+			{"plans", "plans", 5},
+			{"comparison", "comparison", 6},
+			{"tutorials", "tutorials", 7},
+			{"faq", "faq", 8},
+			{"trust", "trust", 9},
+			{"status", "status", 10},
+			{"blog", "blog", 11},
+			{"final_cta", "final_cta", 12},
+		} {
+			active := 1
+			if s.key == "comparison" || s.key == "discount" || s.key == "announcement" {
+				active = 0
+			}
+			DB.Exec("INSERT INTO homepage_sections (section_key, title, sort_order, is_active) VALUES (?,?,?,?)",
+				s.key, s.title, s.sort, active)
+		}
 	}
 
 	log.Println("Database migrations completed")
+}
+
+// MigrateTest runs all migrations on a temporary in-memory database and
+// verifies that key tables and columns exist. Returns a list of failures.
+func MigrateTest() []string {
+	var failures []string
+
+	tmpDB, err := sql.Open("sqlite3", ":memory:?_journal_mode=WAL&_foreign_keys=on")
+	if err != nil {
+		return []string{"cannot open test DB: " + err.Error()}
+	}
+	defer tmpDB.Close()
+
+	// Swap in test DB, run migrations, restore original
+	orig := DB
+	DB = tmpDB
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				failures = append(failures, "migration panicked: "+fmt.Sprintf("%v", r))
+			}
+		}()
+		Migrate()
+	}()
+
+	check := func(label string, ok bool) {
+		if !ok {
+			failures = append(failures, "FAIL: "+label)
+		}
+	}
+
+	for _, tbl := range []string{"admins", "settings", "plans", "orders", "products", "users",
+		"user_orders", "user_services", "support_tickets"} {
+		check("table "+tbl+" exists", tableExists(tbl))
+	}
+	for _, col := range []string{"product_title_snapshot", "manual_subscription_url",
+		"manual_service_note", "admin_note"} {
+		check("orders."+col+" exists", columnExists("orders", col))
+	}
+	check("orders.status exists", columnExists("orders", "status"))
+
+	// Run migrations a second time to prove idempotency
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				failures = append(failures, "second migration panicked: "+fmt.Sprintf("%v", r))
+			}
+		}()
+		Migrate()
+	}()
+	check("idempotent: orders still exists after second run", tableExists("orders"))
+
+	DB = orig
+	return failures
 }
