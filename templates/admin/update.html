@@ -103,24 +103,19 @@
   </div>
   {{end}}
 
-  <!-- Latest Update Log -->
-  {{if .LatestUpdateLog}}
-  <div class="admin-card overflow-hidden">
-    <div class="flex items-center justify-between px-5 py-3" style="border-bottom:1px solid var(--admin-border)">
-      <h3 class="font-bold text-sm" style="color:var(--admin-text)">آخرین لاگ آپدیت</h3>
-      <span class="text-xs" style="color:var(--admin-muted)">آخرین ۸ کیلوبایت</span>
-    </div>
-    <pre class="p-4 text-xs overflow-auto max-h-64" style="color:var(--admin-muted);background:var(--admin-hover);direction:ltr;text-align:left">{{.LatestUpdateLog}}</pre>
-  </div>
+  <!-- Log cards -->
+  {{if .UpdateLog}}
+  {{template "log-card" .UpdateLog}}
   {{end}}
 
-  {{if .LatestRollbackLog}}
-  <div class="admin-card overflow-hidden">
-    <div class="flex items-center justify-between px-5 py-3" style="border-bottom:1px solid var(--admin-border)">
-      <h3 class="font-bold text-sm" style="color:var(--admin-text)">آخرین لاگ رول‌بک</h3>
-    </div>
-    <pre class="p-4 text-xs overflow-auto max-h-64" style="color:var(--admin-muted);background:var(--admin-hover);direction:ltr;text-align:left">{{.LatestRollbackLog}}</pre>
-  </div>
+  {{if .RollbackLog}}
+  {{template "log-card" .RollbackLog}}
+  {{end}}
+
+  {{if .ManualUpdateLog}}
+  {{if not .UpdateLog}}
+  {{template "log-card" .ManualUpdateLog}}
+  {{end}}
   {{end}}
 
   <!-- Job history -->
@@ -156,7 +151,7 @@
           </td>
           <td class="text-xs" style="color:var(--admin-muted)">{{if .TriggeredBy}}{{.TriggeredBy}}{{else}}سیستم{{end}}</td>
           <td class="text-xs" style="color:var(--admin-muted)">{{formatTime .StartedAt}}</td>
-          <td class="text-xs font-mono" style="color:var(--admin-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis">{{.LogPath}}</td>
+          <td class="text-xs font-mono truncate max-w-xs" style="color:var(--admin-muted)" title="{{.LogPath}}">{{.LogPath}}</td>
         </tr>
         {{end}}
       </tbody>
@@ -167,4 +162,107 @@
   </div>
 
 </div>
+
+<!-- Log card template (reusable) -->
+{{define "log-card"}}
+<div class="admin-card overflow-hidden" x-data="logCard()" x-init="init()">
+  <!-- Header -->
+  <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4" style="border-bottom:1px solid var(--admin-border)">
+    <div class="flex items-center gap-3">
+      <!-- Result badge -->
+      {{if eq .Result "success"}}<span class="badge badge-green">موفق</span>
+      {{else if eq .Result "failed"}}<span class="badge badge-red">ناموفق</span>
+      {{else if eq .Result "running"}}<span class="badge badge-yellow">در حال اجرا</span>
+      {{else}}<span class="badge badge-gray">نامشخص</span>{{end}}
+      <span class="font-mono text-xs font-bold" style="color:var(--admin-text)">{{.Name}}</span>
+    </div>
+    <div class="flex items-center gap-4 text-xs" style="color:var(--admin-muted)">
+      <span>{{.SizeHuman}}</span>
+      <span>{{.ModTime}}</span>
+    </div>
+  </div>
+
+  <!-- Truncation warning -->
+  {{if .Truncated}}
+  <div class="px-5 py-2 text-xs" style="background:rgba(234,179,8,0.08);color:#fbbf24;border-bottom:1px solid var(--admin-border)">
+    این لاگ طولانی است و فقط بخش پایانی نمایش داده می‌شود.
+  </div>
+  {{end}}
+
+  <!-- Log label -->
+  <div class="px-5 pt-4 pb-1 flex items-center justify-between">
+    <span class="text-xs font-semibold" style="color:var(--admin-muted)" x-text="showFull ? 'لاگ کامل' : 'پیش‌نمایش لاگ'"></span>
+    <!-- Action buttons -->
+    <div class="flex gap-2">
+      <button type="button"
+              @click="copyLog()"
+              class="text-xs px-3 py-1 rounded-lg transition-colors"
+              style="background:rgba(255,255,255,0.06);color:var(--admin-muted)"
+              title="کپی لاگ">
+        <span x-text="copied ? '✓ کپی شد' : 'کپی لاگ'"></span>
+      </button>
+      <button type="button"
+              x-show="!showFull"
+              @click="showFull = true"
+              class="text-xs px-3 py-1 rounded-lg transition-colors"
+              style="background:rgba(6,182,212,0.12);color:#06b6d4">
+        باز کردن لاگ کامل
+      </button>
+      <button type="button"
+              x-show="showFull"
+              @click="showFull = false"
+              class="text-xs px-3 py-1 rounded-lg transition-colors"
+              style="background:rgba(148,163,184,0.12);color:var(--admin-muted)">
+        بستن لاگ
+      </button>
+    </div>
+  </div>
+
+  <!-- Preview block -->
+  <div x-show="!showFull" class="px-5 pb-4">
+    <pre class="text-xs overflow-auto rounded-xl p-4 mt-2"
+         style="color:var(--admin-muted);background:var(--admin-hover);direction:ltr;text-align:left;max-height:280px;white-space:pre-wrap;word-break:break-all"
+         id="log-preview-{{.Name}}">{{.Preview}}</pre>
+  </div>
+
+  <!-- Full log block -->
+  <div x-show="showFull" class="px-5 pb-4">
+    <pre class="text-xs overflow-auto rounded-xl p-4 mt-2"
+         style="color:var(--admin-muted);background:var(--admin-hover);direction:ltr;text-align:left;max-height:640px;white-space:pre-wrap;word-break:break-all"
+         id="log-full-{{.Name}}">{{.Full}}</pre>
+  </div>
+</div>
+
+<script>
+function logCard() {
+  return {
+    showFull: false,
+    copied: false,
+    init() {},
+    copyLog() {
+      const id = this.showFull ? 'log-full-{{.Name}}' : 'log-preview-{{.Name}}';
+      const el = document.getElementById(id);
+      if (!el) return;
+      const text = el.textContent;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          this.copied = true;
+          setTimeout(() => { this.copied = false; }, 2000);
+        });
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        this.copied = true;
+        setTimeout(() => { this.copied = false; }, 2000);
+      }
+    }
+  };
+}
+</script>
+{{end}}
+
 {{end}}

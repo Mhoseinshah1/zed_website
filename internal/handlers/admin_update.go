@@ -59,13 +59,66 @@ func updateLockReason() string {
 	return models.GetSetting("updates_locked_reason")
 }
 
-// readLastLog returns the last N bytes of the most recent log file matching the glob.
-func readLastLog(pattern string, maxBytes int64) string {
-	matches, err := filepath.Glob(pattern)
-	if err != nil || len(matches) == 0 {
-		return ""
+// LogInfo holds log file metadata and content for the update page.
+type LogInfo struct {
+	Path      string
+	Name      string
+	SizeBytes int64
+	SizeHuman string
+	ModTime   string
+	Result    string // "success", "failed", "running", "unknown"
+	Preview   string // last 50 lines
+	Full      string // last 2000 lines (capped at ~200KB)
+	Truncated bool   // true if full content was truncated
+}
+
+const (
+	previewLines = 50
+	fullMaxLines = 2000
+	fullMaxBytes = 200 * 1024
+)
+
+func humanBytes(n int64) string {
+	switch {
+	case n >= 1024*1024:
+		return fmt.Sprintf("%.1f MB", float64(n)/(1024*1024))
+	case n >= 1024:
+		return fmt.Sprintf("%.1f KB", float64(n)/1024)
+	default:
+		return fmt.Sprintf("%d B", n)
 	}
-	// Find the most recently modified match
+}
+
+func detectLogResult(content string) string {
+	lower := strings.ToLower(content)
+	if strings.Contains(lower, "self-test passed") || strings.Contains(lower, "update complete") ||
+		strings.Contains(lower, "[✓] done") || strings.Contains(content, "=== Self-test PASSED") {
+		return "success"
+	}
+	if strings.Contains(lower, "error") || strings.Contains(lower, "failed") ||
+		strings.Contains(lower, "[✗]") || strings.Contains(content, "=== Self-test FAILED") {
+		return "failed"
+	}
+	if strings.Contains(lower, "running") || strings.Contains(lower, "starting") {
+		return "running"
+	}
+	return "unknown"
+}
+
+func lastNLines(s string, n int) string {
+	lines := strings.Split(s, "\n")
+	if len(lines) <= n {
+		return s
+	}
+	return strings.Join(lines[len(lines)-n:], "\n")
+}
+
+// loadLogInfo finds the most recently modified file matching glob and returns LogInfo.
+func loadLogInfo(pattern string) *LogInfo {
+	matches, _ := filepath.Glob(pattern)
+	if len(matches) == 0 {
+		return nil
+	}
 	var latest string
 	var latestMod time.Time
 	for _, m := range matches {
@@ -76,20 +129,51 @@ func readLastLog(pattern string, maxBytes int64) string {
 		}
 	}
 	if latest == "" {
-		return ""
+		return nil
 	}
+
+	stat, err := os.Stat(latest)
+	if err != nil {
+		return nil
+	}
+
+	// Read up to fullMaxBytes from the end
 	f, err := os.Open(latest)
 	if err != nil {
-		return ""
+		return nil
 	}
 	defer f.Close()
-	info, _ := f.Stat()
-	size := info.Size()
-	if size > maxBytes {
-		f.Seek(-maxBytes, io.SeekEnd)
+
+	size := stat.Size()
+	truncated := false
+	if size > fullMaxBytes {
+		f.Seek(-fullMaxBytes, io.SeekEnd)
+		truncated = true
 	}
-	buf, _ := io.ReadAll(f)
-	return string(buf)
+	raw, _ := io.ReadAll(f)
+	fullContent := string(raw)
+
+	// Limit to fullMaxLines
+	lines := strings.Split(fullContent, "\n")
+	if len(lines) > fullMaxLines {
+		lines = lines[len(lines)-fullMaxLines:]
+		fullContent = strings.Join(lines, "\n")
+		truncated = true
+	}
+
+	preview := lastNLines(fullContent, previewLines)
+
+	return &LogInfo{
+		Path:      latest,
+		Name:      filepath.Base(latest),
+		SizeBytes: size,
+		SizeHuman: humanBytes(size),
+		ModTime:   latestMod.Format("2006/01/02 15:04:05"),
+		Result:    detectLogResult(fullContent),
+		Preview:   preview,
+		Full:      fullContent,
+		Truncated: truncated,
+	}
 }
 
 func AdminUpdatePage(c *gin.Context) {
@@ -113,12 +197,13 @@ func AdminUpdatePage(c *gin.Context) {
 		}
 	}
 
-	// Latest logs
-	latestUpdateLog := readLastLog(updateLogDir+"/admin-update-*.log", 8192)
-	if latestUpdateLog == "" {
-		latestUpdateLog = readLastLog(updateLogDir+"/update-*.log", 8192)
+	// Latest logs — prefer admin-triggered, fall back to update.sh logs
+	updateLog := loadLogInfo(updateLogDir + "/admin-update-*.log")
+	if updateLog == nil {
+		updateLog = loadLogInfo(updateLogDir + "/update-*.log")
 	}
-	latestRollbackLog := readLastLog(updateLogDir+"/admin-rollback-*.log", 8192)
+	rollbackLog := loadLogInfo(updateLogDir + "/admin-rollback-*.log")
+	manualUpdateLog := loadLogInfo(updateLogDir + "/update-*.log")
 
 	data := adminData(c, "update")
 	data["Title"] = "آپدیت و نسخه"
@@ -128,8 +213,9 @@ func AdminUpdatePage(c *gin.Context) {
 	data["Jobs"] = jobs
 	data["UpdatesLocked"] = isUpdateLocked()
 	data["UpdatesLockedReason"] = updateLockReason()
-	data["LatestUpdateLog"] = latestUpdateLog
-	data["LatestRollbackLog"] = latestRollbackLog
+	data["UpdateLog"] = updateLog
+	data["RollbackLog"] = rollbackLog
+	data["ManualUpdateLog"] = manualUpdateLog
 	data["ServerTime"] = time.Now().Format("2006/01/02 15:04:05")
 
 	if f := sess.Get("flash_ok"); f != nil {

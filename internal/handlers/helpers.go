@@ -16,10 +16,10 @@ import (
 )
 
 var (
-	tmplCache    = map[string]*template.Template{}
-	tmplMu       sync.RWMutex
-	tmplDir      string
-	devMode      bool
+	tmplCache  = map[string]*template.Template{}
+	tmplMu     sync.RWMutex
+	tmplDir    string
+	devMode    bool
 	AppVersion   = "dev"
 	AppBuildDate = "unknown"
 	AppGitCommit = "unknown"
