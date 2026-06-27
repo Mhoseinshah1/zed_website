@@ -324,6 +324,8 @@ func main() {
 
 	handlers.Init(*templateDir, *dev)
 	handlers.AppVersion = Version
+	handlers.AppBuildDate = BuildDate
+	handlers.AppGitCommit = GitCommit
 	handlers.SetUploadDir(*uploadDirFlag)
 	handlers.SetBackupDir(*backupDirFlag)
 	handlers.SetDBPath(*dbPath)
@@ -756,6 +758,10 @@ func main() {
 			protected.POST("/system/update/lock", handlers.AdminUpdateLock)
 			protected.POST("/system/update/unlock", handlers.AdminUpdateUnlock)
 			protected.POST("/system/update/check", handlers.AdminUpdateCheck)
+			// Alias routes
+			protected.GET("/update", func(c *gin.Context) { c.Redirect(http.StatusFound, "/zed-admin/system/update") })
+			protected.GET("/system/version", func(c *gin.Context) { c.Redirect(http.StatusFound, "/zed-admin/system/update") })
+			protected.GET("/settings/update", func(c *gin.Context) { c.Redirect(http.StatusFound, "/zed-admin/system/update") })
 		}
 	}
 

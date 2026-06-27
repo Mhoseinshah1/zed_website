@@ -16,11 +16,13 @@ import (
 )
 
 var (
-	tmplCache  = map[string]*template.Template{}
-	tmplMu     sync.RWMutex
-	tmplDir    string
-	devMode    bool
-	AppVersion = "dev"
+	tmplCache    = map[string]*template.Template{}
+	tmplMu       sync.RWMutex
+	tmplDir      string
+	devMode      bool
+	AppVersion   = "dev"
+	AppBuildDate = "unknown"
+	AppGitCommit = "unknown"
 )
 
 func Init(templateDir string, dev bool) {
