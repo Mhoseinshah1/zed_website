@@ -1,33 +1,62 @@
 {{template "admin" .}}
 {{define "admin-content"}}
 <div class="space-y-5">
-  <!-- Filters -->
+  <!-- Filters + Search -->
   <form method="GET" action="/zed-admin/support/tickets" class="admin-card p-4 flex flex-wrap items-end gap-3">
-    <div class="min-w-32">
+    <!-- Search -->
+    <div class="flex-1 min-w-48">
+      <label class="form-label text-xs">جستجو</label>
+      <input type="text" name="q" value="{{.Search}}" class="form-input"
+             placeholder="شماره تیکت، شناسه کاربر، موضوع، ایمیل...">
+    </div>
+    <!-- Status filter -->
+    <div class="min-w-44">
       <label class="form-label text-xs">وضعیت</label>
       <select name="status" class="form-input">
         <option value="">همه</option>
         <option value="open" {{if eq .FilterStatus "open"}}selected{{end}}>باز</option>
+        <option value="closed" {{if eq .FilterStatus "closed"}}selected{{end}}>بسته شده</option>
+        <option value="not_closed" {{if eq .FilterStatus "not_closed"}}selected{{end}}>بسته نشده</option>
+        <option value="pending_admin" {{if eq .FilterStatus "pending_admin"}}selected{{end}}>در انتظار پاسخ ادمین</option>
+        <option value="answered" {{if eq .FilterStatus "answered"}}selected{{end}}>پاسخ داده شده</option>
         <option value="waiting_admin" {{if eq .FilterStatus "waiting_admin"}}selected{{end}}>در انتظار پشتیبانی</option>
         <option value="waiting_user" {{if eq .FilterStatus "waiting_user"}}selected{{end}}>در انتظار کاربر</option>
-        <option value="closed" {{if eq .FilterStatus "closed"}}selected{{end}}>بسته</option>
       </select>
     </div>
+    <!-- Category filter -->
     <div class="min-w-40">
       <label class="form-label text-xs">دسته‌بندی</label>
       <select name="category" class="form-input">
         <option value="">همه</option>
-        <option value="مشکل اتصال">مشکل اتصال</option>
-        <option value="مشکل پرداخت">مشکل پرداخت</option>
-        <option value="تمدید سرویس">تمدید سرویس</option>
-        <option value="آموزش نصب">آموزش نصب</option>
-        <option value="درخواست تغییر سرویس">درخواست تغییر سرویس</option>
-        <option value="سایر موارد">سایر موارد</option>
+        <option value="مشکل اتصال" {{if eq .FilterCategory "مشکل اتصال"}}selected{{end}}>مشکل اتصال</option>
+        <option value="مشکل پرداخت" {{if eq .FilterCategory "مشکل پرداخت"}}selected{{end}}>مشکل پرداخت</option>
+        <option value="تمدید سرویس" {{if eq .FilterCategory "تمدید سرویس"}}selected{{end}}>تمدید سرویس</option>
+        <option value="آموزش نصب" {{if eq .FilterCategory "آموزش نصب"}}selected{{end}}>آموزش نصب</option>
+        <option value="درخواست تغییر سرویس" {{if eq .FilterCategory "درخواست تغییر سرویس"}}selected{{end}}>درخواست تغییر سرویس</option>
+        <option value="سایر موارد" {{if eq .FilterCategory "سایر موارد"}}selected{{end}}>سایر موارد</option>
       </select>
     </div>
-    <button type="submit" class="btn-save">فیلتر</button>
-    <a href="/zed-admin/support/tickets" class="btn-edit">پاک کردن</a>
+    <div class="flex gap-2 items-end">
+      <button type="submit" class="btn-save">فیلتر</button>
+      <a href="/zed-admin/support/tickets" class="btn-edit">پاک کردن</a>
+    </div>
   </form>
+
+  <!-- Quick filter chips -->
+  <div class="flex flex-wrap gap-2 text-xs">
+    <a href="/zed-admin/support/tickets" class="px-3 py-1.5 rounded-full transition-colors {{if eq .FilterStatus ""}}font-bold{{end}}"
+       style="background:rgba(255,255,255,0.08);color:var(--admin-text)">همه</a>
+    <a href="/zed-admin/support/tickets?status=open" class="px-3 py-1.5 rounded-full transition-colors"
+       style="background:rgba(59,130,246,0.15);color:#60a5fa">باز</a>
+    <a href="/zed-admin/support/tickets?status=not_closed" class="px-3 py-1.5 rounded-full transition-colors"
+       style="background:rgba(234,179,8,0.15);color:#fbbf24">بسته نشده</a>
+    <a href="/zed-admin/support/tickets?status=pending_admin" class="px-3 py-1.5 rounded-full transition-colors"
+       style="background:rgba(239,68,68,0.15);color:#f87171">در انتظار پاسخ ادمین</a>
+    <a href="/zed-admin/support/tickets?status=answered" class="px-3 py-1.5 rounded-full transition-colors"
+       style="background:rgba(34,197,94,0.15);color:#4ade80">پاسخ داده شده</a>
+    <a href="/zed-admin/support/tickets?status=closed" class="px-3 py-1.5 rounded-full transition-colors"
+       style="background:rgba(148,163,184,0.15);color:var(--admin-muted)">بسته شده</a>
+  </div>
 
   <!-- Table -->
   <div class="admin-card overflow-hidden">
@@ -43,7 +72,7 @@
           <th>کاربر</th>
           <th>دسته</th>
           <th>وضعیت</th>
-          <th>تاریخ</th>
+          <th>آخرین بروزرسانی</th>
           <th></th>
         </tr>
       </thead>
@@ -58,12 +87,12 @@
           <td class="text-xs" style="color:var(--admin-muted)">{{.Category}}</td>
           <td>
             {{if eq .Status "open"}}<span class="badge badge-blue">باز</span>
-            {{else if eq .Status "waiting_admin"}}<span class="badge badge-yellow">انتظار پشتیبانی</span>
-            {{else if eq .Status "waiting_user"}}<span class="badge badge-green">پاسخ داده شد</span>
-            {{else if eq .Status "closed"}}<span class="badge badge-gray">بسته</span>
+            {{else if eq .Status "waiting_admin"}}<span class="badge badge-red">در انتظار پاسخ ادمین</span>
+            {{else if eq .Status "waiting_user"}}<span class="badge badge-green">پاسخ داده شده</span>
+            {{else if eq .Status "closed"}}<span class="badge badge-gray">بسته شده</span>
             {{else}}<span class="badge badge-gray">{{.Status}}</span>{{end}}
           </td>
-          <td class="text-xs" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</td>
+          <td class="text-xs" style="color:var(--admin-muted)">{{formatTime .UpdatedAt}}</td>
           <td>
             <a href="/zed-admin/support/tickets/{{.TicketNumber}}" class="btn-edit text-xs px-3 py-1.5">مشاهده</a>
           </td>

@@ -643,6 +643,11 @@ func main() {
 				support.POST("/tickets/:ticket_number/reply", handlers.AdminSupportTicketReply)
 				support.POST("/tickets/:ticket_number/status", handlers.AdminSupportTicketSetStatus)
 			}
+			// Alias routes for admin tickets
+			protected.GET("/tickets", handlers.AdminSupportTicketsPage)
+			protected.GET("/tickets/:ticket_number", handlers.AdminSupportTicketDetailPage)
+			protected.POST("/tickets/:ticket_number/reply", handlers.AdminSupportTicketReply)
+			protected.POST("/tickets/:ticket_number/status", handlers.AdminSupportTicketSetStatus)
 
 			// DB Backups
 			protected.GET("/backups", handlers.AdminBackupsPage)

@@ -2,48 +2,66 @@
 {{define "admin-content"}}
 {{if .Ticket}}
 <div class="space-y-5">
+  <!-- Flash message -->
+  {{if .FlashOK}}
+  <div class="admin-card p-4 text-sm" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#4ade80">
+    {{.FlashOK}}
+  </div>
+  {{end}}
+
   <!-- Header -->
   <div class="admin-card p-5">
     <div class="flex items-start justify-between gap-4">
       <div>
         <div class="flex items-center gap-3 mb-2">
+          <a href="/zed-admin/support/tickets" class="btn-edit text-xs px-3 py-1">← بازگشت</a>
           <h2 class="font-bold" style="color:var(--admin-text)">{{.Ticket.Subject}}</h2>
           {{if eq .Ticket.Status "open"}}<span class="badge badge-blue">باز</span>
-          {{else if eq .Ticket.Status "waiting_admin"}}<span class="badge badge-yellow">انتظار پشتیبانی</span>
-          {{else if eq .Ticket.Status "waiting_user"}}<span class="badge badge-green">پاسخ داده شد</span>
-          {{else if eq .Ticket.Status "closed"}}<span class="badge badge-gray">بسته</span>
+          {{else if eq .Ticket.Status "waiting_admin"}}<span class="badge badge-red">در انتظار پاسخ ادمین</span>
+          {{else if eq .Ticket.Status "waiting_user"}}<span class="badge badge-green">پاسخ داده شده</span>
+          {{else if eq .Ticket.Status "closed"}}<span class="badge badge-gray">بسته شده</span>
           {{else}}<span class="badge badge-gray">{{.Ticket.Status}}</span>{{end}}
         </div>
-        <div class="flex items-center gap-4 text-xs" style="color:var(--admin-muted)">
+        <div class="flex flex-wrap items-center gap-4 text-xs" style="color:var(--admin-muted)">
           <span>#{{.Ticket.TicketNumber}}</span>
           <span>{{.Ticket.Category}}</span>
-          <span>{{formatTime .Ticket.CreatedAt}}</span>
-          {{if .Ticket.User}}<span>کاربر: {{.Ticket.User.DisplayEmail}}</span>{{end}}
+          <span>ایجاد: {{formatTime .Ticket.CreatedAt}}</span>
+          <span>بروزرسانی: {{formatTime .Ticket.UpdatedAt}}</span>
+          {{if .Ticket.User}}
+          <span>کاربر: {{.Ticket.User.DisplayEmail}} (#{{.Ticket.UserID}})</span>
+          {{else}}
+          <span>کاربر: #{{.Ticket.UserID}}</span>
+          {{end}}
+          {{if .Ticket.Priority}}<span>اولویت: {{.Ticket.Priority}}</span>{{end}}
         </div>
       </div>
       <!-- Status change -->
-      <form method="POST" action="/zed-admin/support/tickets/{{.Ticket.TicketNumber}}/status" class="flex gap-2 flex-shrink-0">
-        <select name="status" class="form-input text-xs py-1.5">
-          <option value="open" {{if eq .Ticket.Status "open"}}selected{{end}}>باز</option>
-          <option value="waiting_admin" {{if eq .Ticket.Status "waiting_admin"}}selected{{end}}>انتظار پشتیبانی</option>
-          <option value="waiting_user" {{if eq .Ticket.Status "waiting_user"}}selected{{end}}>انتظار کاربر</option>
-          <option value="closed" {{if eq .Ticket.Status "closed"}}selected{{end}}>بسته</option>
-        </select>
-        <button type="submit" class="btn-save text-xs px-3 py-1.5">ذخیره</button>
+      <form method="POST" action="/zed-admin/support/tickets/{{.Ticket.TicketNumber}}/status" class="flex gap-2 flex-shrink-0 items-end">
+        <div>
+          <label class="form-label text-xs">تغییر وضعیت</label>
+          <select name="status" class="form-input text-xs py-1.5">
+            <option value="open" {{if eq .Ticket.Status "open"}}selected{{end}}>باز</option>
+            <option value="pending_admin" {{if eq .Ticket.Status "waiting_admin"}}selected{{end}}>در انتظار پاسخ ادمین</option>
+            <option value="answered" {{if eq .Ticket.Status "waiting_user"}}selected{{end}}>پاسخ داده شده</option>
+            <option value="closed" {{if eq .Ticket.Status "closed"}}selected{{end}}>بسته شده</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-save text-xs px-3 py-1.5">اعمال</button>
       </form>
     </div>
   </div>
 
-  <!-- Messages -->
+  <!-- Message thread -->
   <div class="space-y-3">
     {{range .Ticket.Messages}}
     <div class="admin-card p-4 {{if eq .SenderType "admin"}}border-r-2{{end}}"
          style="{{if eq .SenderType "admin"}}border-right-color:var(--admin-accent){{end}}">
       <div class="flex items-center gap-3 mb-3">
         <span class="text-xs font-bold px-2 py-0.5 rounded-full"
-              style="background:{{if eq .SenderType "admin"}}rgba(6,182,212,0.15);color:#06b6d4{{else}}rgba(99,102,241,0.15);color:#a5b4fc{{end}}">
+              style="{{if eq .SenderType "admin"}}background:rgba(6,182,212,0.15);color:#06b6d4{{else}}background:rgba(99,102,241,0.15);color:#a5b4fc{{end}}">
           {{if eq .SenderType "admin"}}پشتیبانی{{else}}کاربر{{end}}
         </span>
+        {{if .SenderName}}<span class="text-xs" style="color:var(--admin-muted)">{{.SenderName}}</span>{{end}}
         <span class="text-xs mr-auto" style="color:var(--admin-muted)">{{formatTime .CreatedAt}}</span>
       </div>
       <p class="text-sm whitespace-pre-wrap" style="color:var(--admin-text)">{{.Message}}</p>
@@ -65,8 +83,19 @@
     </form>
   </div>
   {{else}}
-  <div class="admin-card p-4 text-center text-sm" style="color:var(--admin-muted)">این تیکت بسته شده است.</div>
+  <div class="admin-card p-4 text-center text-sm" style="color:var(--admin-muted)">
+    این تیکت بسته شده است.
+    <form method="POST" action="/zed-admin/support/tickets/{{.Ticket.TicketNumber}}/status" class="inline-block mr-3">
+      <input type="hidden" name="status" value="open">
+      <button type="submit" class="btn-edit text-xs px-3 py-1">بازگشایی تیکت</button>
+    </form>
+  </div>
   {{end}}
+</div>
+{{else}}
+<div class="admin-card p-12 text-center">
+  <p class="text-sm" style="color:var(--admin-muted)">تیکت یافت نشد</p>
+  <a href="/zed-admin/support/tickets" class="btn-edit mt-4 inline-block">بازگشت</a>
 </div>
 {{end}}
 {{end}}

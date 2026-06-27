@@ -12,11 +12,13 @@ import (
 func AdminSupportTicketsPage(c *gin.Context) {
 	status := c.Query("status")
 	category := c.Query("category")
+	q := strings.TrimSpace(c.Query("q"))
 	page := 1
 
 	tickets, total, _ := models.ListAllTickets(models.TicketListFilter{
 		Status:   status,
 		Category: category,
+		Search:   q,
 		Page:     page,
 		PageSize: 30,
 	})
@@ -27,6 +29,7 @@ func AdminSupportTicketsPage(c *gin.Context) {
 	data["Total"] = total
 	data["FilterStatus"] = status
 	data["FilterCategory"] = category
+	data["Search"] = q
 	renderAdmin(c, "support-tickets", data)
 }
 
@@ -86,8 +89,17 @@ func AdminSupportTicketSetStatus(c *gin.Context) {
 	number := c.Param("ticket_number")
 	status := c.PostForm("status")
 
-	validStatuses := map[string]bool{"open": true, "waiting_admin": true, "waiting_user": true, "closed": true}
-	if !validStatuses[status] {
+	// Accept both new names (pending_admin/answered) and legacy names
+	statusMap := map[string]string{
+		"open":          "open",
+		"pending_admin": "waiting_admin",
+		"answered":      "waiting_user",
+		"waiting_admin": "waiting_admin",
+		"waiting_user":  "waiting_user",
+		"closed":        "closed",
+	}
+	stored, valid := statusMap[status]
+	if !valid {
 		c.Redirect(http.StatusFound, "/zed-admin/support/tickets/"+number)
 		return
 	}
@@ -99,15 +111,15 @@ func AdminSupportTicketSetStatus(c *gin.Context) {
 		return
 	}
 
-	models.UpdateTicketStatus(ticket.ID, status)
+	models.UpdateTicketStatus(ticket.ID, stored)
 
 	statusLabels := map[string]string{
 		"open":          "باز",
-		"waiting_admin": "در انتظار پشتیبانی",
-		"waiting_user":  "در انتظار کاربر",
-		"closed":        "بسته",
+		"waiting_admin": "در انتظار پاسخ ادمین",
+		"waiting_user":  "پاسخ داده شده",
+		"closed":        "بسته شده",
 	}
-	sess.Set("flash_ok", "وضعیت تیکت به «"+statusLabels[status]+"» تغییر یافت")
+	sess.Set("flash_ok", "وضعیت تیکت به «"+statusLabels[stored]+"» تغییر یافت")
 	sess.Save()
 	c.Redirect(http.StatusFound, "/zed-admin/support/tickets/"+number)
 }

@@ -950,8 +950,12 @@ func OpenTicketCount(userID int64) int {
 }
 
 type TicketListFilter struct {
+	// Status values: "open", "closed", "waiting_admin", "waiting_user",
+	// "not_closed" (any non-closed), "pending_admin" (alias waiting_admin),
+	// "answered" (alias waiting_user)
 	Status   string
 	Category string
+	Search   string // search by ticket number, user id, subject, email
 	Page     int
 	PageSize int
 }
@@ -965,14 +969,32 @@ func ListAllTickets(f TicketListFilter) ([]*SupportTicket, int, error) {
 	}
 	where := "WHERE 1=1"
 	args := []interface{}{}
-	if f.Status != "" {
+
+	switch f.Status {
+	case "not_closed":
+		where += " AND status != 'closed'"
+	case "pending_admin":
+		where += " AND status = 'waiting_admin'"
+	case "answered":
+		where += " AND status = 'waiting_user'"
+	case "":
+		// no filter
+	default:
 		where += " AND status=?"
 		args = append(args, f.Status)
 	}
+
 	if f.Category != "" {
 		where += " AND category=?"
 		args = append(args, f.Category)
 	}
+	if f.Search != "" {
+		s := "%" + f.Search + "%"
+		where += ` AND (ticket_number LIKE ? OR subject LIKE ? OR CAST(user_id AS TEXT) LIKE ?
+			OR EXISTS (SELECT 1 FROM users u WHERE u.id = support_tickets.user_id AND (u.email LIKE ? OR u.phone LIKE ?)))`
+		args = append(args, s, s, s, s, s)
+	}
+
 	var total int
 	database.DB.QueryRow("SELECT COUNT(*) FROM support_tickets "+where, args...).Scan(&total)
 	offset := (f.Page - 1) * f.PageSize
