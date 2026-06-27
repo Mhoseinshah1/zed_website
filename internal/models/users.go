@@ -1038,6 +1038,18 @@ func GetUserNotifications(userID int64) ([]*UserNotification, error) {
 	return list, nil
 }
 
+func GetNotificationByID(id, userID int64) (*UserNotification, error) {
+	n := &UserNotification{}
+	err := database.DB.QueryRow(
+		`SELECT id, user_id, title, message, type, COALESCE(link_url,''), read_at, created_at
+		 FROM user_notifications WHERE id=? AND user_id=?`, id, userID,
+	).Scan(&n.ID, &n.UserID, &n.Title, &n.Message, &n.Type, &n.LinkURL, &n.ReadAt, &n.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return n, nil
+}
+
 func MarkNotificationRead(id, userID int64) error {
 	_, err := database.DB.Exec(
 		`UPDATE user_notifications SET read_at=? WHERE id=? AND user_id=? AND read_at IS NULL`,

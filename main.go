@@ -447,6 +447,7 @@ func main() {
 		user.GET("/tickets/:ticket_number", handlers.UserTicketDetailPage)
 		user.POST("/tickets/:ticket_number/reply", handlers.UserTicketReply)
 		user.GET("/notifications", handlers.UserNotificationsPage)
+		user.GET("/notifications/:id", handlers.UserNotificationDetailPage)
 		user.POST("/notifications/:id/read", handlers.UserMarkNotificationRead)
 		user.GET("/tutorials", handlers.UserTutorialsPage)
 		user.GET("/security", handlers.UserSecurityPage)
