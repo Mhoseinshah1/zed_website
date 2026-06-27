@@ -33,7 +33,7 @@
     <div class="u-card p-4 {{if eq .SenderType "admin"}}mr-8{{else}}ml-8{{end}}">
       <div class="flex items-center gap-2 mb-3">
         <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-             style="background:{{if eq .SenderType "admin"}}rgba(6,182,212,0.2){{else}}rgba(99,102,241,0.2)}}">
+             style="background:{{if eq .SenderType "admin"}}rgba(6,182,212,0.2){{else}}rgba(99,102,241,0.2){{end}}">
           {{if eq .SenderType "admin"}}پ{{else}}ک{{end}}
         </div>
         <span class="text-xs font-semibold" style="color:{{if eq .SenderType "admin"}}#06b6d4{{else}}var(--u-accent){{end}}">
