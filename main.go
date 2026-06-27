@@ -16,6 +16,7 @@ import (
 
 	bkp "zedproxy/internal/backup"
 	"zedproxy/internal/database"
+	"zedproxy/internal/doctor"
 	"zedproxy/internal/handlers"
 	"zedproxy/internal/middleware"
 	"zedproxy/internal/models"
@@ -49,6 +50,8 @@ func main() {
 		maintenanceStatus = flag.Bool("maintenance-status", false, "show maintenance mode status and exit")
 		selfTest          = flag.Bool("self-test", false, "run self-test and exit")
 		versionFlag       = flag.Bool("version", false, "print version and exit")
+		doctorFlag        = flag.Bool("doctor", false, "run health checks and exit")
+		repairFlag        = flag.Bool("repair", false, "repair missing directories and restart service, then exit")
 
 		// Admin management CLI flags
 		resetAdmin  = flag.Bool("reset-admin", false, "reset existing admin credentials and exit")
@@ -85,6 +88,17 @@ func main() {
 	if *versionFlag {
 		fmt.Printf("ZedProxy %s (build %s, commit %s)\n", Version, BuildDate, GitCommit)
 		return
+	}
+
+	// Doctor / Repair
+	if *doctorFlag {
+		results := doctor.RunDoctor()
+		doctor.PrintResults(results)
+		os.Exit(0)
+	}
+	if *repairFlag {
+		doctor.RunRepair()
+		os.Exit(0)
 	}
 
 	// CLI maintenance controls (exit after action)
@@ -130,7 +144,29 @@ func main() {
 		return
 	}
 	if *selfTest {
-		runSelfTest(*dbPath, *templateDir, *staticDir, *uploadDirFlag)
+		// In production, resolve paths relative to /opt/zedproxy
+		dbPathResolved := *dbPath
+		templateDirResolved := *templateDir
+		staticDirResolved := *staticDir
+		uploadDirResolved := *uploadDirFlag
+		if exe, err := os.Executable(); err == nil {
+			if len(exe) >= len("/opt/zedproxy/") && exe[:len("/opt/zedproxy/")] == "/opt/zedproxy/" {
+				const prodBase = "/opt/zedproxy"
+				if dbPathResolved == "./data/zedproxy.db" {
+					dbPathResolved = prodBase + "/data/zedproxy.db"
+				}
+				if templateDirResolved == "./templates" {
+					templateDirResolved = prodBase + "/templates"
+				}
+				if staticDirResolved == "./static" {
+					staticDirResolved = prodBase + "/static"
+				}
+				if uploadDirResolved == "./static/uploads" {
+					uploadDirResolved = prodBase + "/static/uploads"
+				}
+			}
+		}
+		runSelfTest(dbPathResolved, templateDirResolved, staticDirResolved, uploadDirResolved)
 		return
 	}
 
@@ -411,6 +447,7 @@ func main() {
 		user.GET("/tickets/:ticket_number", handlers.UserTicketDetailPage)
 		user.POST("/tickets/:ticket_number/reply", handlers.UserTicketReply)
 		user.GET("/notifications", handlers.UserNotificationsPage)
+		user.GET("/notifications/:id", handlers.UserNotificationDetailPage)
 		user.POST("/notifications/:id/read", handlers.UserMarkNotificationRead)
 		user.GET("/tutorials", handlers.UserTutorialsPage)
 		user.GET("/security", handlers.UserSecurityPage)
@@ -420,6 +457,13 @@ func main() {
 		user.POST("/connect-telegram/create-token", handlers.UserConnectTelegramCreateToken)
 		user.POST("/connect-telegram/disconnect", handlers.UserDisconnectTelegram)
 	}
+
+	// ── Checkout & Payment routes ────────────────────────
+	r.POST("/checkout/:product_id", handlers.CheckoutCreate)
+	r.GET("/checkout/:order_id/pay", handlers.CheckoutPayPage)
+	r.POST("/webhook/nowpayments", handlers.NOWPaymentsWebhook)
+	r.GET("/checkout/success", handlers.CheckoutSuccess)
+	r.GET("/checkout/cancel", handlers.CheckoutCancel)
 
 	// ── Internal API ──────────────────────────────────
 	apiInternal := r.Group("/api/internal")
@@ -636,6 +680,17 @@ func main() {
 				integrations.POST("/telegram/daily-report", handlers.AdminTelegramSendDailyReport)
 				integrations.POST("/telegram/send-db-backup", handlers.AdminTelegramSendDBBackup)
 
+				// Marzban Integration
+				integrations.GET("/marzban", handlers.AdminMarzbanPage)
+				integrations.POST("/marzban/save", handlers.AdminMarzbanSave)
+				integrations.POST("/marzban/test", handlers.AdminMarzbanTest)
+				integrations.GET("/marzban/panels", handlers.AdminMarzbanPanelsPage)
+				integrations.GET("/marzban/panels/new", handlers.AdminMarzbanPanelNew)
+				integrations.GET("/marzban/panels/:id/edit", handlers.AdminMarzbanPanelEdit)
+				integrations.POST("/marzban/panels/save", handlers.AdminMarzbanPanelSave)
+				integrations.POST("/marzban/panels/:id/test", handlers.AdminMarzbanPanelTest)
+				integrations.POST("/marzban/panels/:id/delete", handlers.AdminMarzbanPanelDelete)
+
 				// Customer Bot
 				integrations.GET("/customer-bot", handlers.AdminCustomerBotPage)
 				integrations.POST("/customer-bot/save", handlers.AdminCustomerBotSave)
@@ -644,6 +699,20 @@ func main() {
 				integrations.GET("/api", handlers.AdminAPIPage)
 				integrations.POST("/api/regenerate-key", handlers.AdminAPIRegenerateKey)
 			}
+
+			// Products (sales system)
+			protected.GET("/products", handlers.AdminProductsPage)
+			protected.GET("/products/new", handlers.AdminProductNew)
+			protected.GET("/products/:id/edit", handlers.AdminProductEdit)
+			protected.POST("/products/save", handlers.AdminProductSave)
+			protected.POST("/products/:id/delete", handlers.AdminProductDelete)
+			protected.POST("/products/:id/toggle", handlers.AdminProductToggle)
+			protected.GET("/orders/:id", handlers.AdminOrderDetail)
+
+			// Payments
+			protected.GET("/payments/nowpayments", handlers.AdminNOWPaymentsPage)
+			protected.POST("/payments/nowpayments/save", handlers.AdminNOWPaymentsSave)
+			protected.POST("/payments/nowpayments/test", handlers.AdminNOWPaymentsTest)
 
 			// Orders
 			protected.GET("/orders", handlers.AdminOrdersPage)

@@ -747,5 +747,90 @@ func Migrate() {
 		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
 	}
 
+	// Products and orders tables
+	productTables := []string{
+		`CREATE TABLE IF NOT EXISTS products (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			title TEXT NOT NULL,
+			subtitle TEXT DEFAULT '',
+			description TEXT DEFAULT '',
+			price_irr INTEGER NOT NULL DEFAULT 0,
+			price_usd REAL DEFAULT 0,
+			duration_days INTEGER NOT NULL DEFAULT 30,
+			traffic_gb INTEGER NOT NULL DEFAULT 10,
+			device_limit INTEGER NOT NULL DEFAULT 1,
+			category TEXT DEFAULT 'month_1',
+			badge_text TEXT DEFAULT '',
+			icon_path TEXT DEFAULT '',
+			is_active INTEGER NOT NULL DEFAULT 1,
+			is_featured INTEGER NOT NULL DEFAULT 0,
+			sort_order INTEGER NOT NULL DEFAULT 0,
+			marzban_panel_id INTEGER DEFAULT NULL,
+			marzban_data_limit_gb INTEGER DEFAULT 0,
+			marzban_expire_days INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS orders (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			public_id TEXT UNIQUE NOT NULL,
+			user_id INTEGER NOT NULL,
+			product_id INTEGER NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending_payment',
+			price_irr INTEGER NOT NULL DEFAULT 0,
+			price_usd REAL DEFAULT 0,
+			usd_irr_rate REAL DEFAULT 0,
+			fx_provider TEXT DEFAULT '',
+			fx_timestamp DATETIME DEFAULT NULL,
+			payment_gateway TEXT DEFAULT '',
+			payment_id TEXT DEFAULT '',
+			payment_status TEXT DEFAULT '',
+			payment_raw_json TEXT DEFAULT '',
+			marzban_panel_id INTEGER DEFAULT NULL,
+			marzban_username TEXT DEFAULT '',
+			subscription_url TEXT DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY(user_id) REFERENCES users(id),
+			FOREIGN KEY(product_id) REFERENCES products(id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS marzban_panels (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			base_url TEXT NOT NULL,
+			username TEXT NOT NULL,
+			password_enc TEXT NOT NULL,
+			is_enabled INTEGER NOT NULL DEFAULT 1,
+			is_default INTEGER NOT NULL DEFAULT 0,
+			notes TEXT DEFAULT '',
+			last_tested_at DATETIME DEFAULT NULL,
+			last_test_ok INTEGER DEFAULT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+	}
+	for _, q := range productTables {
+		safeExec(q)
+	}
+
+	// NOWPayments and FX settings
+	paymentSettings := []struct{ key, val string }{
+		{"nowpayments_enabled", "0"},
+		{"nowpayments_api_key", ""},
+		{"nowpayments_ipn_secret", ""},
+		{"nowpayments_sandbox", "0"},
+		{"nowpayments_pay_currency", "usdttrc20"},
+		{"nowpayments_success_url", ""},
+		{"nowpayments_cancel_url", ""},
+		{"usd_irr_rate_manual", "700000"},
+		{"usd_irr_rate_provider", "manual"},
+		{"usd_irr_rate_cache", ""},
+		{"usd_irr_rate_cache_time", ""},
+		{"marzban_enabled", "0"},
+	}
+	for _, s := range paymentSettings {
+		DB.Exec("INSERT INTO settings (key, value) VALUES (?,?) ON CONFLICT(key) DO NOTHING", s.key, s.val)
+	}
+
 	log.Println("Database migrations completed")
 }

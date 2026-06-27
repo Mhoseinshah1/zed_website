@@ -1,0 +1,72 @@
+{{define "admin-content"}}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-bold" style="color:var(--admin-text)">یکپارچه‌سازی Marzban</h2>
+    <a href="/zed-admin/integrations/marzban/panels/new" class="btn-save">+ پنل جدید</a>
+  </div>
+
+  {{if .FlashOK}}<div class="admin-alert-ok">{{.FlashOK}}</div>{{end}}
+  {{if .FlashErr}}<div class="admin-alert-err">{{.FlashErr}}</div>{{end}}
+
+  <div class="admin-card p-5">
+    <form method="POST" action="/zed-admin/integrations/marzban/save" class="flex items-center gap-4">
+      <label class="flex items-center gap-2">
+        <input type="checkbox" name="marzban_enabled" value="1" {{if eq .MarzbanEnabled "1"}}checked{{end}}>
+        <span>فعال‌سازی Marzban</span>
+      </label>
+      <button type="submit" class="btn-save">ذخیره</button>
+      <button type="button" onclick="testMarzban()" class="btn-edit">تست اتصال</button>
+    </form>
+  </div>
+
+  <div class="admin-card overflow-hidden">
+    <div class="p-4 border-b" style="border-color:var(--admin-border)">
+      <h3 class="font-bold">پنل‌های Marzban</h3>
+    </div>
+    {{if .Panels}}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>نام</th>
+          <th>آدرس</th>
+          <th>کاربر</th>
+          <th>وضعیت</th>
+          <th>پیش‌فرض</th>
+          <th>عملیات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{range .Panels}}
+        <tr>
+          <td>{{.Name}}</td>
+          <td class="font-mono text-xs">{{.BaseURL}}</td>
+          <td>{{.Username}}</td>
+          <td>{{if .IsEnabled}}<span class="badge badge-green">فعال</span>{{else}}<span class="badge badge-gray">غیرفعال</span>{{end}}</td>
+          <td>{{if .IsDefault}}<span class="badge badge-blue">پیش‌فرض</span>{{else}}-{{end}}</td>
+          <td class="flex gap-2">
+            <a href="/zed-admin/integrations/marzban/panels/{{.ID}}/edit" class="btn-edit text-xs">ویرایش</a>
+            <button onclick="testPanel({{.ID}})" class="btn-save text-xs">تست</button>
+            <form method="POST" action="/zed-admin/integrations/marzban/panels/{{.ID}}/delete" onsubmit="return confirm('حذف شود؟')">
+              <button type="submit" class="btn-delete text-xs">حذف</button>
+            </form>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+    {{else}}
+    <div class="p-12 text-center" style="color:var(--admin-muted)">هنوز پنلی اضافه نشده است.</div>
+    {{end}}
+  </div>
+</div>
+<script>
+function testMarzban() {
+  fetch('/zed-admin/integrations/marzban/test', {method:'POST'})
+    .then(r=>r.json()).then(d=>alert(d.ok ? '✓ '+d.description : '✗ '+d.error));
+}
+function testPanel(id) {
+  fetch('/zed-admin/integrations/marzban/panels/'+id+'/test', {method:'POST'})
+    .then(r=>r.json()).then(d=>alert(d.ok ? '✓ '+d.description : '✗ '+d.error));
+}
+</script>
+{{end}}

@@ -221,6 +221,21 @@ func UserNotificationsPage(c *gin.Context) {
 	})
 }
 
+func UserNotificationDetailPage(c *gin.Context) {
+	uid := currentUserID(c)
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	n, err := models.GetNotificationByID(id, uid)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/user/notifications")
+		return
+	}
+	models.MarkNotificationRead(id, uid)
+	renderUser(c, "notification-detail", map[string]interface{}{
+		"Title":        n.Title,
+		"Notification": n,
+	})
+}
+
 func UserMarkNotificationRead(c *gin.Context) {
 	uid := currentUserID(c)
 	idStr := c.Param("id")

@@ -1,0 +1,50 @@
+{{define "admin-content"}}
+<div class="max-w-xl">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/zed-admin/integrations/marzban" class="btn-edit text-sm">← بازگشت</a>
+    <h2 class="text-lg font-bold" style="color:var(--admin-text)">{{if .IsNew}}پنل جدید Marzban{{else}}ویرایش پنل Marzban{{end}}</h2>
+  </div>
+
+  <form method="POST" action="/zed-admin/integrations/marzban/panels/save" class="space-y-4">
+    {{if not .IsNew}}<input type="hidden" name="id" value="{{.Panel.ID}}">{{end}}
+
+    <div class="admin-card p-5 space-y-4">
+      <div>
+        <label class="form-label">نام پنل *</label>
+        <input type="text" name="name" value="{{.Panel.Name}}" required class="form-input w-full">
+      </div>
+      <div>
+        <label class="form-label">آدرس (URL) *</label>
+        <input type="url" name="base_url" value="{{.Panel.BaseURL}}" required class="form-input w-full" placeholder="https://panel.example.com">
+      </div>
+      <div>
+        <label class="form-label">نام کاربری *</label>
+        <input type="text" name="username" value="{{.Panel.Username}}" required class="form-input w-full">
+      </div>
+      <div>
+        <label class="form-label">رمز عبور {{if not .IsNew}}(خالی = بدون تغییر){{end}}</label>
+        <input type="password" name="password" class="form-input w-full" {{if .IsNew}}required{{end}}>
+      </div>
+      <div>
+        <label class="form-label">یادداشت</label>
+        <textarea name="notes" class="form-input w-full" rows="2">{{.Panel.Notes}}</textarea>
+      </div>
+      <div class="flex gap-6">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="is_enabled" value="1" {{if .Panel.IsEnabled}}checked{{end}}>
+          <span class="form-label mb-0">فعال</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="is_default" value="1" {{if .Panel.IsDefault}}checked{{end}}>
+          <span class="form-label mb-0">پنل پیش‌فرض</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <button type="submit" class="btn-save">ذخیره</button>
+      <a href="/zed-admin/integrations/marzban" class="btn-edit">انصراف</a>
+    </div>
+  </form>
+</div>
+{{end}}

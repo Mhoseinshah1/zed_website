@@ -249,6 +249,39 @@ func SendBackupToTelegram(zipData []byte, filename, caption string) error {
 	return SendDocument(token, chatID, zipData, filename, caption, threadID)
 }
 
+// ── Sales / Order notifications ───────────────────────
+
+func formatMoney(amountIRR int64) string {
+	// Convert IRR to Toman (divide by 10) and format with thousands separator
+	t := amountIRR / 10
+	return fmt.Sprintf("%d", t)
+}
+
+// NotifyNewOrder sends a notification when a new order is placed.
+func NotifyNewOrder(orderID, username, productTitle string, priceIRR int64) {
+	msg := fmt.Sprintf("سفارش جدید\nشناسه: %s\nکاربر: %s\nمحصول: %s\nمبلغ: %s تومان",
+		orderID, username, productTitle, formatMoney(priceIRR))
+	Send(LevelInfo, CatAdminActivity, "سفارش جدید", msg)
+}
+
+// NotifyPaymentConfirmed sends a notification when a payment is confirmed.
+func NotifyPaymentConfirmed(orderID, username string, priceUSD float64) {
+	msg := fmt.Sprintf("پرداخت موفق\nشناسه: %s\nکاربر: %s\nمبلغ: %.2f USD", orderID, username, priceUSD)
+	Send(LevelInfo, CatDailyReport, "پرداخت موفق", msg)
+}
+
+// NotifyPaymentFailed sends a notification when a payment fails.
+func NotifyPaymentFailed(orderID string, reason string) {
+	msg := fmt.Sprintf("پرداخت ناموفق\nشناسه: %s\nدلیل: %s", orderID, reason)
+	Send(LevelError, CatCritical, "پرداخت ناموفق", msg)
+}
+
+// NotifyMarzbanProvisionFailed sends a notification when Marzban provisioning fails.
+func NotifyMarzbanProvisionFailed(orderID, username, errMsg string) {
+	msg := fmt.Sprintf("خطا در فعالسازی Marzban\nشناسه: %s\nکاربر: %s\nخطا: %s", orderID, username, errMsg)
+	Send(LevelError, CatCritical, "خطا در فعالسازی", msg)
+}
+
 // SeedDefaultTopics inserts default forum topics if not already present.
 func SeedDefaultTopics() {
 	topics := []struct {
