@@ -758,4 +758,21 @@ main() {
   done
 }
 
+# Support top-level subcommands: manage.sh doctor | manage.sh repair [--dry-run]
+case "${1:-}" in
+  doctor)
+    check_root
+    check_bin
+    run_cli doctor
+    exit $?
+    ;;
+  repair)
+    check_root
+    check_bin
+    shift
+    run_cli repair "$@"
+    exit $?
+    ;;
+esac
+
 main "$@"

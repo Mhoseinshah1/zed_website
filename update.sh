@@ -354,6 +354,18 @@ deploy_manage_sh() {
     chown root:root "${INSTALL_DIR}/manage.sh"
     detail "manage.sh refreshed"
   fi
+  # Refresh global wrapper scripts
+  cat > /usr/local/bin/zedproxy-doctor << 'WRAPPER'
+#!/bin/bash
+exec /opt/zedproxy/zedproxy doctor "$@"
+WRAPPER
+  chmod +x /usr/local/bin/zedproxy-doctor
+  cat > /usr/local/bin/zedproxy-repair << 'WRAPPER'
+#!/bin/bash
+exec /opt/zedproxy/zedproxy repair "$@"
+WRAPPER
+  chmod +x /usr/local/bin/zedproxy-repair
+  detail "zedproxy-doctor and zedproxy-repair wrappers refreshed"
 }
 
 deploy_rollback_sh() {

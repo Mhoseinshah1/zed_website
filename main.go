@@ -90,14 +90,36 @@ func main() {
 		return
 	}
 
-	// Doctor / Repair
-	if *doctorFlag {
-		results := doctor.RunDoctor()
-		doctor.PrintResults(results)
+	// Inject Telegram sender into doctor package (avoids import cycle)
+	doctor.SetTelegramSender(func(title, message, category string) {
+		tg.Send(tg.LevelInfo, tg.Category(category), title, message)
+	})
+
+	// Doctor / Repair — support both --doctor/--repair flags and positional subcommands:
+	//   zedproxy doctor
+	//   zedproxy repair
+	//   zedproxy repair --dry-run
+	subcmd := ""
+	dryRun := false
+	if flag.NArg() > 0 {
+		subcmd = flag.Arg(0)
+	}
+	for _, a := range flag.Args() {
+		if a == "--dry-run" || a == "dry-run" {
+			dryRun = true
+		}
+	}
+
+	if *doctorFlag || subcmd == "doctor" {
+		r := doctor.RunDoctor()
+		r.Print()
+		if len(r.Issues) > 0 {
+			os.Exit(1)
+		}
 		os.Exit(0)
 	}
-	if *repairFlag {
-		doctor.RunRepair()
+	if *repairFlag || subcmd == "repair" {
+		doctor.RunRepair(dryRun)
 		os.Exit(0)
 	}
 
