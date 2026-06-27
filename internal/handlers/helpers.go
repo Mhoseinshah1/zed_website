@@ -20,7 +20,9 @@ var (
 	tmplMu     sync.RWMutex
 	tmplDir    string
 	devMode    bool
-	AppVersion = "dev"
+	AppVersion   = "dev"
+	AppBuildDate = "unknown"
+	AppGitCommit = "unknown"
 )
 
 func Init(templateDir string, dev bool) {
