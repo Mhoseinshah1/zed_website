@@ -863,13 +863,28 @@ func runSelfTest(dbPath, templateDir, staticDir, uploadDir string) {
 	database.DB.QueryRow("SELECT COUNT(*) FROM support_tickets").Scan(&ticketCount)
 	fmt.Printf("[✓] ticket_system: ok (%d tickets)\n", ticketCount)
 
-	// Check template directories exist
-	authTmplDir := filepath.Join(templateDir, "auth")
-	userTmplDir := filepath.Join(templateDir, "user")
-	_, errAuth := os.Stat(authTmplDir)
-	check("templates/auth", authTmplDir, errAuth == nil)
-	_, errUser := os.Stat(userTmplDir)
-	check("templates/user", userTmplDir, errUser == nil)
+	// Validate all templates parse correctly
+	fmt.Println("[*] Validating templates...")
+	tmplErrs := handlers.ValidateAllTemplates(templateDir)
+	if len(tmplErrs) > 0 {
+		for _, e := range tmplErrs {
+			fmt.Printf("[✗] template parse error: %s\n", e)
+		}
+		ok = false
+	} else {
+		// Count template files for display
+		var tmplCount int
+		if entries, err := os.ReadDir(templateDir); err == nil {
+			for _, e := range entries {
+				if e.IsDir() {
+					if sub, err2 := os.ReadDir(filepath.Join(templateDir, e.Name())); err2 == nil {
+						tmplCount += len(sub)
+					}
+				}
+			}
+		}
+		fmt.Printf("[✓] templates: all parsed OK (%d files)\n", tmplCount)
+	}
 
 	fmt.Printf("[✓] Build: version=%s date=%s commit=%s\n", Version, BuildDate, GitCommit)
 

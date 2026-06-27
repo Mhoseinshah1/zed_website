@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -246,6 +247,49 @@ func getStandaloneTemplate(name string) (*template.Template, error) {
 		tmplMu.Unlock()
 	}
 	return t, nil
+}
+
+// ValidateAllTemplates tries to parse every known template against its layout
+// and returns a list of "<path>: <error>" strings. An empty slice means no errors.
+func ValidateAllTemplates(dir string) []string {
+	var errs []string
+
+	base := filepath.Join(dir, "layouts", "base.html")
+	adminLayout := filepath.Join(dir, "layouts", "admin.html")
+	userLayout := filepath.Join(dir, "layouts", "user.html")
+
+	// Verify layout files exist first
+	for _, f := range []string{base, adminLayout, userLayout} {
+		if _, err := os.Stat(f); err != nil {
+			errs = append(errs, "missing layout: "+f)
+		}
+	}
+	if len(errs) > 0 {
+		return errs
+	}
+
+	type layoutGroup struct {
+		layout string
+		glob   string
+		prefix string
+	}
+	groups := []layoutGroup{
+		{base, filepath.Join(dir, "public", "*.html"), "public"},
+		{adminLayout, filepath.Join(dir, "admin", "*.html"), "admin"},
+		{base, filepath.Join(dir, "auth", "*.html"), "auth"},
+		{userLayout, filepath.Join(dir, "user", "*.html"), "user"},
+	}
+	for _, g := range groups {
+		pages, _ := filepath.Glob(g.glob)
+		for _, page := range pages {
+			rel := g.prefix + "/" + filepath.Base(page)
+			_, err := template.New("").Funcs(funcMap).ParseFiles(g.layout, page)
+			if err != nil {
+				errs = append(errs, rel+": "+err.Error())
+			}
+		}
+	}
+	return errs
 }
 
 // renderAdminError writes a styled Persian admin error page instead of a blank screen.

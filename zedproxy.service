@@ -12,6 +12,7 @@ ExecStart=/opt/zedproxy/zedproxy \
   --templates=/opt/zedproxy/templates \
   --static=/opt/zedproxy/static \
   --uploads=/opt/zedproxy/static/uploads \
+  --backups=/opt/zedproxy/data/backups \
   --secret=${SESSION_SECRET}
 Restart=always
 RestartSec=5

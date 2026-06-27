@@ -229,18 +229,45 @@ build_app() {
   cd "$BUILD_DIR"
 
   go mod download
-  CGO_ENABLED=1 go build -ldflags="-s -w" -o "$INSTALL_DIR/zedproxy" .
 
+  _VER="$(git -C "$BUILD_DIR" describe --tags --always 2>/dev/null || echo 'v1.0')"
+  _COMMIT="$(git -C "$BUILD_DIR" rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+  _DATE="$(date -u +%Y%m%dT%H%M%SZ)"
+  CGO_ENABLED=1 go build \
+    -ldflags="-s -w -X main.Version=${_VER} -X main.GitCommit=${_COMMIT} -X main.BuildDate=${_DATE}" \
+    -o "$INSTALL_DIR/zedproxy" .
+
+  if [[ ! -f "$INSTALL_DIR/zedproxy" ]]; then
+    error "Build failed: binary not found at $INSTALL_DIR/zedproxy"
+  fi
   info "Application built successfully"
   ls -lh "$INSTALL_DIR/zedproxy"
 }
 
 copy_assets() {
   step "Copying templates and static files"
+
+  if [[ ! -d "$BUILD_DIR/templates" ]]; then
+    error "templates directory not found in source: $BUILD_DIR/templates"
+  fi
+  local tmpl_src_count
+  tmpl_src_count=$(find "$BUILD_DIR/templates" -name "*.html" | wc -l)
+  if [[ "$tmpl_src_count" -eq 0 ]]; then
+    error "No HTML templates found in $BUILD_DIR/templates -- cannot install"
+  fi
+
   cp -r "$BUILD_DIR/templates/"* "$INSTALL_DIR/templates/"
+
+  local tmpl_dst_count
+  tmpl_dst_count=$(find "$INSTALL_DIR/templates" -name "*.html" | wc -l)
+  if [[ "$tmpl_dst_count" -eq 0 ]]; then
+    error "Template copy failed -- $INSTALL_DIR/templates contains no HTML files"
+  fi
+  info "Templates copied ($tmpl_dst_count HTML files)"
+
   rsync -a --exclude 'uploads/' "$BUILD_DIR/static/" "$INSTALL_DIR/static/" 2>/dev/null || \
     cp -r "$BUILD_DIR/static/"* "$INSTALL_DIR/static/" 2>/dev/null || true
-  info "Templates and static files copied"
+  info "Static files copied"
 }
 
 install_scripts() {
@@ -303,6 +330,39 @@ WRAPPER
     chown root:root "$INSTALL_DIR/rollback.sh"
     info "rollback.sh installed"
   fi
+}
+
+check_port() {
+  step "Checking port $APP_PORT availability"
+  if ss -tlnp 2>/dev/null | grep -q ":${APP_PORT} "; then
+    local pid proc
+    pid="$(ss -tlnp 2>/dev/null | grep ":${APP_PORT} " | grep -oP 'pid=\K[0-9]+' | head -1 || true)"
+    if [[ -n "$pid" ]]; then
+      proc="$(cat /proc/$pid/comm 2>/dev/null || echo unknown)"
+      if [[ "$proc" == "$SERVICE_NAME" ]] || [[ "$proc" == "zedproxy" ]]; then
+        warn "Stale $SERVICE_NAME process on port $APP_PORT (pid $pid) -- stopping..."
+        systemctl stop "$SERVICE_NAME" 2>/dev/null || kill "$pid" 2>/dev/null || true
+        sleep 2
+        info "Stale process stopped"
+      else
+        error "Port $APP_PORT is already in use by '$proc' (pid $pid). Free this port before installing ZedProxy."
+      fi
+    fi
+  fi
+  info "Port $APP_PORT is available"
+}
+
+run_install_self_test() {
+  step "Running binary self-test"
+  if ! "$INSTALL_DIR/zedproxy" \
+      --db="$INSTALL_DIR/data/zedproxy.db" \
+      --templates="$INSTALL_DIR/templates" \
+      --static="$INSTALL_DIR/static" \
+      --uploads="$INSTALL_DIR/static/uploads" \
+      --self-test 2>&1; then
+    error "Self-test FAILED -- check the output above for missing files, DB issues, or template parse errors"
+  fi
+  info "Self-test passed"
 }
 
 seed_database() {
@@ -481,15 +541,41 @@ setup_firewall() {
 
 start_service() {
   step "Starting service"
-  systemctl start "$SERVICE_NAME"
-  sleep 2
+  systemctl daemon-reload
+  systemctl enable "$SERVICE_NAME" 2>/dev/null || true
+  systemctl restart "$SERVICE_NAME"
+  sleep 3
 
-  if systemctl is-active --quiet "$SERVICE_NAME"; then
-    info "ZedProxy service started successfully"
-  else
+  if ! systemctl is-active --quiet "$SERVICE_NAME"; then
     warn "Service failed to start. Recent logs:"
-    journalctl -u "$SERVICE_NAME" -n 20 --no-pager
-    error "Failed to start ZedProxy service."
+    journalctl -u "$SERVICE_NAME" -n 30 --no-pager
+    warn "Port status:"
+    ss -tlnp | grep ":${APP_PORT}" || warn "Nothing on port $APP_PORT"
+    error "Failed to start ZedProxy service. See logs above."
+  fi
+  info "ZedProxy service is active"
+
+  # Verify HTTP responds
+  local attempts=6 passed=false
+  for i in $(seq 1 $attempts); do
+    local code
+    code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 \
+      "http://127.0.0.1:${APP_PORT}/health" 2>/dev/null || echo '000')"
+    if [[ "$code" == "200" ]]; then
+      info "Health check passed (HTTP $code)"
+      passed=true
+      break
+    fi
+    warn "Attempt $i/$attempts -- /health returned HTTP $code -- waiting 3s..."
+    sleep 3
+  done
+
+  if [[ "$passed" != "true" ]]; then
+    warn "Last 30 service log lines:"
+    journalctl -u "$SERVICE_NAME" -n 30 --no-pager
+    warn "Port status:"
+    ss -tlnp | grep ":${APP_PORT}" || warn "Nothing on port $APP_PORT"
+    error "Service started but /health did not respond with HTTP 200. Check logs above."
   fi
 }
 
@@ -502,28 +588,110 @@ info_telegram_setup() {
   info "Telegram configuration is available in the admin panel."
 }
 
-validate_installation() {
-  step "Validating installation"
+final_verify() {
+  step "Final installation verification"
   local failed=0
 
+  # Required files
   for f in "$INSTALL_DIR/zedproxy" "$INSTALL_DIR/data/zedproxy.db" \
-            "$INSTALL_DIR/update.sh" "$INSTALL_DIR/manage.sh"; do
+            "$INSTALL_DIR/.env" "$INSTALL_DIR/update.sh" "$INSTALL_DIR/manage.sh"; do
     if [[ -f "$f" ]]; then
       info "OK: $f"
     else
-      warn "Missing: $f"
+      warn "MISSING: $f"
       failed=1
     fi
   done
 
+  # Required directories
+  for d in "$INSTALL_DIR/templates" "$INSTALL_DIR/static" \
+            "$INSTALL_DIR/static/uploads" "$INSTALL_DIR/data" \
+            "$INSTALL_DIR/data/backups" "$INSTALL_DIR/logs"; do
+    if [[ -d "$d" ]]; then
+      info "OK dir: $d"
+    else
+      warn "MISSING dir: $d"
+      failed=1
+    fi
+  done
+
+  # Symlink
   if [[ -L /usr/local/bin/zedproxy-manager ]]; then
     info "OK: /usr/local/bin/zedproxy-manager"
   else
     warn "Missing symlink: /usr/local/bin/zedproxy-manager"
   fi
 
+  # Template count
+  local tmpl_count
+  tmpl_count=$(find "$INSTALL_DIR/templates" -name "*.html" 2>/dev/null | wc -l)
+  if [[ "$tmpl_count" -gt 0 ]]; then
+    info "OK: templates ($tmpl_count HTML files)"
+  else
+    warn "FAIL: no HTML templates in $INSTALL_DIR/templates"
+    failed=1
+  fi
+
+  # Full service restart + verify
+  systemctl daemon-reload
+  systemctl enable "$SERVICE_NAME" 2>/dev/null || true
+  systemctl restart "$SERVICE_NAME"
+  sleep 3
+
+  if systemctl is-active --quiet "$SERVICE_NAME"; then
+    info "OK: $SERVICE_NAME service is active"
+  else
+    warn "FAIL: $SERVICE_NAME is not active"
+    journalctl -u "$SERVICE_NAME" -n 20 --no-pager
+    ss -tlnp | grep ":${APP_PORT}" || true
+    failed=1
+  fi
+
+  # /health
+  local code
+  code="$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 \
+    "http://127.0.0.1:${APP_PORT}/health" 2>/dev/null || echo '000')"
+  if [[ "$code" == "200" ]]; then
+    info "OK: /health HTTP $code"
+  else
+    warn "FAIL: /health returned HTTP $code"
+    journalctl -u "$SERVICE_NAME" -n 10 --no-pager
+    failed=1
+  fi
+
+  # Homepage
+  local home_code
+  home_code="$(curl -sI -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 10 \
+    "http://127.0.0.1:${APP_PORT}/" 2>/dev/null || echo '000')"
+  if [[ "$home_code" =~ ^(200|301|302)$ ]]; then
+    info "OK: / HTTP $home_code"
+  else
+    warn "FAIL: / returned HTTP $home_code"
+    failed=1
+  fi
+
+  # Nginx
+  if nginx -t 2>/dev/null; then
+    info "OK: nginx config valid"
+  else
+    warn "FAIL: nginx config has errors:"
+    nginx -t 2>&1
+    failed=1
+  fi
+  systemctl reload nginx 2>/dev/null || true
+
+  # Version metadata
+  local ver_out
+  ver_out="$("$INSTALL_DIR/zedproxy" --db="$INSTALL_DIR/data/zedproxy.db" --version 2>&1 || true)"
+  info "Binary: $ver_out"
+  if echo "$ver_out" | grep -qw "dev"; then
+    warn "Version still shows 'dev' -- ldflags may not have applied correctly"
+  fi
+
   if [[ $failed -eq 1 ]]; then
-    warn "Some files are missing but installation may still work."
+    warn "Some verification checks failed. Review warnings above."
+  else
+    info "All verification checks passed."
   fi
 }
 
@@ -577,11 +745,13 @@ install_scripts
 create_env
 seed_database
 set_permissions
+run_install_self_test
 setup_systemd
+check_port
 setup_nginx
 setup_firewall
 start_service
 setup_ssl
 info_telegram_setup
-validate_installation
+final_verify
 print_result
